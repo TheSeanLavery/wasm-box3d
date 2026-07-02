@@ -62,12 +62,12 @@ const LAB_SCENARIOS = {
     defaults: {
       scenario: 'lineSpawn',
       name: 'line spawn batches',
-      durationMs: 16000,
-      intervalMs: 180,
-      count: 3000,
-      batchSize: 20,
+      durationMs: 160000,
+      intervalMs: 16,
+      count: 30000,
+      batchSize: 100,
       rows: 1,
-      spacing: 0.82,
+      spacing: 0.5,
     },
   },
   dominoSpiral: {
