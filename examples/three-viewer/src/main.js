@@ -41,6 +41,7 @@ const FPS_WINDOW_SIZE = 90;
 const LAB_SAMPLE_MS = 250;
 const LIVE_SNAPSHOT_MS = 1000 / 60;
 const LAB_ARENA_PREVIEW_DEBOUNCE_MS = 180;
+const LAB_ARENA_MARGIN = 10;
 const LAB_CHART = { x: 34, y: 14, width: 292, height: 96 };
 const LAB_SCENARIOS = {
   pileDrop: {
@@ -437,17 +438,58 @@ function labColor(index, channel = 0) {
   };
 }
 
+function getPileFootprint(config) {
+  return Math.max(2, Math.ceil(Math.sqrt(config.batchSize / 4)));
+}
+
+function getPileRadius(config) {
+  return getPileFootprint(config) * 0.78 * 0.5 + 4;
+}
+
+function getPileSpiralCenter(config, pileIndex) {
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const spiralRadius = Math.sqrt(pileIndex) * config.spacing;
+  const spiralAngle = pileIndex * goldenAngle;
+  return {
+    x: Math.cos(spiralAngle) * spiralRadius,
+    z: Math.sin(spiralAngle) * spiralRadius,
+  };
+}
+
+function getPileLayoutBounds(config) {
+  const pileCount = Math.max(1, Math.ceil(config.count / Math.max(1, config.batchSize)));
+  const bounds = {
+    minX: 0,
+    maxX: 0,
+    minZ: 0,
+    maxZ: 0,
+  };
+
+  for (let pileIndex = 0; pileIndex < pileCount; pileIndex += 1) {
+    const center = getPileSpiralCenter(config, pileIndex);
+    bounds.minX = Math.min(bounds.minX, center.x);
+    bounds.maxX = Math.max(bounds.maxX, center.x);
+    bounds.minZ = Math.min(bounds.minZ, center.z);
+    bounds.maxZ = Math.max(bounds.maxZ, center.z);
+  }
+
+  return bounds;
+}
+
 function estimateLabArenaHalfWidth(config) {
   if (config.scenario === 'pileDrop') {
-    const pileCount = Math.ceil(config.count / Math.max(1, config.batchSize));
-    const footprint = Math.max(2, Math.ceil(Math.sqrt(config.batchSize / 4)));
-    const pileRadius = footprint * 0.78 * 0.5 + 8;
-    return Math.max(48, Math.sqrt(Math.max(1, pileCount)) * config.spacing + pileRadius + 16);
+    const bounds = getPileLayoutBounds(config);
+    const pileRadius = getPileRadius(config);
+    return Math.max(
+      48,
+      (bounds.maxX - bounds.minX) * 0.5 + pileRadius + LAB_ARENA_MARGIN,
+      (bounds.maxZ - bounds.minZ) * 0.5 + pileRadius + LAB_ARENA_MARGIN
+    );
   }
   if (config.scenario === 'lineSpawn') {
     const rowWidth = Math.max(1, Math.ceil(Math.sqrt(config.count)));
     const rowCount = Math.ceil(config.count / rowWidth);
-    return Math.max(48, rowWidth * config.spacing * 0.5 + 16, rowCount * config.spacing * 0.5 + 16);
+    return Math.max(48, (rowWidth - 1) * config.spacing * 0.5 + LAB_ARENA_MARGIN, (rowCount - 1) * config.spacing * 0.5 + LAB_ARENA_MARGIN);
   }
   if (config.scenario === 'dominoSpiral' || config.scenario === 'multiSpiral') {
     const scenarioRows = config.scenario === 'multiSpiral' ? config.rows : 1;
@@ -493,11 +535,11 @@ function makePileBatch(config, startIndex, batchSize) {
   const pileIndex = Math.floor(startIndex / Math.max(1, config.batchSize));
   const footprint = Math.max(2, Math.ceil(Math.sqrt(batchSize / 4)));
   const layerHeight = 0.74;
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-  const spiralRadius = Math.sqrt(pileIndex) * config.spacing;
-  const spiralAngle = pileIndex * goldenAngle;
-  const baseX = Math.cos(spiralAngle) * spiralRadius;
-  const baseZ = Math.sin(spiralAngle) * spiralRadius;
+  const bounds = getPileLayoutBounds(config);
+  const pileRadius = getPileRadius(config);
+  const center = getPileSpiralCenter(config, pileIndex);
+  const baseX = center.x + (LAB_ARENA_MARGIN + pileRadius - labArenaHalfWidth - bounds.minX);
+  const baseZ = center.z + (LAB_ARENA_MARGIN + pileRadius - labArenaHalfWidth - bounds.minZ);
   const bodies = [];
 
   for (let i = 0; i < batchSize; i += 1) {
@@ -525,10 +567,12 @@ function makePileBatch(config, startIndex, batchSize) {
 function makeLineBatch(config, startIndex, batchSize) {
   const bodies = [];
   const rowWidth = Math.max(1, Math.ceil(Math.sqrt(config.count)));
+  const startX = -labArenaHalfWidth + LAB_ARENA_MARGIN;
+  const startZ = -labArenaHalfWidth + LAB_ARENA_MARGIN;
   for (let i = 0; i < batchSize; i += 1) {
     const index = startIndex + i;
-    const x = (index % rowWidth) * config.spacing - rowWidth * config.spacing * 0.5;
-    const z = Math.floor(index / rowWidth) * config.spacing - 8;
+    const x = startX + (index % rowWidth) * config.spacing;
+    const z = startZ + Math.floor(index / rowWidth) * config.spacing;
     bodies.push({
       bodyType: 'dynamic',
       position: { x, y: 3.8 + (index % 4) * 0.08, z },
