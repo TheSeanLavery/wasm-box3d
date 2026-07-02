@@ -6,10 +6,16 @@ const ROOT = path.resolve(__dirname, '../..');
 const OUTPUT_DIR = path.join(ROOT, 'bench-results');
 const SERVER_URL = process.env.WB3_BENCH_URL ?? 'http://127.0.0.1:5300/';
 const ENGINES = (process.env.WB3_BENCH_ENGINES ?? 'box3d,rapier').split(',').map((engine) => engine.trim()).filter(Boolean);
-const LEVELS = (process.env.WB3_BENCH_LEVELS ?? '64,1024,4096,16384,65536,262144,1000000')
-  .split(',')
-  .map((level) => Number(level.trim()))
-  .filter((level) => Number.isFinite(level) && level > 0);
+const DEFAULT_LEVELS = [
+  100,
+  500,
+  1000,
+  ...Array.from({ length: 24 }, (_, index) => (index + 1) * 5000),
+];
+const LEVELS = (process.env.WB3_BENCH_LEVELS
+  ? process.env.WB3_BENCH_LEVELS.split(',').map((level) => Number(level.trim()))
+  : DEFAULT_LEVELS
+).filter((level) => Number.isFinite(level) && level > 0);
 const WARMUP_MS = Number(process.env.WB3_BENCH_WARMUP_MS ?? 1000);
 const SAMPLE_MS = Number(process.env.WB3_BENCH_SAMPLE_MS ?? 3000);
 const SAMPLE_INTERVAL_MS = Number(process.env.WB3_BENCH_INTERVAL_MS ?? 250);
