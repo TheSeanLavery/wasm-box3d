@@ -1,0 +1,45 @@
+{
+  "name": "@threecyborgs/wasm-box3d-three",
+  "version": "0.1.0",
+  "description": "Three.js helpers for rendering @threecyborgs/wasm-box3d bodies.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://github.com/TheSeanLavery/wasm-box3d#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheSeanLavery/wasm-box3d.git",
+    "directory": "packages/wasm-box3d-three"
+  },
+  "bugs": {
+    "url": "https://github.com/TheSeanLavery/wasm-box3d/issues"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/copy-package.mjs src dist",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@threecyborgs/wasm-box3d": "0.1.0"
+  },
+  "peerDependencies": {
+    "three": ">=0.160.0"
+  },
+  "keywords": [
+    "box3d",
+    "three",
+    "threejs",
+    "wasm",
+    "physics"
+  ]
+}
+

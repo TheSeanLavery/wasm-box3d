@@ -1,0 +1,41 @@
+{
+  "name": "@threecyborgs/wasm-box3d",
+  "version": "0.1.0",
+  "description": "WebAssembly build and JavaScript loader for Box3D.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://github.com/TheSeanLavery/wasm-box3d#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TheSeanLavery/wasm-box3d.git",
+    "directory": "packages/wasm-box3d"
+  },
+  "bugs": {
+    "url": "https://github.com/TheSeanLavery/wasm-box3d/issues"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./wasm": "./dist/wasm/box3d-wasm.wasm"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build:wasm": "export EMSDK_PYTHON=${EMSDK_PYTHON:-/opt/homebrew/opt/python@3.14/bin/python3.14}; emcmake cmake -S . -B ../../build/wasm-box3d -DCMAKE_BUILD_TYPE=Release && cmake --build ../../build/wasm-box3d --config Release",
+    "build": "node ../../scripts/copy-package.mjs src dist",
+    "prepack": "npm run build:wasm && npm run build"
+  },
+  "keywords": [
+    "box3d",
+    "wasm",
+    "webassembly",
+    "physics",
+    "3d"
+  ]
+}
+

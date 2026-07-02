@@ -1,0 +1,342 @@
+// SPDX-FileCopyrightText: 2026
+// SPDX-License-Identifier: MIT
+
+#include "box3d/box3d.h"
+
+#if defined( __EMSCRIPTEN__ )
+#include <emscripten/emscripten.h>
+#else
+#define EMSCRIPTEN_KEEPALIVE
+#endif
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#define MAX_RENDER_BODIES 128
+#define BODY_FLOAT_STRIDE 14
+
+enum
+{
+	RENDER_BOX = 0,
+	RENDER_SPHERE = 1,
+};
+
+typedef struct RenderBody
+{
+	b3BodyId bodyId;
+	int shapeType;
+	float hx;
+	float hy;
+	float hz;
+	float radius;
+	float r;
+	float g;
+	float b;
+} RenderBody;
+
+static b3WorldId g_worldId = B3_NULL_ID;
+static RenderBody g_bodies[MAX_RENDER_BODIES];
+static float g_bodyFloats[MAX_RENDER_BODIES * BODY_FLOAT_STRIDE];
+static int g_bodyCount = 0;
+static int g_stepCount = 0;
+static int g_sceneIndex = 0;
+static bool g_gravityEnabled = true;
+
+static void clear_world( void )
+{
+	if ( b3World_IsValid( g_worldId ) )
+	{
+		b3DestroyWorld( g_worldId );
+	}
+
+	g_worldId = b3_nullWorldId;
+	g_bodyCount = 0;
+	g_stepCount = 0;
+}
+
+static int add_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float density, b3Vec3 color, b3Vec3 velocity )
+{
+	if ( g_bodyCount >= MAX_RENDER_BODIES )
+	{
+		return -1;
+	}
+
+	b3BodyDef bodyDef = b3DefaultBodyDef();
+	bodyDef.type = type;
+	bodyDef.position = (b3Pos){ position.x, position.y, position.z };
+	bodyDef.linearVelocity = velocity;
+
+	b3BodyId bodyId = b3CreateBody( g_worldId, &bodyDef );
+	b3ShapeDef shapeDef = b3DefaultShapeDef();
+	shapeDef.density = density;
+	shapeDef.baseMaterial.friction = 0.62f;
+	shapeDef.baseMaterial.restitution = type == b3_dynamicBody ? 0.08f : 0.0f;
+
+	b3BoxHull hull = b3MakeBoxHull( halfExtents.x, halfExtents.y, halfExtents.z );
+	b3CreateHullShape( bodyId, &shapeDef, &hull.base );
+
+	RenderBody* renderBody = g_bodies + g_bodyCount;
+	renderBody->bodyId = bodyId;
+	renderBody->shapeType = RENDER_BOX;
+	renderBody->hx = halfExtents.x;
+	renderBody->hy = halfExtents.y;
+	renderBody->hz = halfExtents.z;
+	renderBody->radius = 0.0f;
+	renderBody->r = color.x;
+	renderBody->g = color.y;
+	renderBody->b = color.z;
+
+	return g_bodyCount++;
+}
+
+static int add_sphere( b3BodyType type, b3Vec3 position, float radius, float density, b3Vec3 color, b3Vec3 velocity )
+{
+	if ( g_bodyCount >= MAX_RENDER_BODIES )
+	{
+		return -1;
+	}
+
+	b3BodyDef bodyDef = b3DefaultBodyDef();
+	bodyDef.type = type;
+	bodyDef.position = (b3Pos){ position.x, position.y, position.z };
+	bodyDef.linearVelocity = velocity;
+
+	b3BodyId bodyId = b3CreateBody( g_worldId, &bodyDef );
+	b3ShapeDef shapeDef = b3DefaultShapeDef();
+	shapeDef.density = density;
+	shapeDef.baseMaterial.friction = 0.45f;
+	shapeDef.baseMaterial.restitution = 0.18f;
+
+	b3Sphere sphere = { b3Vec3_zero, radius };
+	b3CreateSphereShape( bodyId, &shapeDef, &sphere );
+
+	RenderBody* renderBody = g_bodies + g_bodyCount;
+	renderBody->bodyId = bodyId;
+	renderBody->shapeType = RENDER_SPHERE;
+	renderBody->hx = radius;
+	renderBody->hy = radius;
+	renderBody->hz = radius;
+	renderBody->radius = radius;
+	renderBody->r = color.x;
+	renderBody->g = color.y;
+	renderBody->b = color.z;
+
+	return g_bodyCount++;
+}
+
+static void add_bounds( void )
+{
+	add_box( b3_staticBody, (b3Vec3){ 0.0f, -0.55f, 0.0f }, (b3Vec3){ 9.0f, 0.5f, 9.0f }, 0.0f,
+			 (b3Vec3){ 0.33f, 0.36f, 0.40f }, b3Vec3_zero );
+	add_box( b3_staticBody, (b3Vec3){ -9.25f, 2.0f, 0.0f }, (b3Vec3){ 0.25f, 2.5f, 9.0f }, 0.0f,
+			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
+	add_box( b3_staticBody, (b3Vec3){ 9.25f, 2.0f, 0.0f }, (b3Vec3){ 0.25f, 2.5f, 9.0f }, 0.0f,
+			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
+	add_box( b3_staticBody, (b3Vec3){ 0.0f, 2.0f, -9.25f }, (b3Vec3){ 9.0f, 2.5f, 0.25f }, 0.0f,
+			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
+	add_box( b3_staticBody, (b3Vec3){ 0.0f, 2.0f, 9.25f }, (b3Vec3){ 9.0f, 2.5f, 0.25f }, 0.0f,
+			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
+}
+
+static void add_stack_scene( void )
+{
+	add_bounds();
+
+	const b3Vec3 colors[] = {
+		{ 0.93f, 0.34f, 0.25f },
+		{ 0.17f, 0.61f, 0.74f },
+		{ 0.96f, 0.72f, 0.19f },
+		{ 0.38f, 0.68f, 0.34f },
+	};
+
+	for ( int y = 0; y < 7; ++y )
+	{
+		for ( int x = 0; x < 5; ++x )
+		{
+			float jitter = ( ( x + y ) % 2 == 0 ) ? 0.08f : -0.08f;
+			b3Vec3 p = { -2.4f + x * 1.2f + jitter, 0.55f + y * 1.08f, 0.0f };
+			add_box( b3_dynamicBody, p, (b3Vec3){ 0.5f, 0.5f, 0.5f }, 1.0f, colors[( x + y ) % 4], b3Vec3_zero );
+		}
+	}
+}
+
+static void add_sphere_scene( void )
+{
+	add_bounds();
+
+	for ( int i = 0; i < 42; ++i )
+	{
+		float x = -5.0f + (float)( i % 7 ) * 1.55f;
+		float z = -3.8f + (float)( i / 7 ) * 1.25f;
+		float y = 1.0f + (float)( i / 7 ) * 1.1f;
+		float radius = 0.32f + 0.06f * (float)( i % 3 );
+		b3Vec3 color = { 0.22f + 0.05f * (float)( i % 4 ), 0.44f + 0.06f * (float)( i % 5 ), 0.86f };
+		add_sphere( b3_dynamicBody, (b3Vec3){ x, y, z }, radius, 1.0f, color, b3Vec3_zero );
+	}
+}
+
+static void add_mixed_scene( void )
+{
+	add_bounds();
+	add_box( b3_staticBody, (b3Vec3){ 0.0f, 1.0f, 0.0f }, (b3Vec3){ 3.3f, 0.18f, 2.2f }, 0.0f,
+			 (b3Vec3){ 0.46f, 0.40f, 0.32f }, b3Vec3_zero );
+
+	for ( int i = 0; i < 48; ++i )
+	{
+		float x = -4.8f + (float)( i % 8 ) * 1.35f;
+		float z = -4.2f + (float)( ( i * 5 ) % 9 ) * 1.0f;
+		float y = 5.0f + (float)( i / 8 ) * 0.85f;
+		b3Vec3 velocity = { ( ( i % 2 ) ? -1.2f : 1.2f ), 0.0f, ( ( i % 3 ) - 1 ) * 0.55f };
+
+		if ( i % 3 == 0 )
+		{
+			add_sphere( b3_dynamicBody, (b3Vec3){ x, y, z }, 0.42f, 1.0f, (b3Vec3){ 0.90f, 0.38f, 0.26f }, velocity );
+		}
+		else
+		{
+			add_box( b3_dynamicBody, (b3Vec3){ x, y, z }, (b3Vec3){ 0.34f, 0.47f, 0.34f }, 1.0f,
+					 (b3Vec3){ 0.25f, 0.66f, 0.54f }, velocity );
+		}
+	}
+}
+
+static void sync_render_data( void )
+{
+	for ( int i = 0; i < g_bodyCount; ++i )
+	{
+		RenderBody* body = g_bodies + i;
+		b3WorldTransform transform = b3Body_GetTransform( body->bodyId );
+		float* out = g_bodyFloats + i * BODY_FLOAT_STRIDE;
+
+		out[0] = (float)transform.p.x;
+		out[1] = (float)transform.p.y;
+		out[2] = (float)transform.p.z;
+		out[3] = transform.q.v.x;
+		out[4] = transform.q.v.y;
+		out[5] = transform.q.v.z;
+		out[6] = transform.q.s;
+		out[7] = body->shapeType == RENDER_BOX ? body->hx * 2.0f : body->radius * 2.0f;
+		out[8] = body->shapeType == RENDER_BOX ? body->hy * 2.0f : body->radius * 2.0f;
+		out[9] = body->shapeType == RENDER_BOX ? body->hz * 2.0f : body->radius * 2.0f;
+		out[10] = (float)body->shapeType;
+		out[11] = body->r;
+		out[12] = body->g;
+		out[13] = body->b;
+	}
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_reset( int sceneIndex )
+{
+	clear_world();
+
+	b3WorldDef worldDef = b3DefaultWorldDef();
+	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
+	worldDef.workerCount = 1;
+	g_worldId = b3CreateWorld( &worldDef );
+	g_sceneIndex = sceneIndex % 3;
+
+	if ( g_sceneIndex == 1 )
+	{
+		add_sphere_scene();
+	}
+	else if ( g_sceneIndex == 2 )
+	{
+		add_mixed_scene();
+	}
+	else
+	{
+		add_stack_scene();
+	}
+
+	sync_render_data();
+	return g_bodyCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void wb3_step( float dt, int substeps )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return;
+	}
+
+	float step = dt;
+	if ( step <= 0.0f || step > 0.05f )
+	{
+		step = 1.0f / 60.0f;
+	}
+
+	int solverSubsteps = substeps < 1 ? 1 : ( substeps > 16 ? 16 : substeps );
+	b3World_Step( g_worldId, step, solverSubsteps );
+	g_stepCount += 1;
+	sync_render_data();
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_spawn_box( float x, float y, float z, float vx, float vy, float vz )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return -1;
+	}
+
+	int index = add_box( b3_dynamicBody, (b3Vec3){ x, y, z }, (b3Vec3){ 0.45f, 0.45f, 0.45f }, 1.0f,
+						 (b3Vec3){ 0.94f, 0.60f, 0.22f }, (b3Vec3){ vx, vy, vz } );
+	sync_render_data();
+	return index;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_spawn_sphere( float x, float y, float z, float vx, float vy, float vz )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return -1;
+	}
+
+	int index = add_sphere( b3_dynamicBody, (b3Vec3){ x, y, z }, 0.45f, 1.0f, (b3Vec3){ 0.30f, 0.63f, 0.95f },
+							(b3Vec3){ vx, vy, vz } );
+	sync_render_data();
+	return index;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void wb3_set_gravity_enabled( int enabled )
+{
+	g_gravityEnabled = enabled != 0;
+	if ( b3World_IsValid( g_worldId ) )
+	{
+		b3World_SetGravity( g_worldId, g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero );
+	}
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_body_count( void )
+{
+	return g_bodyCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_body_stride( void )
+{
+	return BODY_FLOAT_STRIDE;
+}
+
+EMSCRIPTEN_KEEPALIVE
+float* wb3_get_body_data( void )
+{
+	return g_bodyFloats;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_step_count( void )
+{
+	return g_stepCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_max_bodies( void )
+{
+	return MAX_RENDER_BODIES;
+}

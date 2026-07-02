@@ -1,0 +1,25 @@
+{
+  "name": "wasm-box3d-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "examples/*"
+  ],
+  "scripts": {
+    "build:wasm": "npm run build:wasm -w @threecyborgs/wasm-box3d",
+    "build:packages": "npm run build -w @threecyborgs/wasm-box3d && npm run build -w @threecyborgs/wasm-box3d-three",
+    "build:example": "npm run build -w wasm-box3d-three-viewer",
+    "build": "npm run build:wasm && npm run build:packages && npm run build:example",
+    "dev": "npm run dev -w wasm-box3d-three-viewer",
+    "verify:browser": "npm run verify:browser -w wasm-box3d-three-viewer",
+    "pack:dry": "npm pack --dry-run -w @threecyborgs/wasm-box3d && npm pack --dry-run -w @threecyborgs/wasm-box3d-three"
+  },
+  "devDependencies": {
+    "playwright": "^1.54.0",
+    "pngjs": "^7.0.0",
+    "vite": "^7.0.0"
+  }
+}
+

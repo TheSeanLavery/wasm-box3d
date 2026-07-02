@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wasm Box3D</title>
+  </head>
+  <body>
+    <main id="app">
+      <canvas id="scene"></canvas>
+      <section class="toolbar" aria-label="Simulation controls">
+        <div class="brand">
+          <span>Box3D WASM</span>
+          <strong id="body-count">0 bodies</strong>
+        </div>
+        <div class="controls">
+          <button id="scene-stack" type="button">Stack</button>
+          <button id="scene-spheres" type="button">Spheres</button>
+          <button id="scene-mixed" type="button">Mixed</button>
+          <button id="spawn-box" type="button">Box</button>
+          <button id="spawn-sphere" type="button">Sphere</button>
+          <button id="toggle-pause" type="button">Pause</button>
+          <label>
+            <input id="gravity" type="checkbox" checked />
+            Gravity
+          </label>
+        </div>
+      </section>
+      <aside class="readout" aria-label="Simulation status">
+        <span id="step-count">step 0</span>
+        <span id="wasm-status">loading wasm</span>
+      </aside>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

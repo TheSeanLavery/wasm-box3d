@@ -1,0 +1,32 @@
+name: Publish npm
+
+on:
+  release:
+    types:
+      - published
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          submodules: recursive
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22.14.0
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - uses: mymindstorm/setup-emsdk@v14
+        with:
+          version: 6.0.1
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - run: npm run build
+      - run: npm publish --workspace @threecyborgs/wasm-box3d --access public
+      - run: npm publish --workspace @threecyborgs/wasm-box3d-three --access public

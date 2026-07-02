@@ -1,0 +1,21 @@
+{
+  "name": "wasm-box3d-three-viewer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5300",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 5300",
+    "verify:browser": "node verify-browser.cjs"
+  },
+  "dependencies": {
+    "@threecyborgs/wasm-box3d": "0.1.0",
+    "@threecyborgs/wasm-box3d-three": "0.1.0",
+    "three": "^0.179.1"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}
+
