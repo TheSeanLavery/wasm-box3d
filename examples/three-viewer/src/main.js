@@ -112,7 +112,6 @@ function createWorkerPhysics(sceneIndex) {
     stepCount: 0,
     stressDynamicCount: 0,
     lastStressRequest: 0,
-    stepGuarded: false,
     maxBodies: 0,
     physicsHz: 0,
     physicsStepMs: 0,
@@ -202,9 +201,6 @@ function createWorkerPhysics(sceneIndex) {
     getLastStressRequest() {
       return state.lastStressRequest;
     },
-    getStepGuarded() {
-      return state.stepGuarded === true;
-    },
     getMaxBodies() {
       return state.maxBodies;
     },
@@ -278,7 +274,6 @@ function updateReadout() {
     lastForceSleepMs: physics.getLastForceSleepMs(),
     forcedSleepBodies: physics.getForcedSleepBodies(),
     threadsEnabled: physics.getThreadsEnabled(),
-    stepGuarded: physics.getStepGuarded(),
     engine: physicsEngine,
     benchmarkMode,
     stressStatus: stressStatusEl.textContent,
@@ -332,13 +327,12 @@ function sampleMotionForTest() {
     physicsStepMs: physics.getPhysicsStepMs(),
     stepCount: physics.getStepCount(),
     stressStatus: stressStatusEl.textContent,
-    stepGuarded: physics.getStepGuarded(),
   };
 }
 
 function getStressLabel() {
   if (!stressRun.active) {
-    return physics?.getStepGuarded() ? `${stressRun.result} (guarded native step)` : stressRun.result;
+    return stressRun.result;
   }
 
   const measured = stressRun.sampleFrames > 0 && stressRun.lastAverage > 0 ? stressRun.lastAverage.toFixed(1) : 'warming';

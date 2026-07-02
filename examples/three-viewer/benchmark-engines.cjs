@@ -15,11 +15,16 @@ const SAMPLE_MS = Number(process.env.WB3_BENCH_SAMPLE_MS ?? 3000);
 const SAMPLE_INTERVAL_MS = Number(process.env.WB3_BENCH_INTERVAL_MS ?? 250);
 const MIN_FPS_FLOOR = Number(process.env.WB3_BENCH_MIN_FPS ?? 20);
 const RESET_TIMEOUT_MS = Number(process.env.WB3_BENCH_RESET_TIMEOUT_MS ?? 180000);
-const LEVEL_TIMEOUT_MS = Number(process.env.WB3_BENCH_LEVEL_TIMEOUT_MS ?? Math.max(RESET_TIMEOUT_MS + WARMUP_MS + SAMPLE_MS + 30000, 240000));
+const FIRST_STEP_TIMEOUT_MS = Number(process.env.WB3_BENCH_FIRST_STEP_TIMEOUT_MS ?? 600000);
+const LEVEL_TIMEOUT_MS = Number(
+  process.env.WB3_BENCH_LEVEL_TIMEOUT_MS ??
+    Math.max(RESET_TIMEOUT_MS + FIRST_STEP_TIMEOUT_MS + WARMUP_MS + SAMPLE_MS + 30000, 240000)
+);
 const STOP_ON_FLOOR = process.env.WB3_BENCH_STOP_ON_FLOOR === '1';
 const SNAPSHOT_INTERVAL_MS = Number(process.env.WB3_BENCH_SNAPSHOT_MS ?? 250);
 const HEADLESS = process.env.WB3_BENCH_HEADLESS === '1';
 const THREADS = process.env.WB3_BENCH_THREADS ?? 'auto';
+const REQUIRE_FIRST_STEP = process.env.WB3_BENCH_REQUIRE_FIRST_STEP !== '0';
 
 function percentile(values, p) {
   const sorted = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
@@ -86,6 +91,12 @@ async function runLevel(page, engine, level) {
     { timeout: RESET_TIMEOUT_MS }
   );
   const resetWallMs = Date.now() - resetStartedAt;
+  const resetProfile = await page.evaluate(() => ({ ...window.__wasmBox3DProfile }));
+  const firstStepStartedAt = Date.now();
+  if (REQUIRE_FIRST_STEP && (resetProfile.stepCount ?? 0) <= 0) {
+    await page.waitForFunction(() => (window.__wasmBox3DProfile?.stepCount ?? 0) > 0, null, { timeout: FIRST_STEP_TIMEOUT_MS });
+  }
+  const firstStepWallMs = Date.now() - firstStepStartedAt;
   await page.waitForTimeout(WARMUP_MS);
 
   const startedAt = Date.now();
@@ -100,10 +111,10 @@ async function runLevel(page, engine, level) {
       bodies: sample.bodies,
       awakeBodies: sample.awakeBodies,
       renderFps: sample.renderFps,
-      simFps: sample.stepGuarded ? 0 : sample.physicsFps,
-      physicsStepMs: sample.stepGuarded ? 0 : sample.physicsStepMs,
-      physicsCapacityFps: sample.stepGuarded ? 0 : sample.physicsCapacityFps,
-      simCapacityFps: sample.stepGuarded ? 0 : sample.physicsCapacityFps,
+      simFps: sample.physicsFps,
+      physicsStepMs: sample.physicsStepMs,
+      physicsCapacityFps: sample.physicsCapacityFps,
+      simCapacityFps: sample.physicsCapacityFps,
       renderSyncMs: sample.renderSyncMs,
       syncMs: sample.syncMs,
       renderMs: sample.renderMs,
@@ -111,20 +122,18 @@ async function runLevel(page, engine, level) {
       snapshotBytes: sample.snapshotBytes,
       snapshotMB: sample.snapshotBytes / (1024 * 1024),
       threadsEnabled: sample.threadsEnabled,
-      stepGuarded: sample.stepGuarded === true,
       stressStatus: sample.stressStatus,
       stepCount: sample.stepCount,
       resetWallMs,
+      firstStepWallMs,
     });
   }
 
   const renderFpsValues = positive(samples.map((sample) => sample.renderFps));
   const simFpsValues = positive(samples.map((sample) => sample.simFps));
   const simCapacityValues = positive(samples.map((sample) => sample.simCapacityFps));
-  const stepGuarded = samples.some((sample) => sample.stepGuarded);
-  const renderFloorHit = renderFpsValues.length === 0 || Math.min(...renderFpsValues) < MIN_FPS_FLOOR;
-  const simFloorHit = !stepGuarded && (simCapacityValues.length === 0 || Math.min(...simCapacityValues) < MIN_FPS_FLOOR);
-  const floorHit = renderFloorHit || simFloorHit;
+  const floorHit =
+    Math.min(...renderFpsValues) < MIN_FPS_FLOOR || simCapacityValues.length === 0 || Math.min(...simCapacityValues) < MIN_FPS_FLOOR;
   const summary = {
     ok: true,
     error: '',
@@ -132,10 +141,10 @@ async function runLevel(page, engine, level) {
     requestedBodies: level,
     bodies: samples.at(-1)?.bodies ?? 0,
     threadsEnabled: samples.some((sample) => sample.threadsEnabled),
-    stepGuarded,
     estimatedSnapshotMB: estimateSnapshotBytes(level + 5) / (1024 * 1024),
     observedSnapshotMB: (samples.at(-1)?.snapshotBytes ?? 0) / (1024 * 1024),
     resetWallMs,
+    firstStepWallMs,
     sampleCount: samples.length,
     floorHit,
     avgRenderFps: average(renderFpsValues),
@@ -165,10 +174,10 @@ function makeFailureSummary(engine, level, error) {
     requestedBodies: level,
     bodies: 0,
     threadsEnabled: false,
-    stepGuarded: false,
     estimatedSnapshotMB: estimateSnapshotBytes(level + 5) / (1024 * 1024),
     observedSnapshotMB: 0,
     resetWallMs: 0,
+    firstStepWallMs: 0,
     sampleCount: 0,
     floorHit: false,
     avgRenderFps: 0,
@@ -207,8 +216,8 @@ function writeCsv(samples, filePath) {
     'snapshotBytes',
     'snapshotMB',
     'threadsEnabled',
-    'stepGuarded',
     'resetWallMs',
+    'firstStepWallMs',
     'stepCount',
   ];
   const rows = [columns.join(',')];
@@ -244,16 +253,6 @@ function formatMetric(value, suffix = '') {
   return Number.isFinite(value) ? `${value.toFixed(1)}${suffix}` : '';
 }
 
-function statusLabel(row) {
-  if (!row.ok) {
-    return 'failed';
-  }
-  if (row.stepGuarded) {
-    return row.floorHit ? 'guarded floor' : 'guarded';
-  }
-  return row.floorHit ? 'floor' : 'ok';
-}
-
 function sortSummaryRows(summary) {
   return [...summary].sort((a, b) => a.requestedBodies - b.requestedBodies || engineRank(a.engine) - engineRank(b.engine));
 }
@@ -263,7 +262,7 @@ function makeSamplePoints(points, width, height, xMax, yMax, valueKey, color, la
     .map((point) => {
       const x = (point.tMs / xMax) * width;
       const y = height - (Math.max(0, point[valueKey]) / yMax) * height;
-      const title = `${label} ${point.requestedBodies.toLocaleString()} bodies${point.stepGuarded ? ' (guarded native step)' : ''}\n${Math.round(point.tMs)}ms\n${valueKey}: ${formatMetric(point[valueKey], ' fps')}\nrender: ${formatMetric(point.renderFps, ' fps')}\nsim capacity: ${formatMetric(point.simCapacityFps, ' fps')}\nsync: ${formatMetric(point.syncMs, ' ms')}\nsnapshot: ${formatMetric(point.snapshotMB, ' MB')}`;
+      const title = `${label} ${point.requestedBodies.toLocaleString()} bodies\n${Math.round(point.tMs)}ms\n${valueKey}: ${formatMetric(point[valueKey], ' fps')}\nrender: ${formatMetric(point.renderFps, ' fps')}\nsim capacity: ${formatMetric(point.simCapacityFps, ' fps')}\nsync: ${formatMetric(point.syncMs, ' ms')}\nsnapshot: ${formatMetric(point.snapshotMB, ' MB')}`;
       return `<circle class="sample-point" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${color}" tabindex="0"><title>${escapeHtml(title)}</title></circle>`;
     })
     .join('\n');
@@ -336,15 +335,16 @@ function makeChartHtml(result) {
     .map((row) => {
       const levelIndex = levels.indexOf(row.requestedBodies);
       return `
-        <tr class="engine-row ${row.engine} pair-${levelIndex % 2 === 0 ? 'even' : 'odd'} ${row.engine === 'box3d' ? 'pair-start' : 'pair-end'} ${row.stepGuarded ? 'guarded' : ''}">
+        <tr class="engine-row ${row.engine} pair-${levelIndex % 2 === 0 ? 'even' : 'odd'} ${row.engine === 'box3d' ? 'pair-start' : 'pair-end'}">
           <td><span class="engine-chip ${row.engine}">${engineLabel(row.engine)}</span></td>
-          <td>${statusLabel(row)}</td>
+          <td>${row.ok ? (row.floorHit ? 'floor' : 'ok') : 'failed'}</td>
           <td class="issue-cell">${escapeHtml(row.error)}</td>
           <td>${row.requestedBodies.toLocaleString()}</td>
           <td>${Math.round(row.bodies).toLocaleString()}</td>
           <td>${row.estimatedSnapshotMB.toFixed(1)}</td>
           <td>${row.observedSnapshotMB.toFixed(1)}</td>
           <td>${Math.round(row.resetWallMs).toLocaleString()}</td>
+          <td>${Math.round(row.firstStepWallMs).toLocaleString()}</td>
           <td>${row.avgRenderFps.toFixed(1)}</td>
           <td>${row.p50RenderFps.toFixed(1)}</td>
           <td>${row.avgSimCapacityFps.toFixed(1)}</td>
@@ -409,8 +409,7 @@ function makeChartHtml(result) {
   <body>
     <main>
       <h1>WasmBox3D Engine Benchmark</h1>
-      <p>Generated ${new Date(result.generatedAt).toLocaleString()} from ${result.headed ? 'headed' : 'headless'} Playwright against ${SERVER_URL}. Benchmark mode uses a dense stacked stress layout, disables the Box3D worker's forced-sleep shortcut, and throttles large body snapshots to ${SNAPSHOT_INTERVAL_MS}ms.</p>
-      <p>Box3D rows marked guarded constructed and rendered the requested bodies, but skipped the native solver step at that scale to avoid Box3D allocation aborts.</p>
+      <p>Generated ${new Date(result.generatedAt).toLocaleString()} from headed Playwright against ${SERVER_URL}. Benchmark mode uses a dense stacked stress layout, disables the Box3D worker's forced-sleep shortcut, and throttles large body snapshots to ${SNAPSHOT_INTERVAL_MS}ms.</p>
       <div class="legend">
         <span class="key"><span class="swatch" style="--color:#58a6ff"></span>Box3D render</span>
         <span class="key"><span class="swatch" style="--color:#f59e0b"></span>Rapier render</span>
@@ -418,7 +417,7 @@ function makeChartHtml(result) {
       <table>
         <thead>
           <tr>
-            <th>Engine</th><th>Status</th><th>Issue</th><th>Requested</th><th>Bodies</th><th>Est Snapshot MB</th><th>Seen Snapshot MB</th><th>Reset ms</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th>
+            <th>Engine</th><th>Status</th><th>Issue</th><th>Requested</th><th>Bodies</th><th>Est Snapshot MB</th><th>Seen Snapshot MB</th><th>Reset ms</th><th>First Step ms</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -476,7 +475,7 @@ async function main() {
         samples.push(...result.samples);
         summary.push(result.summary);
         console.log(
-          `${engine} ${level} bodies: render ${result.summary.avgRenderFps.toFixed(1)} fps, sim capacity ${result.summary.avgSimCapacityFps.toFixed(1)} fps, reset ${Math.round(result.summary.resetWallMs)}ms`
+          `${engine} ${level} bodies: render ${result.summary.avgRenderFps.toFixed(1)} fps, sim capacity ${result.summary.avgSimCapacityFps.toFixed(1)} fps, reset ${Math.round(result.summary.resetWallMs)}ms, first step ${Math.round(result.summary.firstStepWallMs)}ms`
         );
         if (result.summary.floorHit) {
           console.log(`${engine} ${level} hit minimum FPS floor ${MIN_FPS_FLOOR}`);
@@ -515,6 +514,8 @@ async function main() {
     sampleIntervalMs: SAMPLE_INTERVAL_MS,
     snapshotIntervalMs: SNAPSHOT_INTERVAL_MS,
     resetTimeoutMs: RESET_TIMEOUT_MS,
+    firstStepTimeoutMs: FIRST_STEP_TIMEOUT_MS,
+    requireFirstStep: REQUIRE_FIRST_STEP,
     levelTimeoutMs: LEVEL_TIMEOUT_MS,
     minFpsFloor: MIN_FPS_FLOOR,
     stopOnFloor: STOP_ON_FLOOR,

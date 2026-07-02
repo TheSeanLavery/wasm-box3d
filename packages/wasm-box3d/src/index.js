@@ -61,11 +61,10 @@ export async function createBox3DDemo(options = {}) {
     getBodyCountRaw: module.cwrap('wb3_get_body_count', 'number', []),
     getAwakeBodyCountRaw: module.cwrap('wb3_get_awake_body_count', 'number', []),
     getBodyStrideRaw: module.cwrap('wb3_get_body_stride', 'number', []),
-    getBodyDataRaw: module.cwrap('wb3_get_body_data', 'number', []),
+    getBodyDataRaw: module.cwrap('wb3_get_body_data', 'pointer', []),
     getStepCountRaw: module.cwrap('wb3_get_step_count', 'number', []),
     getStressDynamicCountRaw: module.cwrap('wb3_get_stress_dynamic_count', 'number', []),
     getLastStressRequestRaw: module.cwrap('wb3_get_last_stress_request', 'number', []),
-    getStepGuardedRaw: module.cwrap('wb3_get_step_guarded', 'number', []),
     getMaxBodiesRaw: module.cwrap('wb3_get_max_bodies', 'number', []),
   };
 
@@ -125,7 +124,7 @@ export async function createBox3DDemo(options = {}) {
       const count = api.getBodyCountRaw();
       const stride = api.getBodyStrideRaw();
       const pointer = api.getBodyDataRaw();
-      return new Float32Array(module.HEAPF32.buffer, pointer, count * stride);
+      return new Float32Array(module.HEAPF32.buffer, Number(pointer), count * stride);
     },
     getStepCount() {
       return api.getStepCountRaw();
@@ -135,9 +134,6 @@ export async function createBox3DDemo(options = {}) {
     },
     getLastStressRequest() {
       return api.getLastStressRequestRaw();
-    },
-    getStepGuarded() {
-      return api.getStepGuardedRaw() !== 0;
     },
     getMaxBodies() {
       return api.getMaxBodiesRaw();
