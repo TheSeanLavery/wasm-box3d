@@ -320,6 +320,71 @@ function sortSummaryRows(summary) {
   return [...summary].sort((a, b) => a.requestedBodies - b.requestedBodies || engineRank(a.engine) - engineRank(b.engine));
 }
 
+function compareMetric(box3d, rapier, key, { higherIsBetter = true, suffix = '', decimals = 1 } = {}) {
+  const boxValue = box3d?.[key];
+  const rapierValue = rapier?.[key];
+  if (!Number.isFinite(boxValue) || !Number.isFinite(rapierValue)) {
+    return '';
+  }
+
+  const maxValue = Math.max(Math.abs(boxValue), Math.abs(rapierValue), 1);
+  if (Math.abs(boxValue - rapierValue) <= maxValue * 0.01) {
+    return `<span class="compare-chip tie"><span>Tie</span><small>${formatMetric(boxValue, suffix)}</small></span>`;
+  }
+
+  const boxWins = higherIsBetter ? boxValue > rapierValue : boxValue < rapierValue;
+  const winner = boxWins ? 'Box3D' : 'Rapier';
+  const winnerValue = boxWins ? boxValue : rapierValue;
+  const loserValue = boxWins ? rapierValue : boxValue;
+  const ratio = loserValue === 0 ? Infinity : Math.abs(winnerValue / loserValue);
+  const betterRatio = higherIsBetter ? ratio : Math.abs(loserValue / winnerValue);
+  const ratioText = Number.isFinite(betterRatio) ? `${betterRatio.toFixed(betterRatio >= 10 ? 0 : decimals)}x` : '∞x';
+  const title = `Box3D: ${formatMetric(boxValue, suffix)} | Rapier: ${formatMetric(rapierValue, suffix)}`;
+
+  return `<span class="compare-chip ${boxWins ? 'box3d' : 'rapier'}" title="${escapeHtml(title)}"><span>${winner}</span><strong>${ratioText}</strong></span>`;
+}
+
+function compareDelta(box3d, rapier, key, suffix = '') {
+  const boxValue = box3d?.[key];
+  const rapierValue = rapier?.[key];
+  if (!Number.isFinite(boxValue) || !Number.isFinite(rapierValue)) {
+    return '';
+  }
+
+  const delta = boxValue - rapierValue;
+  if (Math.abs(delta) <= Math.max(Math.abs(boxValue), Math.abs(rapierValue), 1) * 0.01) {
+    return `<span class="compare-chip tie"><span>Same</span><small>${formatMetric(boxValue, suffix)}</small></span>`;
+  }
+
+  return `<span class="compare-chip neutral"><span>Δ Box3D</span><strong>${delta > 0 ? '+' : ''}${formatMetric(delta, suffix)}</strong></span>`;
+}
+
+function makeCompareRow(level, pairIndex, box3d, rapier) {
+  if (!box3d || !rapier) {
+    return '';
+  }
+
+  return `
+        <tr class="compare-row pair-${pairIndex % 2 === 0 ? 'even' : 'odd'} pair-end" data-row-type="compare" data-level="${level}">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>${level.toLocaleString()}</td>
+          <td>${compareMetric(box3d, rapier, 'avgSimFps')}</td>
+          <td>${compareMetric(box3d, rapier, 'p95PhysicsStepMs', { higherIsBetter: false, suffix: ' ms', decimals: 1 })}</td>
+          <td>${compareMetric(box3d, rapier, 'avgSyncMs', { higherIsBetter: false, suffix: ' ms', decimals: 1 })}</td>
+          <td>${compareMetric(box3d, rapier, 'avgSimCapacityFps')}</td>
+          <td>${compareMetric(box3d, rapier, 'p50SimCapacityFps')}</td>
+          <td>${compareMetric(box3d, rapier, 'avgRenderFps')}</td>
+          <td>${compareMetric(box3d, rapier, 'p50RenderFps')}</td>
+          <td>${compareMetric(box3d, rapier, 'resetWallMs', { higherIsBetter: false, suffix: ' ms', decimals: 1 })}</td>
+          <td>${compareMetric(box3d, rapier, 'firstStepWallMs', { higherIsBetter: false, suffix: ' ms', decimals: 1 })}</td>
+          <td>${compareDelta(box3d, rapier, 'estimatedSnapshotMB', ' MB')}</td>
+          <td>${compareDelta(box3d, rapier, 'observedSnapshotMB', ' MB')}</td>
+          <td class="issue-cell"></td>
+        </tr>
+      `;
+}
+
 function makeSamplePoints(points, width, height, xMax, yMax, valueKey, color, label) {
   return points
     .map((point) => {
@@ -545,13 +610,17 @@ function makeChartHtml(result) {
     })
     .join('\n');
 
-  const rows = sortSummaryRows(result.summary)
-    .map((row) => {
-      const levelIndex = levels.indexOf(row.requestedBodies);
-      return `
-        <tr class="engine-row ${row.engine} pair-${levelIndex % 2 === 0 ? 'even' : 'odd'} ${row.engine === 'box3d' ? 'pair-start' : 'pair-end'}">
+  const rows = levels
+    .map((level, levelIndex) => {
+      const levelRows = sortSummaryRows(result.summary).filter((row) => row.requestedBodies === level);
+      const engineRows = levelRows
+        .map((row, rowIndex) => {
+          const status = row.ok ? (row.floorHit ? 'floor' : 'ok') : 'failed';
+          const rowPosition = rowIndex === 0 ? 'pair-start' : 'pair-middle';
+          return `
+        <tr class="engine-row ${row.engine} pair-${levelIndex % 2 === 0 ? 'even' : 'odd'} ${rowPosition}" data-row-type="engine" data-engine="${row.engine}" data-status="${status}" data-level="${level}">
           <td><span class="engine-chip ${row.engine}">${engineLabel(row.engine)}</span></td>
-          <td>${row.ok ? (row.floorHit ? 'floor' : 'ok') : 'failed'}</td>
+          <td>${status}</td>
           <td>${Math.round(row.bodies).toLocaleString()}</td>
           <td>${row.avgSimFps.toFixed(1)}</td>
           <td>${row.p95PhysicsStepMs.toFixed(2)}</td>
@@ -567,6 +636,14 @@ function makeChartHtml(result) {
           <td class="issue-cell">${escapeHtml(row.error)}</td>
         </tr>
       `;
+        })
+        .join('\n');
+      return `${engineRows}\n${makeCompareRow(
+        level,
+        levelIndex,
+        levelRows.find((row) => row.engine === 'box3d'),
+        levelRows.find((row) => row.engine === 'rapier')
+      )}`;
     })
     .join('\n');
 
@@ -588,9 +665,10 @@ function makeChartHtml(result) {
       th, td { padding: 10px 12px; text-align: right; }
       th:first-child, td:first-child { text-align: left; }
       th { color: #bfcede; font-weight: 700; }
-      tbody tr.engine-row td { background: #151f31; border-style: solid; border-color: rgba(148, 163, 184, 0.26); border-width: 0; }
+      tbody tr.engine-row td, tbody tr.compare-row td { background: #151f31; border-style: solid; border-color: rgba(148, 163, 184, 0.26); border-width: 0; }
       tbody tr.pair-even td { background: #172338; }
       tbody tr.pair-odd td { background: #121d2f; }
+      tbody tr.compare-row td { background: #0f1a2b; border-top-width: 1px; border-top-color: rgba(148, 163, 184, 0.16); color: #cfdaea; }
       tbody tr.box3d td { box-shadow: inset 3px 0 0 #58a6ff; }
       tbody tr.rapier td { box-shadow: inset 3px 0 0 #f59e0b; }
       tbody tr.pair-start td { border-top-width: 2px; }
@@ -604,7 +682,20 @@ function makeChartHtml(result) {
       .engine-chip { display: inline-flex; align-items: center; min-width: 58px; font-weight: 800; }
       .engine-chip.box3d { color: #8ec5ff; }
       .engine-chip.rapier { color: #f9c46f; }
+      .engine-chip.compare { color: #cbd5e1; }
+      .compare-chip { display: inline-flex; align-items: baseline; justify-content: flex-end; gap: 6px; min-width: 92px; font-weight: 800; }
+      .compare-chip small { color: #8ea0b8; font-weight: 600; }
+      .compare-chip.box3d { color: #8ec5ff; }
+      .compare-chip.rapier { color: #f9c46f; }
+      .compare-chip.tie, .compare-chip.neutral { color: #cbd5e1; }
       .issue-cell { max-width: 290px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f3b0a8; text-align: left; }
+      .table-tools { display: grid; grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(140px, 0.6fr)) auto auto; gap: 10px; align-items: end; margin: 8px 0 12px; padding: 14px; border: 1px solid #243041; border-radius: 8px; background: #121d2f; }
+      .table-tools label { display: grid; gap: 5px; color: #aab8ca; font-size: 12px; font-weight: 700; }
+      .table-tools input, .table-tools select { min-height: 34px; border: 1px solid #334155; border-radius: 6px; background: #0f172a; color: #e5edf6; padding: 0 10px; font: inherit; }
+      .table-tools button { min-height: 34px; border: 1px solid #334155; border-radius: 6px; background: #172338; color: #e5edf6; padding: 0 12px; font-weight: 800; cursor: pointer; }
+      .table-tools .checkbox-label { display: inline-flex; gap: 8px; align-items: center; min-height: 34px; }
+      .table-tools .checkbox-label input { min-height: 0; }
+      .filter-count { color: #8ea0b8; font-size: 12px; text-align: right; }
       .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 12px 0 20px; color: #cbd5e1; font-size: 13px; }
       .key { display: inline-flex; align-items: center; gap: 7px; }
       .swatch { width: 22px; height: 3px; border-radius: 999px; background: var(--color); }
@@ -629,6 +720,10 @@ function makeChartHtml(result) {
       .sample-point { cursor: crosshair; stroke: #0f172a; stroke-width: 1.5px; opacity: 0.86; }
       .overview-point { opacity: 0.72; }
       .sample-point:hover, .sample-point:focus { opacity: 1; stroke: #f8fafc; stroke-width: 2.5px; outline: none; }
+      @media (max-width: 900px) {
+        .table-tools { grid-template-columns: 1fr; }
+        .filter-count { text-align: left; }
+      }
     </style>
   </head>
   <body>
@@ -640,7 +735,36 @@ function makeChartHtml(result) {
         <span class="key"><span class="swatch" style="--color:#f59e0b"></span>Rapier render</span>
       </div>
       ${overview}
-      <table>
+      <div class="table-tools" aria-label="Benchmark table filters">
+        <label>
+          Body count filter
+          <input id="body-filter" type="search" placeholder="100, 5k-40k, >=80k" />
+        </label>
+        <label>
+          Engine
+          <select id="engine-filter">
+            <option value="all">Box3D + Rapier</option>
+            <option value="box3d">Box3D only</option>
+            <option value="rapier">Rapier only</option>
+          </select>
+        </label>
+        <label>
+          Status
+          <select id="status-filter">
+            <option value="all">All statuses</option>
+            <option value="ok">OK</option>
+            <option value="floor">Floor</option>
+            <option value="failed">Failed</option>
+          </select>
+        </label>
+        <label class="checkbox-label">
+          <input id="compare-filter" type="checkbox" checked />
+          Compare rows
+        </label>
+        <button id="clear-filters" type="button">Clear</button>
+        <span id="filter-count" class="filter-count"></span>
+      </div>
+      <table id="summary-table">
         <thead>
           <tr>
             <th>Engine</th><th>Status</th><th>Bodies</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Reset ms</th><th>First Step ms</th><th>Est Snapshot MB</th><th>Seen Snapshot MB</th><th>Issue</th>
@@ -650,6 +774,104 @@ function makeChartHtml(result) {
       </table>
       ${panels}
     </main>
+    <script>
+      (() => {
+        const bodyFilter = document.querySelector('#body-filter');
+        const engineFilter = document.querySelector('#engine-filter');
+        const statusFilter = document.querySelector('#status-filter');
+        const compareFilter = document.querySelector('#compare-filter');
+        const clearFilters = document.querySelector('#clear-filters');
+        const filterCount = document.querySelector('#filter-count');
+        const rows = [...document.querySelectorAll('#summary-table tbody tr')];
+
+        function parseCount(value) {
+          const clean = String(value ?? '').trim().toLowerCase().replace(/,/g, '');
+          if (!clean) {
+            return NaN;
+          }
+          const multiplier = clean.endsWith('m') ? 1000000 : clean.endsWith('k') ? 1000 : 1;
+          return Number(clean.replace(/[km]$/, '')) * multiplier;
+        }
+
+        function matchesBodyFilter(level, filterText) {
+          const text = filterText.trim();
+          if (!text) {
+            return true;
+          }
+
+          return text
+            .split(/[\\s,]+/)
+            .filter(Boolean)
+            .some((rawToken) => {
+              const token = rawToken.toLowerCase();
+              if (token.startsWith('>=')) {
+                return level >= parseCount(token.slice(2));
+              }
+              if (token.startsWith('<=')) {
+                return level <= parseCount(token.slice(2));
+              }
+              if (token.startsWith('>')) {
+                return level > parseCount(token.slice(1));
+              }
+              if (token.startsWith('<')) {
+                return level < parseCount(token.slice(1));
+              }
+              const range = token.match(/^(.+?)-(.+)$/);
+              if (range) {
+                const start = parseCount(range[1]);
+                const end = parseCount(range[2]);
+                return Number.isFinite(start) && Number.isFinite(end) && level >= Math.min(start, end) && level <= Math.max(start, end);
+              }
+              return level === parseCount(token);
+            });
+        }
+
+        function applyFilters() {
+          const selectedEngine = engineFilter.value;
+          const selectedStatus = statusFilter.value;
+          const showCompare = compareFilter.checked && selectedEngine === 'all';
+          let visibleEngineRows = 0;
+          let visibleCompareRows = 0;
+
+          for (const row of rows) {
+            const level = Number(row.dataset.level);
+            const rowType = row.dataset.rowType;
+            const bodyMatch = matchesBodyFilter(level, bodyFilter.value);
+            let visible = bodyMatch;
+
+            if (rowType === 'engine') {
+              visible &&= selectedEngine === 'all' || row.dataset.engine === selectedEngine;
+              visible &&= selectedStatus === 'all' || row.dataset.status === selectedStatus;
+              if (visible) {
+                visibleEngineRows += 1;
+              }
+            } else {
+              visible &&= showCompare && selectedStatus === 'all';
+              if (visible) {
+                visibleCompareRows += 1;
+              }
+            }
+
+            row.hidden = !visible;
+          }
+
+          filterCount.textContent = visibleEngineRows + ' engine rows' + (showCompare ? ', ' + visibleCompareRows + ' comparisons' : '');
+        }
+
+        for (const control of [bodyFilter, engineFilter, statusFilter, compareFilter]) {
+          control.addEventListener('input', applyFilters);
+          control.addEventListener('change', applyFilters);
+        }
+        clearFilters.addEventListener('click', () => {
+          bodyFilter.value = '';
+          engineFilter.value = 'all';
+          statusFilter.value = 'all';
+          compareFilter.checked = true;
+          applyFilters();
+        });
+        applyFilters();
+      })();
+    </script>
   </body>
 </html>`;
 }

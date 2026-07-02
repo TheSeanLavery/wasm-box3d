@@ -16,9 +16,10 @@
       th, td { padding: 10px 12px; text-align: right; }
       th:first-child, td:first-child { text-align: left; }
       th { color: #bfcede; font-weight: 700; }
-      tbody tr.engine-row td { background: #151f31; border-style: solid; border-color: rgba(148, 163, 184, 0.26); border-width: 0; }
+      tbody tr.engine-row td, tbody tr.compare-row td { background: #151f31; border-style: solid; border-color: rgba(148, 163, 184, 0.26); border-width: 0; }
       tbody tr.pair-even td { background: #172338; }
       tbody tr.pair-odd td { background: #121d2f; }
+      tbody tr.compare-row td { background: #0f1a2b; border-top-width: 1px; border-top-color: rgba(148, 163, 184, 0.16); color: #cfdaea; }
       tbody tr.box3d td { box-shadow: inset 3px 0 0 #58a6ff; }
       tbody tr.rapier td { box-shadow: inset 3px 0 0 #f59e0b; }
       tbody tr.pair-start td { border-top-width: 2px; }
@@ -32,7 +33,20 @@
       .engine-chip { display: inline-flex; align-items: center; min-width: 58px; font-weight: 800; }
       .engine-chip.box3d { color: #8ec5ff; }
       .engine-chip.rapier { color: #f9c46f; }
+      .engine-chip.compare { color: #cbd5e1; }
+      .compare-chip { display: inline-flex; align-items: baseline; justify-content: flex-end; gap: 6px; min-width: 92px; font-weight: 800; }
+      .compare-chip small { color: #8ea0b8; font-weight: 600; }
+      .compare-chip.box3d { color: #8ec5ff; }
+      .compare-chip.rapier { color: #f9c46f; }
+      .compare-chip.tie, .compare-chip.neutral { color: #cbd5e1; }
       .issue-cell { max-width: 290px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f3b0a8; text-align: left; }
+      .table-tools { display: grid; grid-template-columns: minmax(220px, 1.4fr) repeat(2, minmax(140px, 0.6fr)) auto auto; gap: 10px; align-items: end; margin: 8px 0 12px; padding: 14px; border: 1px solid #243041; border-radius: 8px; background: #121d2f; }
+      .table-tools label { display: grid; gap: 5px; color: #aab8ca; font-size: 12px; font-weight: 700; }
+      .table-tools input, .table-tools select { min-height: 34px; border: 1px solid #334155; border-radius: 6px; background: #0f172a; color: #e5edf6; padding: 0 10px; font: inherit; }
+      .table-tools button { min-height: 34px; border: 1px solid #334155; border-radius: 6px; background: #172338; color: #e5edf6; padding: 0 12px; font-weight: 800; cursor: pointer; }
+      .table-tools .checkbox-label { display: inline-flex; gap: 8px; align-items: center; min-height: 34px; }
+      .table-tools .checkbox-label input { min-height: 0; }
+      .filter-count { color: #8ea0b8; font-size: 12px; text-align: right; }
       .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 12px 0 20px; color: #cbd5e1; font-size: 13px; }
       .key { display: inline-flex; align-items: center; gap: 7px; }
       .swatch { width: 22px; height: 3px; border-radius: 999px; background: var(--color); }
@@ -57,6 +71,10 @@
       .sample-point { cursor: crosshair; stroke: #0f172a; stroke-width: 1.5px; opacity: 0.86; }
       .overview-point { opacity: 0.72; }
       .sample-point:hover, .sample-point:focus { opacity: 1; stroke: #f8fafc; stroke-width: 2.5px; outline: none; }
+      @media (max-width: 900px) {
+        .table-tools { grid-template-columns: 1fr; }
+        .filter-count { text-align: left; }
+      }
     </style>
   </head>
   <body>
@@ -879,14 +897,43 @@ Avg sync: 3.2 ms</title></circle>
 
     </section>
 
-      <table>
+      <div class="table-tools" aria-label="Benchmark table filters">
+        <label>
+          Body count filter
+          <input id="body-filter" type="search" placeholder="100, 5k-40k, >=80k" />
+        </label>
+        <label>
+          Engine
+          <select id="engine-filter">
+            <option value="all">Box3D + Rapier</option>
+            <option value="box3d">Box3D only</option>
+            <option value="rapier">Rapier only</option>
+          </select>
+        </label>
+        <label>
+          Status
+          <select id="status-filter">
+            <option value="all">All statuses</option>
+            <option value="ok">OK</option>
+            <option value="floor">Floor</option>
+            <option value="failed">Failed</option>
+          </select>
+        </label>
+        <label class="checkbox-label">
+          <input id="compare-filter" type="checkbox" checked />
+          Compare rows
+        </label>
+        <button id="clear-filters" type="button">Clear</button>
+        <span id="filter-count" class="filter-count"></span>
+      </div>
+      <table id="summary-table">
         <thead>
           <tr>
             <th>Engine</th><th>Status</th><th>Bodies</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Reset ms</th><th>First Step ms</th><th>Est Snapshot MB</th><th>Seen Snapshot MB</th><th>Issue</th>
           </tr>
         </thead>
         <tbody>
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="ok" data-level="100">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td>105</td>
@@ -905,7 +952,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="ok" data-level="100">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>ok</td>
           <td>105</td>
@@ -924,7 +971,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="100">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>100</td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>62.7</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 0.2 ms | Rapier: 0.4 ms"><span>Box3D</span><strong>1.5x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>0.0 ms</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 20848.4 | Rapier: 9101.3"><span>Box3D</span><strong>2.3x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 27234.0 | Rapier: 3665.5"><span>Box3D</span><strong>7.4x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 13.0 ms | Rapier: 14.0 ms"><span>Box3D</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 0.0 ms | Rapier: 259.0 ms"><span>Box3D</span><strong>∞x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.0 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.0 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="ok" data-level="500">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td>505</td>
@@ -943,7 +1009,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="ok" data-level="500">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>ok</td>
           <td>505</td>
@@ -962,7 +1028,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="500">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>500</td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>62.4</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 0.2 ms | Rapier: 0.9 ms"><span>Box3D</span><strong>4.7x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 0.1 ms | Rapier: 0.0 ms"><span>Rapier</span><strong>1.3x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 25265.1 | Rapier: 3464.5"><span>Box3D</span><strong>7.3x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 27705.6 | Rapier: 1163.0"><span>Box3D</span><strong>24x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>119.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 16.0 ms | Rapier: 14.0 ms"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 259.0 ms | Rapier: 1.0 ms"><span>Rapier</span><strong>259x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.0 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.0 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="ok" data-level="1000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td>1,005</td>
@@ -981,7 +1066,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="ok" data-level="1000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>ok</td>
           <td>1,005</td>
@@ -1000,7 +1085,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="1000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>1,000</td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>62.6</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 0.3 ms | Rapier: 1.7 ms"><span>Box3D</span><strong>5.9x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>0.0 ms</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 20075.1 | Rapier: 2563.8"><span>Box3D</span><strong>7.8x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 20915.0 | Rapier: 1570.6"><span>Box3D</span><strong>13x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 16.0 ms | Rapier: 20.0 ms"><span>Box3D</span><strong>1.3x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 0.0 ms | Rapier: 251.0 ms"><span>Box3D</span><strong>∞x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.1 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.1 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="ok" data-level="5000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td>5,005</td>
@@ -1019,7 +1123,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="ok" data-level="5000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>ok</td>
           <td>5,005</td>
@@ -1038,7 +1142,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="5000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>5,000</td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>62.5</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 2.1 ms | Rapier: 9.0 ms"><span>Box3D</span><strong>4.3x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 0.1 ms | Rapier: 0.2 ms"><span>Box3D</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 24156.1 | Rapier: 547.4"><span>Box3D</span><strong>44x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 28070.2 | Rapier: 115.8"><span>Box3D</span><strong>242x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 22.0 ms | Rapier: 45.0 ms"><span>Box3D</span><strong>2.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 240.0 ms | Rapier: 216.0 ms"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.3 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.3 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="ok" data-level="10000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td>10,005</td>
@@ -1057,7 +1180,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="ok" data-level="10000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>ok</td>
           <td>10,005</td>
@@ -1076,7 +1199,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="10000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>10,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 62.6 | Rapier: 56.3"><span>Box3D</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 5.0 ms | Rapier: 18.5 ms"><span>Box3D</span><strong>3.7x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 0.3 ms | Rapier: 0.3 ms"><span>Rapier</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 24343.1 | Rapier: 238.5"><span>Box3D</span><strong>102x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 27234.0 | Rapier: 54.5"><span>Box3D</span><strong>500x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 25.0 ms | Rapier: 85.0 ms"><span>Box3D</span><strong>3.4x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 239.0 ms | Rapier: 183.0 ms"><span>Rapier</span><strong>1.3x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.5 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.5 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="ok" data-level="15000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td>15,005</td>
@@ -1095,7 +1237,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="ok" data-level="15000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>ok</td>
           <td>15,005</td>
@@ -1114,7 +1256,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="15000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>15,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 62.7 | Rapier: 29.6"><span>Box3D</span><strong>2.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 7.0 ms | Rapier: 35.4 ms"><span>Box3D</span><strong>5.1x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 0.4 ms | Rapier: 0.4 ms"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 24602.9 | Rapier: 30.4"><span>Box3D</span><strong>809x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 33684.2 | Rapier: 29.3"><span>Box3D</span><strong>1151x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 37.0 ms | Rapier: 71.0 ms"><span>Box3D</span><strong>1.9x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 239.0 ms | Rapier: 195.0 ms"><span>Rapier</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.8 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>0.8 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="ok" data-level="20000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td>20,005</td>
@@ -1133,7 +1294,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="20000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>20,005</td>
@@ -1152,7 +1313,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="20000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>20,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 62.7 | Rapier: 16.5"><span>Box3D</span><strong>3.8x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 10.7 ms | Rapier: 81.2 ms"><span>Box3D</span><strong>7.6x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 0.7 ms | Rapier: 0.6 ms"><span>Rapier</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 21214.3 | Rapier: 17.1"><span>Box3D</span><strong>1240x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 967.3 | Rapier: 14.1"><span>Box3D</span><strong>69x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>119.9</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 53.0 ms | Rapier: 98.0 ms"><span>Box3D</span><strong>1.8x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 229.0 ms | Rapier: 14.0 ms"><span>Rapier</span><strong>16x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>1.1 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>1.1 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="ok" data-level="25000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td>25,005</td>
@@ -1171,7 +1351,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="25000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>25,005</td>
@@ -1190,7 +1370,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="25000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>25,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 62.6 | Rapier: 9.3"><span>Box3D</span><strong>6.7x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 15.3 ms | Rapier: 174.6 ms"><span>Box3D</span><strong>11x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 0.8 ms | Rapier: 0.7 ms"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 4177.9 | Rapier: 9.8"><span>Box3D</span><strong>428x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 122.5 | Rapier: 7.6"><span>Box3D</span><strong>16x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 53.0 ms | Rapier: 160.0 ms"><span>Box3D</span><strong>3.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 258.0 ms | Rapier: 127.0 ms"><span>Rapier</span><strong>2.0x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>1.3 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>1.3 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="ok" data-level="30000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td>30,005</td>
@@ -1209,7 +1408,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="30000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>30,005</td>
@@ -1228,7 +1427,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="30000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>30,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 56.7 | Rapier: 7.1"><span>Box3D</span><strong>8.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 21.6 ms | Rapier: 312.1 ms"><span>Box3D</span><strong>14x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 0.8 ms | Rapier: 0.8 ms"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 74.0 | Rapier: 7.5"><span>Box3D</span><strong>9.9x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 61.4 | Rapier: 4.4"><span>Box3D</span><strong>14x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 60.0 ms | Rapier: 216.0 ms"><span>Box3D</span><strong>3.6x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 202.0 ms | Rapier: 71.0 ms"><span>Rapier</span><strong>2.8x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>1.6 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>1.6 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="ok" data-level="35000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td>35,005</td>
@@ -1247,7 +1465,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="35000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>35,005</td>
@@ -1266,7 +1484,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="35000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>35,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 34.4 | Rapier: 7.1"><span>Box3D</span><strong>4.8x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 33.9 ms | Rapier: 413.4 ms"><span>Box3D</span><strong>12x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>0.9 ms</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 34.7 | Rapier: 7.5"><span>Box3D</span><strong>4.6x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 31.6 | Rapier: 4.0"><span>Box3D</span><strong>7.8x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 76.0 ms | Rapier: 191.0 ms"><span>Box3D</span><strong>2.5x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 92.0 ms | Rapier: 103.0 ms"><span>Box3D</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>1.9 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>1.9 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="40000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>40,005</td>
@@ -1285,7 +1522,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="40000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>40,005</td>
@@ -1304,7 +1541,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="40000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>40,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 25.6 | Rapier: 8.7"><span>Box3D</span><strong>3.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 58.3 ms | Rapier: 368.9 ms"><span>Box3D</span><strong>6.3x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 1.1 ms | Rapier: 1.1 ms"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 25.8 | Rapier: 9.8"><span>Box3D</span><strong>2.6x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 23.8 | Rapier: 3.5"><span>Box3D</span><strong>6.9x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 97.0 ms | Rapier: 562.0 ms"><span>Box3D</span><strong>5.8x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 178.0 ms | Rapier: 61.0 ms"><span>Rapier</span><strong>2.9x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>2.1 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>2.1 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="45000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>45,005</td>
@@ -1323,7 +1579,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="45000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>45,005</td>
@@ -1342,7 +1598,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="45000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>45,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 19.6 | Rapier: 6.2"><span>Box3D</span><strong>3.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 65.0 ms | Rapier: 376.4 ms"><span>Box3D</span><strong>5.8x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>1.2 ms</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 19.7 | Rapier: 6.7"><span>Box3D</span><strong>2.9x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 17.9 | Rapier: 3.4"><span>Box3D</span><strong>5.3x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 77.0 ms | Rapier: 557.0 ms"><span>Box3D</span><strong>7.2x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 125.0 ms | Rapier: 276.0 ms"><span>Box3D</span><strong>2.2x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>2.4 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>2.4 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="50000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>50,005</td>
@@ -1361,7 +1636,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="50000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>50,005</td>
@@ -1380,7 +1655,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="50000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>50,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 15.9 | Rapier: 6.9"><span>Box3D</span><strong>2.3x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 99.0 ms | Rapier: 378.5 ms"><span>Box3D</span><strong>3.8x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 1.3 ms | Rapier: 1.3 ms"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 16.0 | Rapier: 7.5"><span>Box3D</span><strong>2.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 13.3 | Rapier: 4.7"><span>Box3D</span><strong>2.8x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 118.0 ms | Rapier: 477.0 ms"><span>Box3D</span><strong>4.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 150.0 ms | Rapier: 93.0 ms"><span>Rapier</span><strong>1.6x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>2.7 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>2.7 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="55000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>55,005</td>
@@ -1399,7 +1693,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="55000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>55,005</td>
@@ -1418,7 +1712,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="55000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>55,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 15.3 | Rapier: 7.8"><span>Box3D</span><strong>2.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 120.8 ms | Rapier: 330.6 ms"><span>Box3D</span><strong>2.7x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>1.5 ms</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 15.4 | Rapier: 8.6"><span>Box3D</span><strong>1.8x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 14.3 | Rapier: 4.1"><span>Box3D</span><strong>3.4x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 107.0 ms | Rapier: 302.0 ms"><span>Box3D</span><strong>2.8x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 166.0 ms | Rapier: 84.0 ms"><span>Rapier</span><strong>2.0x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>2.9 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>2.9 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="60000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>60,005</td>
@@ -1437,7 +1750,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="60000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>60,005</td>
@@ -1456,7 +1769,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="60000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>60,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 14.0 | Rapier: 7.4"><span>Box3D</span><strong>1.9x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 141.6 ms | Rapier: 348.0 ms"><span>Box3D</span><strong>2.5x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 1.8 ms | Rapier: 1.6 ms"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 14.1 | Rapier: 8.1"><span>Box3D</span><strong>1.7x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 13.8 | Rapier: 3.6"><span>Box3D</span><strong>3.8x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 121.4"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 121.0 ms | Rapier: 395.0 ms"><span>Box3D</span><strong>3.3x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 176.0 ms | Rapier: 83.0 ms"><span>Rapier</span><strong>2.1x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>3.2 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>3.2 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="65000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>65,005</td>
@@ -1475,7 +1807,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="65000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>65,005</td>
@@ -1494,7 +1826,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="65000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>65,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 13.1 | Rapier: 7.9"><span>Box3D</span><strong>1.6x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 115.2 ms | Rapier: 393.5 ms"><span>Box3D</span><strong>3.4x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 1.7 ms | Rapier: 1.8 ms"><span>Box3D</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 13.2 | Rapier: 8.9"><span>Box3D</span><strong>1.5x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 12.7 | Rapier: 5.7"><span>Box3D</span><strong>2.2x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 236.0 ms | Rapier: 505.0 ms"><span>Box3D</span><strong>2.1x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 205.0 ms | Rapier: 90.0 ms"><span>Rapier</span><strong>2.3x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>3.5 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>3.5 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="70000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>70,005</td>
@@ -1513,7 +1864,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="70000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>70,005</td>
@@ -1532,7 +1883,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="70000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>70,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 12.8 | Rapier: 8.6"><span>Box3D</span><strong>1.5x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 111.0 ms | Rapier: 328.3 ms"><span>Box3D</span><strong>3.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 1.8 ms | Rapier: 1.9 ms"><span>Box3D</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 12.9 | Rapier: 10.0"><span>Box3D</span><strong>1.3x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 13.0 | Rapier: 10.0"><span>Box3D</span><strong>1.3x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 124.0"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 122.6"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 167.0 ms | Rapier: 563.0 ms"><span>Box3D</span><strong>3.4x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 218.0 ms | Rapier: 108.0 ms"><span>Rapier</span><strong>2.0x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>3.7 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>3.7 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="75000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>75,005</td>
@@ -1551,7 +1921,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="75000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>75,005</td>
@@ -1570,7 +1940,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="75000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>75,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 12.3 | Rapier: 7.2"><span>Box3D</span><strong>1.7x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 118.2 ms | Rapier: 345.2 ms"><span>Box3D</span><strong>2.9x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>2.0 ms</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 12.5 | Rapier: 8.1"><span>Box3D</span><strong>1.5x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 12.8 | Rapier: 4.2"><span>Box3D</span><strong>3.0x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 251.0 ms | Rapier: 597.0 ms"><span>Box3D</span><strong>2.4x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 235.0 ms | Rapier: 221.0 ms"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>4.0 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>4.0 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="80000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>80,005</td>
@@ -1589,7 +1978,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="80000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>80,005</td>
@@ -1608,7 +1997,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="80000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>80,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 12.2 | Rapier: 7.9"><span>Box3D</span><strong>1.5x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 99.5 ms | Rapier: 345.4 ms"><span>Box3D</span><strong>3.5x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>2.1 ms</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 12.3 | Rapier: 9.1"><span>Box3D</span><strong>1.4x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 12.3 | Rapier: 10.5"><span>Box3D</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 224.0 ms | Rapier: 669.0 ms"><span>Box3D</span><strong>3.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 252.0 ms | Rapier: 112.0 ms"><span>Rapier</span><strong>2.3x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>4.3 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>4.3 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="85000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>85,005</td>
@@ -1627,7 +2035,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="85000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>85,005</td>
@@ -1646,7 +2054,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="85000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>85,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 11.4 | Rapier: 8.5"><span>Box3D</span><strong>1.3x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 100.8 ms | Rapier: 318.5 ms"><span>Box3D</span><strong>3.2x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 2.2 ms | Rapier: 2.2 ms"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 11.6 | Rapier: 9.9"><span>Box3D</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 11.5 | Rapier: 8.1"><span>Box3D</span><strong>1.4x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 224.0 ms | Rapier: 628.0 ms"><span>Box3D</span><strong>2.8x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 284.0 ms | Rapier: 129.0 ms"><span>Rapier</span><strong>2.2x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>4.5 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>4.5 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="90000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>90,005</td>
@@ -1665,7 +2092,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="90000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>90,005</td>
@@ -1684,7 +2111,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="90000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>90,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 11.3 | Rapier: 7.6"><span>Box3D</span><strong>1.5x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 107.1 ms | Rapier: 274.0 ms"><span>Box3D</span><strong>2.6x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 2.4 ms | Rapier: 2.3 ms"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 11.5 | Rapier: 9.0"><span>Box3D</span><strong>1.3x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 11.6 | Rapier: 6.4"><span>Box3D</span><strong>1.8x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>120.0</small></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 155.0 ms | Rapier: 546.0 ms"><span>Box3D</span><strong>3.5x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 276.0 ms | Rapier: 126.0 ms"><span>Rapier</span><strong>2.2x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>4.8 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>4.8 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="95000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>95,005</td>
@@ -1703,7 +2149,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="95000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>95,005</td>
@@ -1722,7 +2168,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="95000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>95,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 10.7 | Rapier: 8.2"><span>Box3D</span><strong>1.3x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 113.8 ms | Rapier: 263.0 ms"><span>Box3D</span><strong>2.3x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 2.6 ms | Rapier: 2.5 ms"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 10.9 | Rapier: 9.7"><span>Box3D</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 10.7 | Rapier: 10.4"><span>Box3D</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 126.5"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 127.0"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 163.0 ms | Rapier: 449.0 ms"><span>Box3D</span><strong>2.8x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 284.0 ms | Rapier: 135.0 ms"><span>Rapier</span><strong>2.1x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>5.1 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>5.1 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="100000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>100,005</td>
@@ -1741,7 +2206,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="100000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>100,005</td>
@@ -1760,7 +2225,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="100000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>100,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 9.9 | Rapier: 8.1"><span>Box3D</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 107.8 ms | Rapier: 204.8 ms"><span>Box3D</span><strong>1.9x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 2.7 ms | Rapier: 2.6 ms"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 10.0 | Rapier: 10.5"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 10.2 | Rapier: 8.7"><span>Box3D</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 126.5"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 125.7"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 263.0 ms | Rapier: 541.0 ms"><span>Box3D</span><strong>2.1x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 314.0 ms | Rapier: 142.0 ms"><span>Rapier</span><strong>2.2x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>5.3 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>5.3 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="105000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>105,005</td>
@@ -1779,7 +2263,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="105000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>105,005</td>
@@ -1798,7 +2282,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="105000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>105,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 9.7 | Rapier: 8.0"><span>Box3D</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 112.1 ms | Rapier: 209.7 ms"><span>Box3D</span><strong>1.9x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>2.7 ms</small></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>9.9</small></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 9.8 | Rapier: 10.4"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 125.4"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 124.2"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 271.0 ms | Rapier: 478.0 ms"><span>Box3D</span><strong>1.8x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 316.0 ms | Rapier: 162.0 ms"><span>Rapier</span><strong>2.0x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>5.6 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>5.6 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="110000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>110,005</td>
@@ -1817,7 +2320,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="110000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>110,005</td>
@@ -1836,7 +2339,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-odd pair-start">
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="110000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>110,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 9.8 | Rapier: 8.2"><span>Box3D</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 116.0 ms | Rapier: 206.7 ms"><span>Box3D</span><strong>1.8x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 2.9 ms | Rapier: 2.9 ms"><span>Box3D</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 9.9 | Rapier: 10.1"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 9.3 | Rapier: 10.8"><span>Rapier</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 124.1"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 123.8"><span>Rapier</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 240.0 ms | Rapier: 521.0 ms"><span>Box3D</span><strong>2.2x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 332.0 ms | Rapier: 152.0 ms"><span>Rapier</span><strong>2.2x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>5.9 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>5.9 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="115000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>115,005</td>
@@ -1855,7 +2377,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-odd pair-end">
+        <tr class="engine-row rapier pair-odd pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="115000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>115,005</td>
@@ -1874,7 +2396,26 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="compare-row pair-odd pair-end" data-row-type="compare" data-level="115000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>115,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 8.9 | Rapier: 7.6"><span>Box3D</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 115.8 ms | Rapier: 241.2 ms"><span>Box3D</span><strong>2.1x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Tie</span><small>3.0 ms</small></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 9.1 | Rapier: 10.5"><span>Rapier</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 8.7 | Rapier: 10.9"><span>Rapier</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 129.4"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 130.3"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 203.0 ms | Rapier: 508.0 ms"><span>Box3D</span><strong>2.5x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 373.0 ms | Rapier: 147.0 ms"><span>Rapier</span><strong>2.5x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>6.1 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>6.1 MB</small></span></td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-even pair-start" data-row-type="engine" data-engine="box3d" data-status="floor" data-level="120000">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td>120,005</td>
@@ -1893,7 +2434,7 @@ Avg sync: 3.2 ms</title></circle>
         </tr>
 
 
-        <tr class="engine-row rapier pair-even pair-end">
+        <tr class="engine-row rapier pair-even pair-middle" data-row-type="engine" data-engine="rapier" data-status="floor" data-level="120000">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td>120,005</td>
@@ -1908,6 +2449,25 @@ Avg sync: 3.2 ms</title></circle>
           <td>172</td>
           <td>6.4</td>
           <td>6.4</td>
+          <td class="issue-cell"></td>
+        </tr>
+
+
+        <tr class="compare-row pair-even pair-end" data-row-type="compare" data-level="120000">
+          <td><span class="engine-chip compare">Compare</span></td>
+          <td>ratio</td>
+          <td>120,000</td>
+          <td><span class="compare-chip box3d" title="Box3D: 9.1 | Rapier: 7.6"><span>Box3D</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 123.1 ms | Rapier: 239.1 ms"><span>Box3D</span><strong>1.9x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 3.1 ms | Rapier: 3.2 ms"><span>Box3D</span><strong>1.0x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 9.3 | Rapier: 9.8"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 8.5 | Rapier: 10.4"><span>Rapier</span><strong>1.2x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 130.6"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 120.0 | Rapier: 130.5"><span>Rapier</span><strong>1.1x</strong></span></td>
+          <td><span class="compare-chip box3d" title="Box3D: 194.0 ms | Rapier: 529.0 ms"><span>Box3D</span><strong>2.7x</strong></span></td>
+          <td><span class="compare-chip rapier" title="Box3D: 365.0 ms | Rapier: 172.0 ms"><span>Rapier</span><strong>2.1x</strong></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>6.4 MB</small></span></td>
+          <td><span class="compare-chip tie"><span>Same</span><small>6.4 MB</small></span></td>
           <td class="issue-cell"></td>
         </tr>
       </tbody>
@@ -15143,5 +15703,103 @@ snapshot: 6.4 MB</title></circle>
         </section>
 
     </main>
+    <script>
+      (() => {
+        const bodyFilter = document.querySelector('#body-filter');
+        const engineFilter = document.querySelector('#engine-filter');
+        const statusFilter = document.querySelector('#status-filter');
+        const compareFilter = document.querySelector('#compare-filter');
+        const clearFilters = document.querySelector('#clear-filters');
+        const filterCount = document.querySelector('#filter-count');
+        const rows = [...document.querySelectorAll('#summary-table tbody tr')];
+
+        function parseCount(value) {
+          const clean = String(value ?? '').trim().toLowerCase().replace(/,/g, '');
+          if (!clean) {
+            return NaN;
+          }
+          const multiplier = clean.endsWith('m') ? 1000000 : clean.endsWith('k') ? 1000 : 1;
+          return Number(clean.replace(/[km]$/, '')) * multiplier;
+        }
+
+        function matchesBodyFilter(level, filterText) {
+          const text = filterText.trim();
+          if (!text) {
+            return true;
+          }
+
+          return text
+            .split(/[\s,]+/)
+            .filter(Boolean)
+            .some((rawToken) => {
+              const token = rawToken.toLowerCase();
+              if (token.startsWith('>=')) {
+                return level >= parseCount(token.slice(2));
+              }
+              if (token.startsWith('<=')) {
+                return level <= parseCount(token.slice(2));
+              }
+              if (token.startsWith('>')) {
+                return level > parseCount(token.slice(1));
+              }
+              if (token.startsWith('<')) {
+                return level < parseCount(token.slice(1));
+              }
+              const range = token.match(/^(.+?)-(.+)$/);
+              if (range) {
+                const start = parseCount(range[1]);
+                const end = parseCount(range[2]);
+                return Number.isFinite(start) && Number.isFinite(end) && level >= Math.min(start, end) && level <= Math.max(start, end);
+              }
+              return level === parseCount(token);
+            });
+        }
+
+        function applyFilters() {
+          const selectedEngine = engineFilter.value;
+          const selectedStatus = statusFilter.value;
+          const showCompare = compareFilter.checked && selectedEngine === 'all';
+          let visibleEngineRows = 0;
+          let visibleCompareRows = 0;
+
+          for (const row of rows) {
+            const level = Number(row.dataset.level);
+            const rowType = row.dataset.rowType;
+            const bodyMatch = matchesBodyFilter(level, bodyFilter.value);
+            let visible = bodyMatch;
+
+            if (rowType === 'engine') {
+              visible &&= selectedEngine === 'all' || row.dataset.engine === selectedEngine;
+              visible &&= selectedStatus === 'all' || row.dataset.status === selectedStatus;
+              if (visible) {
+                visibleEngineRows += 1;
+              }
+            } else {
+              visible &&= showCompare && selectedStatus === 'all';
+              if (visible) {
+                visibleCompareRows += 1;
+              }
+            }
+
+            row.hidden = !visible;
+          }
+
+          filterCount.textContent = visibleEngineRows + ' engine rows' + (showCompare ? ', ' + visibleCompareRows + ' comparisons' : '');
+        }
+
+        for (const control of [bodyFilter, engineFilter, statusFilter, compareFilter]) {
+          control.addEventListener('input', applyFilters);
+          control.addEventListener('change', applyFilters);
+        }
+        clearFilters.addEventListener('click', () => {
+          bodyFilter.value = '';
+          engineFilter.value = 'all';
+          statusFilter.value = 'all';
+          compareFilter.checked = true;
+          applyFilters();
+        });
+        applyFilters();
+      })();
+    </script>
   </body>
 </html>
