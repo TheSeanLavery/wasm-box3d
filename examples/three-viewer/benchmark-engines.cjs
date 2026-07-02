@@ -259,6 +259,63 @@ function formatMetric(value, suffix = '') {
   return Number.isFinite(value) ? `${value.toFixed(1)}${suffix}` : '';
 }
 
+function formatAxisValue(value, suffix = '') {
+  if (!Number.isFinite(value)) {
+    return '';
+  }
+  if (value === 0) {
+    return `0${suffix}`;
+  }
+  if (Math.abs(value) >= 1000) {
+    return `${(value / 1000).toFixed(Math.abs(value) >= 10000 ? 0 : 1)}k${suffix}`;
+  }
+  if (Math.abs(value) >= 100) {
+    return `${Math.round(value)}${suffix}`;
+  }
+  if (Math.abs(value) >= 10) {
+    return `${value.toFixed(0)}${suffix}`;
+  }
+  return `${value.toFixed(1)}${suffix}`;
+}
+
+function niceCeil(value) {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 1;
+  }
+
+  const power = 10 ** Math.floor(Math.log10(value));
+  const scaled = value / power;
+  const step = scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10;
+  return step * power;
+}
+
+function makeTicks(maxValue, tickCount = 5) {
+  const niceMax = niceCeil(maxValue);
+  return Array.from({ length: tickCount }, (_, index) => (niceMax * index) / (tickCount - 1));
+}
+
+function makeGridLines({ width, height, xTicks = [], yTicks = [], xMax, yMax, ySuffix = '', xFormatter, yFormatter }) {
+  const horizontal = yTicks
+    .map((tick) => {
+      const y = height - (tick / yMax) * height;
+      return `
+        <line class="grid-line" x1="0" y1="${y.toFixed(1)}" x2="${width}" y2="${y.toFixed(1)}" />
+        <text class="tick-label" x="-10" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml((yFormatter ?? formatAxisValue)(tick, ySuffix))}</text>
+      `;
+    })
+    .join('\n');
+  const vertical = xTicks
+    .map((tick) => {
+      const x = (tick / xMax) * width;
+      return `
+        <line class="grid-line vertical" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${height}" />
+        <text class="tick-label" x="${x.toFixed(1)}" y="${height + 20}" text-anchor="middle">${escapeHtml((xFormatter ?? formatAxisValue)(tick))}</text>
+      `;
+    })
+    .join('\n');
+  return `${horizontal}\n${vertical}`;
+}
+
 function sortSummaryRows(summary) {
   return [...summary].sort((a, b) => a.requestedBodies - b.requestedBodies || engineRank(a.engine) - engineRank(b.engine));
 }
@@ -281,7 +338,11 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
   };
   const chartWidth = 760;
   const xMax = Math.max(1, ...levelSamples.map((sample) => sample.tMs));
-  const yMax = Math.max(1, ...levelSamples.map((sample) => sample[metricKey] ?? 0)) * 1.12;
+  const yMax = niceCeil(Math.max(1, ...levelSamples.map((sample) => sample[metricKey] ?? 0)) * 1.12);
+  const yTicks = makeTicks(yMax, 5);
+  const xTicks = Array.from({ length: 5 }, (_, index) => (xMax * index) / 4);
+  const showFloor = metricKey === 'simCapacityFps' && yMax >= MIN_FPS_FLOOR;
+  const floorY = chartHeight - (MIN_FPS_FLOOR / yMax) * chartHeight;
   const paths = ENGINES.flatMap((engine) => {
     const points = levelSamples.filter((sample) => sample.engine === engine);
     if (points.length === 0) {
@@ -303,14 +364,35 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
 
   return `
     <div class="chart">
-      <h3>${label}</h3>
+      <div class="chart-heading">
+        <h3>${level.toLocaleString()} Bodies - ${label}</h3>
+        <div class="mini-legend">
+          <span><span class="swatch" style="--color:#58a6ff"></span>Box3D</span>
+          <span><span class="swatch" style="--color:#f59e0b"></span>Rapier</span>
+          ${showFloor ? '<span><span class="floor-swatch"></span>20 FPS floor</span>' : ''}
+        </div>
+      </div>
       <svg viewBox="0 0 ${chartWidth + 72} ${chartHeight + 54}" role="img" aria-label="${label} over time for ${level} bodies">
         <g transform="translate(52 18)">
           <rect width="${chartWidth}" height="${chartHeight}" rx="6" fill="#111827" />
+          ${makeGridLines({
+            width: chartWidth,
+            height: chartHeight,
+            xTicks,
+            yTicks,
+            xMax,
+            yMax,
+            ySuffix: ' FPS',
+            xFormatter: (value) => `${(value / 1000).toFixed(value % 1000 === 0 ? 0 : 1)}s`,
+          })}
+          ${
+            showFloor
+              ? `<line class="floor-line" x1="0" y1="${floorY.toFixed(1)}" x2="${chartWidth}" y2="${floorY.toFixed(1)}" />
+                <text class="floor-label" x="${chartWidth - 8}" y="${Math.max(12, floorY - 6).toFixed(1)}" text-anchor="end">20 FPS floor</text>`
+              : ''
+          }
           <line x1="0" y1="${chartHeight}" x2="${chartWidth}" y2="${chartHeight}" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="${chartHeight}" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">${Math.round(yMax)} fps</text>
-          <text x="-8" y="${chartHeight}" text-anchor="end">0</text>
           <text class="axis-label" x="${chartWidth / 2}" y="${chartHeight + 34}" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-${chartHeight / 2}" y="-38" transform="rotate(-90)" text-anchor="middle">${label}</text>
           ${paths}
@@ -320,8 +402,134 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
   `;
 }
 
+function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear', chartHeight = 260 }) {
+  const colors = {
+    box3d: '#58a6ff',
+    rapier: '#f59e0b',
+  };
+  const chartWidth = 860;
+  const points = sortSummaryRows(summary).filter((row) => Number.isFinite(row[metricKey]));
+  const xMax = Math.max(1, ...points.map((point) => point.requestedBodies));
+  const rawYMax = Math.max(1, ...points.map((point) => point[metricKey] ?? 0));
+  const yMax = scale === 'log' ? niceCeil(rawYMax) : niceCeil(rawYMax * 1.12);
+  const yTransform = (value) => {
+    if (scale === 'log') {
+      return Math.log10(Math.max(1, value)) / Math.log10(Math.max(10, yMax));
+    }
+    return Math.max(0, value) / yMax;
+  };
+  const yTicks =
+    scale === 'log'
+      ? [...new Set([1, 10, 20, 100, 1000, 10000, 100000, yMax].filter((tick) => tick <= yMax))].sort((a, b) => a - b)
+      : makeTicks(yMax, 5);
+  const xTicks = Array.from({ length: 5 }, (_, index) => (xMax * index) / 4);
+  const grid = yTicks
+    .map((tick) => {
+      const y = chartHeight - yTransform(tick) * chartHeight;
+      return `
+        <line class="grid-line" x1="0" y1="${y.toFixed(1)}" x2="${chartWidth}" y2="${y.toFixed(1)}" />
+        <text class="tick-label" x="-10" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml(formatAxisValue(tick))}</text>
+      `;
+    })
+    .join('\n');
+  const xGrid = xTicks
+    .map((tick) => {
+      const x = (tick / xMax) * chartWidth;
+      return `
+        <line class="grid-line vertical" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${chartHeight}" />
+        <text class="tick-label" x="${x.toFixed(1)}" y="${chartHeight + 20}" text-anchor="middle">${escapeHtml(formatAxisValue(tick))}</text>
+      `;
+    })
+    .join('\n');
+  const floorY = chartHeight - yTransform(MIN_FPS_FLOOR) * chartHeight;
+  const showFloor = metricKey.includes('Fps') && MIN_FPS_FLOOR <= yMax;
+
+  const paths = ENGINES.flatMap((engine) => {
+    const enginePoints = points.filter((point) => point.engine === engine).sort((a, b) => a.requestedBodies - b.requestedBodies);
+    if (enginePoints.length === 0) {
+      return [];
+    }
+    const color = colors[engine] ?? '#94a3b8';
+    const path = enginePoints
+      .map((point, index) => {
+        const x = (point.requestedBodies / xMax) * chartWidth;
+        const y = chartHeight - yTransform(point[metricKey]) * chartHeight;
+        return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
+      })
+      .join(' ');
+    const dots = enginePoints
+      .map((point) => {
+        const x = (point.requestedBodies / xMax) * chartWidth;
+        const y = chartHeight - yTransform(point[metricKey]) * chartHeight;
+        const title = `${engineLabel(engine)}\n${point.requestedBodies.toLocaleString()} requested bodies\n${Math.round(point.bodies).toLocaleString()} bodies\n${label}: ${formatMetric(point[metricKey])}\nP95 step: ${formatMetric(point.p95PhysicsStepMs, ' ms')}\nAvg sync: ${formatMetric(point.avgSyncMs, ' ms')}`;
+        return `<circle class="sample-point overview-point" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.8" fill="${color}" tabindex="0"><title>${escapeHtml(title)}</title></circle>`;
+      })
+      .join('\n');
+    const last = enginePoints.at(-1);
+    const lastX = last ? (last.requestedBodies / xMax) * chartWidth : 0;
+    const lastY = last ? chartHeight - yTransform(last[metricKey]) * chartHeight : 0;
+    return `
+      <path d="${path}" fill="none" stroke="${color}" stroke-width="2.8">
+        <title>${escapeHtml(`${engineLabel(engine)} ${label}`)}</title>
+      </path>
+      ${dots}
+      ${last ? `<text class="line-label" x="${Math.min(chartWidth - 78, lastX + 8).toFixed(1)}" y="${Math.max(12, Math.min(chartHeight - 6, lastY - 6)).toFixed(1)}" fill="${color}">${engineLabel(engine)}</text>` : ''}
+    `;
+  }).join('\n');
+
+  return `
+    <div class="chart overview-chart">
+      <div class="chart-heading">
+        <h3>${label} by Body Count</h3>
+        <div class="mini-legend">
+          <span><span class="swatch" style="--color:#58a6ff"></span>Box3D</span>
+          <span><span class="swatch" style="--color:#f59e0b"></span>Rapier</span>
+          ${showFloor ? '<span><span class="floor-swatch"></span>20 FPS floor</span>' : ''}
+          ${scale === 'log' ? '<span class="scale-note">log scale</span>' : ''}
+        </div>
+      </div>
+      <svg viewBox="0 0 ${chartWidth + 82} ${chartHeight + 56}" role="img" aria-label="${label} by body count">
+        <g transform="translate(62 18)">
+          <rect width="${chartWidth}" height="${chartHeight}" rx="6" fill="#111827" />
+          ${grid}
+          ${xGrid}
+          ${
+            showFloor
+              ? `<line class="floor-line" x1="0" y1="${floorY.toFixed(1)}" x2="${chartWidth}" y2="${floorY.toFixed(1)}" />
+                <text class="floor-label" x="${chartWidth - 8}" y="${Math.max(12, floorY - 6).toFixed(1)}" text-anchor="end">20 FPS floor</text>`
+              : ''
+          }
+          <line x1="0" y1="${chartHeight}" x2="${chartWidth}" y2="${chartHeight}" stroke="#334155" />
+          <line x1="0" y1="0" x2="0" y2="${chartHeight}" stroke="#334155" />
+          <text class="axis-label" x="${chartWidth / 2}" y="${chartHeight + 38}" text-anchor="middle">requested bodies</text>
+          <text class="axis-label" x="-${chartHeight / 2}" y="-48" transform="rotate(-90)" text-anchor="middle">${yLabel}</text>
+          ${paths}
+        </g>
+      </svg>
+    </div>
+  `;
+}
+
 function makeChartHtml(result) {
   const levels = [...new Set(result.summary.map((row) => row.requestedBodies))];
+  const overview = `
+    <section class="panel overview-panel">
+      <h2>Overview</h2>
+      ${makeOverviewChart({
+        summary: result.summary,
+        metricKey: 'avgSimCapacityFps',
+        label: 'Average Sim Capacity FPS',
+        yLabel: 'sim capacity FPS',
+        scale: 'log',
+      })}
+      ${makeOverviewChart({
+        summary: result.summary,
+        metricKey: 'p95PhysicsStepMs',
+        label: 'P95 Physics Step',
+        yLabel: 'milliseconds',
+      })}
+    </section>
+  `;
 
   const panels = levels
     .map((level) => {
@@ -402,12 +610,24 @@ function makeChartHtml(result) {
       .swatch { width: 22px; height: 3px; border-radius: 999px; background: var(--color); }
       .dash { border-top: 3px dashed var(--color); background: transparent; height: 0; }
       .panel { margin: 0 0 22px; padding: 18px; border: 1px solid #243041; border-radius: 8px; background: #151f31; }
+      .overview-panel { background: #121d2f; }
       .chart + .chart { margin-top: 16px; }
+      .chart-heading { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
+      .mini-legend { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; color: #aab8ca; font-size: 12px; }
+      .mini-legend span { display: inline-flex; align-items: center; gap: 6px; }
+      .floor-swatch { width: 22px; height: 0; border-top: 2px dashed #e2e8f0; }
+      .scale-note { color: #8ea0b8; }
       svg { width: 100%; height: auto; display: block; }
       text { fill: #8ea0b8; font-size: 12px; }
       .axis-label { fill: #728199; font-size: 11px; }
+      .tick-label { fill: #98a7bb; font-size: 11px; }
+      .grid-line { stroke: rgba(148, 163, 184, 0.22); stroke-width: 1; }
+      .grid-line.vertical { stroke: rgba(148, 163, 184, 0.14); }
+      .floor-line { stroke: #e2e8f0; stroke-width: 1.5; stroke-dasharray: 6 5; opacity: 0.88; }
+      .floor-label { fill: #e2e8f0; font-size: 11px; paint-order: stroke; stroke: #111827; stroke-width: 4px; stroke-linejoin: round; }
       .line-label { font-size: 12px; font-weight: 800; paint-order: stroke; stroke: #111827; stroke-width: 4px; stroke-linejoin: round; }
       .sample-point { cursor: crosshair; stroke: #0f172a; stroke-width: 1.5px; opacity: 0.86; }
+      .overview-point { opacity: 0.72; }
       .sample-point:hover, .sample-point:focus { opacity: 1; stroke: #f8fafc; stroke-width: 2.5px; outline: none; }
     </style>
   </head>
@@ -419,6 +639,7 @@ function makeChartHtml(result) {
         <span class="key"><span class="swatch" style="--color:#58a6ff"></span>Box3D render</span>
         <span class="key"><span class="swatch" style="--color:#f59e0b"></span>Rapier render</span>
       </div>
+      ${overview}
       <table>
         <thead>
           <tr>
