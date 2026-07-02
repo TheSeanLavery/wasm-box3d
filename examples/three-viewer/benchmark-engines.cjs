@@ -6,12 +6,12 @@ const ROOT = path.resolve(__dirname, '../..');
 const OUTPUT_DIR = path.join(ROOT, 'bench-results');
 const SERVER_URL = process.env.WB3_BENCH_URL ?? 'http://127.0.0.1:5300/';
 const ENGINES = (process.env.WB3_BENCH_ENGINES ?? 'box3d,rapier').split(',').map((engine) => engine.trim()).filter(Boolean);
-const LEVELS = (process.env.WB3_BENCH_LEVELS ?? '64,128,256,512,1024,2048')
+const LEVELS = (process.env.WB3_BENCH_LEVELS ?? '64,256,1024,4096,8192,16384,32768')
   .split(',')
   .map((level) => Number(level.trim()))
   .filter((level) => Number.isFinite(level) && level > 0);
-const WARMUP_MS = Number(process.env.WB3_BENCH_WARMUP_MS ?? 1500);
-const SAMPLE_MS = Number(process.env.WB3_BENCH_SAMPLE_MS ?? 5000);
+const WARMUP_MS = Number(process.env.WB3_BENCH_WARMUP_MS ?? 1000);
+const SAMPLE_MS = Number(process.env.WB3_BENCH_SAMPLE_MS ?? 4000);
 const SAMPLE_INTERVAL_MS = Number(process.env.WB3_BENCH_INTERVAL_MS ?? 250);
 const MIN_FPS_FLOOR = Number(process.env.WB3_BENCH_MIN_FPS ?? 20);
 const HEADLESS = process.env.WB3_BENCH_HEADLESS === '1';
@@ -38,6 +38,7 @@ function median(values) {
 function makeUrl(engine) {
   const url = new URL(SERVER_URL);
   url.searchParams.set('engine', engine);
+  url.searchParams.set('benchmark', '1');
   if (engine === 'box3d' && THREADS !== 'auto') {
     url.searchParams.set('threads', THREADS);
   }
@@ -60,7 +61,7 @@ async function runLevel(page, engine, level) {
   await page.waitForFunction(
     (count) => Number(document.querySelector('#body-count')?.textContent?.replace(/\D+/g, '') ?? 0) >= count,
     level,
-    { timeout: 30000 }
+    { timeout: 60000 }
   );
   await page.waitForTimeout(WARMUP_MS);
 
@@ -79,6 +80,7 @@ async function runLevel(page, engine, level) {
       simFps: sample.physicsFps,
       physicsStepMs: sample.physicsStepMs,
       physicsCapacityFps: sample.physicsCapacityFps,
+      simCapacityFps: sample.physicsCapacityFps,
       renderSyncMs: sample.renderSyncMs,
       syncMs: sample.syncMs,
       renderMs: sample.renderMs,
@@ -100,12 +102,15 @@ async function runLevel(page, engine, level) {
     p95RenderMs: percentile(samples.map((sample) => sample.renderMs), 95),
     avgSimFps: average(samples.map((sample) => sample.simFps)),
     p50SimFps: median(samples.map((sample) => sample.simFps)),
+    avgSimCapacityFps: average(samples.map((sample) => sample.simCapacityFps)),
+    p50SimCapacityFps: median(samples.map((sample) => sample.simCapacityFps)),
     p95PhysicsStepMs: percentile(samples.map((sample) => sample.physicsStepMs), 95),
     avgSyncMs: average(samples.map((sample) => sample.syncMs)),
     avgRenderSyncMs: average(samples.map((sample) => sample.renderSyncMs)),
     avgSnapshotCopyMs: average(samples.map((sample) => sample.snapshotCopyMs)),
     minRenderFps: Math.min(...samples.map((sample) => sample.renderFps)),
     minSimFps: Math.min(...samples.map((sample) => sample.simFps)),
+    minSimCapacityFps: Math.min(...samples.map((sample) => sample.simCapacityFps)),
   };
 
   return { summary, samples };
@@ -120,6 +125,7 @@ function writeCsv(samples, filePath) {
     'awakeBodies',
     'renderFps',
     'simFps',
+    'simCapacityFps',
     'physicsStepMs',
     'physicsCapacityFps',
     'renderSyncMs',
@@ -147,46 +153,52 @@ function makeSeriesPath(points, width, height, xMax, yMax, valueKey) {
     .join(' ');
 }
 
-function makeChartHtml(result) {
-  const levels = [...new Set(result.summary.map((row) => row.requestedBodies))];
+function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 210 }) {
   const colors = {
     box3d: '#58a6ff',
     rapier: '#f59e0b',
   };
+  const chartWidth = 760;
+  const xMax = Math.max(1, ...levelSamples.map((sample) => sample.tMs));
+  const yMax = Math.max(1, ...levelSamples.map((sample) => sample[metricKey] ?? 0)) * 1.12;
+  const paths = ENGINES.flatMap((engine) => {
+    const points = levelSamples.filter((sample) => sample.engine === engine);
+    if (points.length === 0) {
+      return [];
+    }
+    const color = colors[engine] ?? '#94a3b8';
+    return `<path d="${makeSeriesPath(points, chartWidth, chartHeight, xMax, yMax, metricKey)}" fill="none" stroke="${color}" stroke-width="2.5" />`;
+  }).join('\n');
+
+  return `
+    <div class="chart">
+      <h3>${label}</h3>
+      <svg viewBox="0 0 ${chartWidth + 72} ${chartHeight + 54}" role="img" aria-label="${label} over time for ${level} bodies">
+        <g transform="translate(52 18)">
+          <rect width="${chartWidth}" height="${chartHeight}" rx="6" fill="#111827" />
+          <line x1="0" y1="${chartHeight}" x2="${chartWidth}" y2="${chartHeight}" stroke="#334155" />
+          <line x1="0" y1="0" x2="0" y2="${chartHeight}" stroke="#334155" />
+          <text x="-8" y="8" text-anchor="end">${Math.round(yMax)} fps</text>
+          <text x="-8" y="${chartHeight}" text-anchor="end">0</text>
+          ${paths}
+        </g>
+      </svg>
+    </div>
+  `;
+}
+
+function makeChartHtml(result) {
+  const levels = [...new Set(result.summary.map((row) => row.requestedBodies))];
 
   const panels = levels
     .map((level) => {
       const levelSamples = result.samples.filter((sample) => sample.requestedBodies === level);
-      const xMax = Math.max(1, ...levelSamples.map((sample) => sample.tMs));
-      const yMax = Math.max(70, ...levelSamples.map((sample) => Math.max(sample.renderFps, sample.simFps))) * 1.08;
-      const chartWidth = 760;
-      const chartHeight = 260;
-      const paths = ENGINES.flatMap((engine) => {
-        const points = levelSamples.filter((sample) => sample.engine === engine);
-        if (points.length === 0) {
-          return [];
-        }
-        const color = colors[engine] ?? '#94a3b8';
-        return [
-          `<path d="${makeSeriesPath(points, chartWidth, chartHeight, xMax, yMax, 'renderFps')}" fill="none" stroke="${color}" stroke-width="2.5" />`,
-          `<path d="${makeSeriesPath(points, chartWidth, chartHeight, xMax, yMax, 'simFps')}" fill="none" stroke="${color}" stroke-width="2" stroke-dasharray="7 5" />`,
-        ];
-      }).join('\n');
 
       return `
         <section class="panel">
           <h2>${level.toLocaleString()} requested bodies</h2>
-          <svg viewBox="0 0 ${chartWidth + 72} ${chartHeight + 54}" role="img" aria-label="FPS over time for ${level} bodies">
-            <g transform="translate(52 18)">
-              <rect width="${chartWidth}" height="${chartHeight}" rx="6" fill="#111827" />
-              <line x1="0" y1="${chartHeight}" x2="${chartWidth}" y2="${chartHeight}" stroke="#334155" />
-              <line x1="0" y1="0" x2="0" y2="${chartHeight}" stroke="#334155" />
-              <text x="-8" y="8" text-anchor="end">${Math.round(yMax)} fps</text>
-              <text x="-8" y="${chartHeight}" text-anchor="end">0</text>
-              <line x1="0" y1="${chartHeight - (60 / yMax) * chartHeight}" x2="${chartWidth}" y2="${chartHeight - (60 / yMax) * chartHeight}" stroke="#334155" stroke-dasharray="4 5" />
-              ${paths}
-            </g>
-          </svg>
+          ${makeMetricChart({ level, levelSamples, metricKey: 'renderFps', label: 'Render FPS' })}
+          ${makeMetricChart({ level, levelSamples, metricKey: 'simCapacityFps', label: 'Simulation capacity FPS' })}
         </section>
       `;
     })
@@ -201,8 +213,9 @@ function makeChartHtml(result) {
           <td>${Math.round(row.bodies).toLocaleString()}</td>
           <td>${row.avgRenderFps.toFixed(1)}</td>
           <td>${row.p50RenderFps.toFixed(1)}</td>
+          <td>${row.avgSimCapacityFps.toFixed(1)}</td>
+          <td>${row.p50SimCapacityFps.toFixed(1)}</td>
           <td>${row.avgSimFps.toFixed(1)}</td>
-          <td>${row.p50SimFps.toFixed(1)}</td>
           <td>${row.p95PhysicsStepMs.toFixed(2)}</td>
           <td>${row.avgSyncMs.toFixed(2)}</td>
         </tr>
@@ -221,7 +234,8 @@ function makeChartHtml(result) {
       body { margin: 0; padding: 28px; }
       main { max-width: 1100px; margin: 0 auto; }
       h1 { margin: 0 0 6px; font-size: 28px; }
-      h2 { margin: 0 0 12px; font-size: 18px; }
+      h2 { margin: 0 0 14px; font-size: 18px; }
+      h3 { margin: 0 0 8px; font-size: 13px; color: #c9d7e8; }
       p { margin: 0 0 22px; color: #a8b3c2; }
       table { width: 100%; border-collapse: collapse; margin: 22px 0 28px; font-size: 13px; }
       th, td { padding: 10px 12px; border-bottom: 1px solid #263244; text-align: right; }
@@ -232,6 +246,7 @@ function makeChartHtml(result) {
       .swatch { width: 22px; height: 3px; border-radius: 999px; background: var(--color); }
       .dash { border-top: 3px dashed var(--color); background: transparent; height: 0; }
       .panel { margin: 0 0 22px; padding: 18px; border: 1px solid #243041; border-radius: 8px; background: #151f31; }
+      .chart + .chart { margin-top: 16px; }
       svg { width: 100%; height: auto; display: block; }
       text { fill: #8ea0b8; font-size: 12px; }
     </style>
@@ -239,17 +254,15 @@ function makeChartHtml(result) {
   <body>
     <main>
       <h1>WasmBox3D Engine Benchmark</h1>
-      <p>Generated ${new Date(result.generatedAt).toLocaleString()} from headed Playwright against ${SERVER_URL}. Solid lines are render FPS; dashed lines are simulation FPS.</p>
+      <p>Generated ${new Date(result.generatedAt).toLocaleString()} from headed Playwright against ${SERVER_URL}. Benchmark mode uses a dense stacked stress layout and disables the Box3D worker's forced-sleep shortcut.</p>
       <div class="legend">
         <span class="key"><span class="swatch" style="--color:#58a6ff"></span>Box3D render</span>
-        <span class="key"><span class="swatch dash" style="--color:#58a6ff"></span>Box3D sim</span>
         <span class="key"><span class="swatch" style="--color:#f59e0b"></span>Rapier render</span>
-        <span class="key"><span class="swatch dash" style="--color:#f59e0b"></span>Rapier sim</span>
       </div>
       <table>
         <thead>
           <tr>
-            <th>Engine</th><th>Requested</th><th>Bodies</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Avg Sim FPS</th><th>P50 Sim FPS</th><th>P95 Step ms</th><th>Avg Sync ms</th>
+            <th>Engine</th><th>Requested</th><th>Bodies</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -286,7 +299,7 @@ async function main() {
       console.log(
         `${engine} ${level} bodies: render ${result.summary.avgRenderFps.toFixed(1)} fps, sim ${result.summary.avgSimFps.toFixed(1)} fps`
       );
-      if (result.summary.minRenderFps < MIN_FPS_FLOOR || result.summary.minSimFps < MIN_FPS_FLOOR) {
+      if (result.summary.minRenderFps < MIN_FPS_FLOOR || result.summary.minSimCapacityFps < MIN_FPS_FLOOR) {
         console.log(`${engine} stopped after ${level}; minimum FPS floor ${MIN_FPS_FLOOR} reached`);
         break;
       }

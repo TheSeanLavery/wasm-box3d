@@ -25,6 +25,7 @@ const urlParams = new URLSearchParams(window.location.search);
 const engineParam = urlParams.get('engine');
 const physicsEngine = engineParam === 'rapier' ? 'rapier' : 'box3d';
 const threadParam = urlParams.get('threads');
+const benchmarkMode = urlParams.get('benchmark') === '1' || urlParams.get('benchmark') === 'true';
 const physicsThreadMode = threadParam === 'single' ? false : threadParam === 'pthreads' ? true : 'auto';
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -142,7 +143,7 @@ function createWorkerPhysics(sceneIndex) {
     console.error(error);
   });
 
-  worker.postMessage({ type: 'init', sceneIndex, threads: physicsThreadMode });
+  worker.postMessage({ type: 'init', sceneIndex, threads: physicsThreadMode, benchmarkMode });
 
   return {
     ready,
@@ -273,6 +274,7 @@ function updateReadout() {
     forcedSleepBodies: physics.getForcedSleepBodies(),
     threadsEnabled: physics.getThreadsEnabled(),
     engine: physicsEngine,
+    benchmarkMode,
     stressStatus: stressStatusEl.textContent,
     stepCount: physics.getStepCount(),
   };

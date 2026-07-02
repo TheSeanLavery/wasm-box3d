@@ -173,8 +173,8 @@ function addBounds() {
 function addStressBlocks(requestedDynamicCount) {
   const maxDynamicCount = MAX_RENDER_BODIES - 5;
   const target = Math.max(1, Math.min(requestedDynamicCount, maxDynamicCount));
-  const horizontalSpacing = 31.2;
-  const verticalSpacing = 0.78;
+  const horizontalSpacing = 0.76;
+  const verticalSpacing = 0.74;
   const footprint = Math.min(32, ceilSqrtInt(target));
   const halfWidth = Math.max(DEFAULT_ARENA_HALF_WIDTH, footprint * horizontalSpacing * 0.5 + 5.5);
 

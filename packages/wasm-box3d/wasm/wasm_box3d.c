@@ -233,8 +233,8 @@ static int add_stress_blocks( int requestedDynamicCount )
 		requestedDynamicCount = maxDynamicCount;
 	}
 
-	const float horizontalSpacing = 31.2f;
-	const float verticalSpacing = 0.78f;
+	const float horizontalSpacing = 0.76f;
+	const float verticalSpacing = 0.74f;
 	int footprint = ceil_sqrt_int( requestedDynamicCount );
 	if ( footprint > 32 )
 	{

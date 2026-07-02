@@ -3,6 +3,7 @@ import { createBox3DDemo } from '@threecyborgs/wasm-box3d';
 let physics;
 let sceneIndex = 0;
 let paused = false;
+let benchmarkMode = false;
 let lastStepAt = 0;
 let intervalId = 0;
 const METRIC_INTERVAL_MS = 500;
@@ -103,7 +104,9 @@ function snapshot() {
 
   const snapshotStartedAt = performance.now();
   const bodyData = new Float32Array(physics.getBodyData());
-  maybeForceSleepQuietStressBodies(bodyData, snapshotStartedAt);
+  if (!benchmarkMode) {
+    maybeForceSleepQuietStressBodies(bodyData, snapshotStartedAt);
+  }
   snapshotCopyMs = performance.now() - snapshotStartedAt;
   snapshotBytes = bodyData.byteLength;
   postMessage(
@@ -123,10 +126,11 @@ function snapshot() {
       renderSyncMs,
       snapshotCopyMs,
       snapshotBytes,
-      resetStressMs,
-      lastForceSleepMs,
-      forcedSleepBodies,
-      threadsEnabled: physics.threadsEnabled,
+    resetStressMs,
+    lastForceSleepMs,
+    forcedSleepBodies,
+    threadsEnabled: physics.threadsEnabled,
+    benchmarkMode,
     },
     [bodyData.buffer]
   );
@@ -179,6 +183,7 @@ self.onmessage = async (event) => {
   if (message.type === 'init') {
     sceneIndex = message.sceneIndex ?? 0;
     self.__wasmBox3DThreadMode = message.threads ?? 'auto';
+    benchmarkMode = Boolean(message.benchmarkMode);
     await init();
     return;
   }

@@ -46,7 +46,7 @@ The verifier checks desktop and mobile viewports for WASM activation, advancing 
 
 ## Engine Benchmark
 
-The example can compare the Box3D WASM worker with a Rapier worker using the same Three.js renderer and body snapshot format.
+The example can compare the Box3D WASM worker with a Rapier worker using the same Three.js renderer and body snapshot format. Benchmark mode uses a dense stacked stress layout and disables the Box3D worker's forced-sleep shortcut so the run measures harder active contact loads.
 
 With the dev server running on `http://127.0.0.1:5300`:
 
@@ -63,7 +63,7 @@ The benchmark launches headed Playwright by default and writes:
 Useful overrides:
 
 ```sh
-WB3_BENCH_LEVELS=64,256,1024 WB3_BENCH_SAMPLE_MS=3000 npm run benchmark:engines
+WB3_BENCH_LEVELS=64,256,1024,4096,8192,16384,32768 WB3_BENCH_SAMPLE_MS=4000 npm run benchmark:engines
 WB3_BENCH_HEADLESS=1 npm run benchmark:engines
 WB3_VERIFY_ENGINE=rapier npm run verify:browser
 ```
