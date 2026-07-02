@@ -30,6 +30,7 @@ export type Box3DDemo = {
   reset(sceneIndex?: number): number;
   resetStress(dynamicBlockCount?: number): number;
   step(dt?: number, substeps?: number): void;
+  syncRenderData(): void;
   spawnBox(position?: Vec3Like, velocity?: Vec3Like): number;
   spawnSphere(position?: Vec3Like, velocity?: Vec3Like): number;
   setGravityEnabled(enabled: boolean): void;

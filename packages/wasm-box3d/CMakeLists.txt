@@ -1,15 +1,22 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(wasm-box3d VERSION 0.1.1 LANGUAGES C)
+project(wasm-box3d VERSION 0.1.2 LANGUAGES C)
 
 set(BOX3D_VALIDATE OFF CACHE BOOL "Disable heavy Box3D validation for package builds" FORCE)
 set(BOX3D_DISABLE_SIMD OFF CACHE BOOL "Use upstream SIMD defaults when available" FORCE)
 
 add_subdirectory(../../vendor/box3d/src box3d)
+if(EMSCRIPTEN)
+	target_compile_options(box3d PRIVATE -pthread)
+	target_link_options(box3d PRIVATE -pthread)
+endif()
 
 add_executable(box3d_wasm wasm/wasm_box3d.c)
 target_link_libraries(box3d_wasm PRIVATE box3d)
 target_include_directories(box3d_wasm PRIVATE ../../vendor/box3d/include)
+if(EMSCRIPTEN)
+	target_compile_options(box3d_wasm PRIVATE -pthread)
+endif()
 set_target_properties(box3d_wasm PROPERTIES
 	C_STANDARD 17
 	C_STANDARD_REQUIRED YES
@@ -19,14 +26,17 @@ set_target_properties(box3d_wasm PROPERTIES
 
 if(EMSCRIPTEN)
 	target_link_options(box3d_wasm PRIVATE
+		-pthread
 		-sMODULARIZE=1
 		-sEXPORT_ES6=1
 		-sEXPORT_NAME=Box3DModule
-		-sENVIRONMENT=web
+		-sENVIRONMENT=web,worker
+		-sUSE_PTHREADS=1
+		-sPTHREAD_POOL_SIZE=4
 		-sALLOW_MEMORY_GROWTH=1
 		-sFILESYSTEM=0
 		-sASSERTIONS=1
 		-sEXPORTED_RUNTIME_METHODS=['cwrap','HEAPF32']
-		-sEXPORTED_FUNCTIONS=['_wb3_reset','_wb3_reset_stress','_wb3_step','_wb3_spawn_box','_wb3_spawn_sphere','_wb3_set_gravity_enabled','_wb3_get_body_count','_wb3_get_body_stride','_wb3_get_body_data','_wb3_get_step_count','_wb3_get_stress_dynamic_count','_wb3_get_last_stress_request','_wb3_get_max_bodies']
+		-sEXPORTED_FUNCTIONS=['_wb3_reset','_wb3_reset_stress','_wb3_step','_wb3_sync_render_data','_wb3_spawn_box','_wb3_spawn_sphere','_wb3_set_gravity_enabled','_wb3_get_body_count','_wb3_get_body_stride','_wb3_get_body_data','_wb3_get_step_count','_wb3_get_stress_dynamic_count','_wb3_get_last_stress_request','_wb3_get_max_bodies']
 	)
 endif()

@@ -27,6 +27,7 @@ export async function createBox3DDemo(options = {}) {
     reset: module.cwrap('wb3_reset', 'number', ['number']),
     resetStressRaw: module.cwrap('wb3_reset_stress', 'number', ['number']),
     stepWorld: module.cwrap('wb3_step', null, ['number', 'number']),
+    syncRenderDataRaw: module.cwrap('wb3_sync_render_data', null, []),
     spawnBoxRaw: module.cwrap('wb3_spawn_box', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
     spawnSphereRaw: module.cwrap('wb3_spawn_sphere', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
     setGravityEnabledRaw: module.cwrap('wb3_set_gravity_enabled', null, ['number']),
@@ -51,6 +52,9 @@ export async function createBox3DDemo(options = {}) {
     },
     step(dt = 1 / 60, substeps = 4) {
       api.stepWorld(dt, substeps);
+    },
+    syncRenderData() {
+      api.syncRenderDataRaw();
     },
     spawnBox(position = {}, velocity = {}) {
       return api.spawnBoxRaw(

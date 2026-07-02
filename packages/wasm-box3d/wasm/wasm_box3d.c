@@ -11,10 +11,13 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
-#define MAX_RENDER_BODIES 8192
+#define MAX_RENDER_BODIES 10000000
 #define BODY_FLOAT_STRIDE 14
 #define DEFAULT_ARENA_HALF_WIDTH 14.0f
+#define WB3_WORKER_COUNT 4
 
 enum
 {
@@ -36,8 +39,9 @@ typedef struct RenderBody
 } RenderBody;
 
 static b3WorldId g_worldId = B3_NULL_ID;
-static RenderBody g_bodies[MAX_RENDER_BODIES];
-static float g_bodyFloats[MAX_RENDER_BODIES * BODY_FLOAT_STRIDE];
+static RenderBody* g_bodies = NULL;
+static float* g_bodyFloats = NULL;
+static int g_bodyCapacity = 0;
 static int g_bodyCount = 0;
 static int g_stepCount = 0;
 static int g_sceneIndex = 0;
@@ -57,9 +61,53 @@ static void clear_world( void )
 	g_stepCount = 0;
 }
 
+static bool ensure_body_capacity( int requiredCapacity )
+{
+	if ( requiredCapacity <= g_bodyCapacity )
+	{
+		return true;
+	}
+
+	int nextCapacity = g_bodyCapacity == 0 ? 256 : g_bodyCapacity;
+	while ( nextCapacity < requiredCapacity && nextCapacity < MAX_RENDER_BODIES )
+	{
+		nextCapacity *= 2;
+		if ( nextCapacity < 0 || nextCapacity > MAX_RENDER_BODIES )
+		{
+			nextCapacity = MAX_RENDER_BODIES;
+		}
+	}
+
+	RenderBody* nextBodies = (RenderBody*)malloc( sizeof( RenderBody ) * (size_t)nextCapacity );
+	if ( nextBodies == NULL )
+	{
+		return false;
+	}
+
+	float* nextBodyFloats = (float*)malloc( sizeof( float ) * (size_t)nextCapacity * BODY_FLOAT_STRIDE );
+	if ( nextBodyFloats == NULL )
+	{
+		free( nextBodies );
+		return false;
+	}
+
+	if ( g_bodyCapacity > 0 )
+	{
+		memcpy( nextBodies, g_bodies, sizeof( RenderBody ) * (size_t)g_bodyCount );
+		memcpy( nextBodyFloats, g_bodyFloats, sizeof( float ) * (size_t)g_bodyCount * BODY_FLOAT_STRIDE );
+	}
+
+	free( g_bodies );
+	free( g_bodyFloats );
+	g_bodies = nextBodies;
+	g_bodyFloats = nextBodyFloats;
+	g_bodyCapacity = nextCapacity;
+	return true;
+}
+
 static int add_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float density, b3Vec3 color, b3Vec3 velocity )
 {
-	if ( g_bodyCount >= MAX_RENDER_BODIES )
+	if ( g_bodyCount >= MAX_RENDER_BODIES || ensure_body_capacity( g_bodyCount + 1 ) == false )
 	{
 		return -1;
 	}
@@ -94,7 +142,7 @@ static int add_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float 
 
 static int add_sphere( b3BodyType type, b3Vec3 position, float radius, float density, b3Vec3 color, b3Vec3 velocity )
 {
-	if ( g_bodyCount >= MAX_RENDER_BODIES )
+	if ( g_bodyCount >= MAX_RENDER_BODIES || ensure_body_capacity( g_bodyCount + 1 ) == false )
 	{
 		return -1;
 	}
@@ -172,14 +220,15 @@ static int add_stress_blocks( int requestedDynamicCount )
 		requestedDynamicCount = maxDynamicCount;
 	}
 
-	const float spacing = 0.78f;
+	const float horizontalSpacing = 3.12f;
+	const float verticalSpacing = 0.78f;
 	int footprint = ceil_sqrt_int( requestedDynamicCount );
 	if ( footprint > 32 )
 	{
 		footprint = 32;
 	}
 
-	float halfWidth = ( (float)footprint * spacing * 0.5f ) + 5.5f;
+	float halfWidth = ( (float)footprint * horizontalSpacing * 0.5f ) + 5.5f;
 	if ( halfWidth < DEFAULT_ARENA_HALF_WIDTH )
 	{
 		halfWidth = DEFAULT_ARENA_HALF_WIDTH;
@@ -194,9 +243,9 @@ static int add_stress_blocks( int requestedDynamicCount )
 		{
 			for ( int x = 0; x < footprint && created < requestedDynamicCount; ++x )
 			{
-				float fx = ( (float)x - (float)( footprint - 1 ) * 0.5f ) * spacing;
-				float fz = ( (float)z - (float)( footprint - 1 ) * 0.5f ) * spacing;
-				float fy = 0.42f + (float)y * spacing;
+				float fx = ( (float)x - (float)( footprint - 1 ) * 0.5f ) * horizontalSpacing;
+				float fz = ( (float)z - (float)( footprint - 1 ) * 0.5f ) * horizontalSpacing;
+				float fy = 0.42f + (float)y * verticalSpacing;
 				float tint = (float)( ( x * 17 + z * 31 + y * 13 ) % 100 ) / 100.0f;
 				b3Vec3 color = { 0.18f + tint * 0.54f, 0.46f + tint * 0.28f, 0.72f - tint * 0.38f };
 
@@ -309,7 +358,7 @@ int wb3_reset( int sceneIndex )
 
 	b3WorldDef worldDef = b3DefaultWorldDef();
 	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
-	worldDef.workerCount = 1;
+	worldDef.workerCount = WB3_WORKER_COUNT;
 	g_worldId = b3CreateWorld( &worldDef );
 	g_sceneIndex = sceneIndex % 3;
 
@@ -337,7 +386,7 @@ int wb3_reset_stress( int dynamicBlockCount )
 
 	b3WorldDef worldDef = b3DefaultWorldDef();
 	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
-	worldDef.workerCount = 1;
+	worldDef.workerCount = WB3_WORKER_COUNT;
 	g_worldId = b3CreateWorld( &worldDef );
 	g_sceneIndex = 3;
 	g_lastStressRequested = dynamicBlockCount;
@@ -364,6 +413,16 @@ void wb3_step( float dt, int substeps )
 	int solverSubsteps = substeps < 1 ? 1 : ( substeps > 16 ? 16 : substeps );
 	b3World_Step( g_worldId, step, solverSubsteps );
 	g_stepCount += 1;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void wb3_sync_render_data( void )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return;
+	}
+
 	sync_render_data();
 }
 

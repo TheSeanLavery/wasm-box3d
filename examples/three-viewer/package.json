@@ -1,6 +1,6 @@
 {
   "name": "wasm-box3d-three-viewer",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,8 +10,8 @@
     "verify:browser": "node verify-browser.cjs"
   },
   "dependencies": {
-    "@threecyborgs/wasm-box3d": "0.1.1",
-    "@threecyborgs/wasm-box3d-three": "0.1.1",
+    "@threecyborgs/wasm-box3d": "0.1.2",
+    "@threecyborgs/wasm-box3d-three": "0.1.2",
     "three": "^0.179.1"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "@threecyborgs/wasm-box3d",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "WebAssembly build and JavaScript loader for Box3D.",
   "type": "module",
   "license": "MIT",

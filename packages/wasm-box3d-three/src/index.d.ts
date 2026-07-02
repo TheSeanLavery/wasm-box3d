@@ -8,10 +8,10 @@ export type ThreeBodyMeshManagerOptions = {
 };
 
 export type ThreeBodyMeshManager = {
-  meshes: ThreeNamespace.Mesh[];
+  readonly meshes: ThreeNamespace.Object3D[];
+  arenaMeshes: ThreeNamespace.Mesh[];
   sync(physics: Box3DDemo): void;
   dispose(): void;
 };
 
 export declare function createThreeBodyMeshManager(options: ThreeBodyMeshManagerOptions): ThreeBodyMeshManager;
-

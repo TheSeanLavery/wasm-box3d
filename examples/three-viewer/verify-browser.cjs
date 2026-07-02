@@ -84,6 +84,8 @@ async function verifyViewport(viewport, label) {
       status: document.querySelector('#wasm-status')?.textContent,
       bodies: document.querySelector('#body-count')?.textContent,
       fps: document.querySelector('#fps-readout')?.textContent,
+      physicsFps: document.querySelector('#physics-fps-readout')?.textContent,
+      profile: document.querySelector('#profile-readout')?.textContent,
       stress: document.querySelector('#stress-status')?.textContent,
       overflowX: document.documentElement.scrollWidth > window.innerWidth,
       overflowY: document.documentElement.scrollHeight > window.innerHeight,
@@ -111,8 +113,14 @@ async function verifyViewport(viewport, label) {
   if (finalBodies < 69 || !state.stress?.startsWith('stress ')) {
     throw new Error(`${label} stress check failed: bodies=${state.bodies}, stress=${state.stress}`);
   }
-  if (!/^\d+(\.\d+)? fps$/.test(state.fps ?? '')) {
+  if (!/^render \d+(\.\d+)? fps$/.test(state.fps ?? '')) {
     throw new Error(`${label} fps readout invalid: ${state.fps}`);
+  }
+  if (!/^phys \d+(\.\d+)? fps$/.test(state.physicsFps ?? '')) {
+    throw new Error(`${label} physics fps readout invalid: ${state.physicsFps}`);
+  }
+  if (!/^step \d+(\.\d+)?ms wasm \d+(\.\d+)?ms sync \d+(\.\d+)?ms render \d+(\.\d+)?ms snap \d+(\.\d+)?ms$/.test(state.profile ?? '')) {
+    throw new Error(`${label} profile readout invalid: ${state.profile}`);
   }
   if (state.overflowX || state.overflowY) {
     throw new Error(`${label} viewport overflow detected`);
@@ -123,7 +131,18 @@ async function verifyViewport(viewport, label) {
     );
   }
 
-  return { label, viewport, step: `${before} -> ${after}`, bodies: state.bodies, fps: state.fps, stress: state.stress, screenshotPath, brightPixels };
+  return {
+    label,
+    viewport,
+    step: `${before} -> ${after}`,
+    bodies: state.bodies,
+    fps: state.fps,
+    physicsFps: state.physicsFps,
+    profile: state.profile,
+    stress: state.stress,
+    screenshotPath,
+    brightPixels,
+  };
 }
 
 (async () => {
