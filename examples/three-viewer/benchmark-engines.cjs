@@ -338,20 +338,19 @@ function makeChartHtml(result) {
         <tr class="engine-row ${row.engine} pair-${levelIndex % 2 === 0 ? 'even' : 'odd'} ${row.engine === 'box3d' ? 'pair-start' : 'pair-end'}">
           <td><span class="engine-chip ${row.engine}">${engineLabel(row.engine)}</span></td>
           <td>${row.ok ? (row.floorHit ? 'floor' : 'ok') : 'failed'}</td>
-          <td class="issue-cell">${escapeHtml(row.error)}</td>
-          <td>${row.requestedBodies.toLocaleString()}</td>
           <td>${Math.round(row.bodies).toLocaleString()}</td>
-          <td>${row.estimatedSnapshotMB.toFixed(1)}</td>
-          <td>${row.observedSnapshotMB.toFixed(1)}</td>
-          <td>${Math.round(row.resetWallMs).toLocaleString()}</td>
-          <td>${Math.round(row.firstStepWallMs).toLocaleString()}</td>
-          <td>${row.avgRenderFps.toFixed(1)}</td>
-          <td>${row.p50RenderFps.toFixed(1)}</td>
           <td>${row.avgSimCapacityFps.toFixed(1)}</td>
           <td>${row.p50SimCapacityFps.toFixed(1)}</td>
           <td>${row.avgSimFps.toFixed(1)}</td>
           <td>${row.p95PhysicsStepMs.toFixed(2)}</td>
           <td>${row.avgSyncMs.toFixed(2)}</td>
+          <td>${row.avgRenderFps.toFixed(1)}</td>
+          <td>${row.p50RenderFps.toFixed(1)}</td>
+          <td>${Math.round(row.resetWallMs).toLocaleString()}</td>
+          <td>${Math.round(row.firstStepWallMs).toLocaleString()}</td>
+          <td>${row.estimatedSnapshotMB.toFixed(1)}</td>
+          <td>${row.observedSnapshotMB.toFixed(1)}</td>
+          <td class="issue-cell">${escapeHtml(row.error)}</td>
         </tr>
       `;
     })
@@ -417,7 +416,7 @@ function makeChartHtml(result) {
       <table>
         <thead>
           <tr>
-            <th>Engine</th><th>Status</th><th>Issue</th><th>Requested</th><th>Bodies</th><th>Est Snapshot MB</th><th>Seen Snapshot MB</th><th>Reset ms</th><th>First Step ms</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th>
+            <th>Engine</th><th>Status</th><th>Bodies</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Reset ms</th><th>First Step ms</th><th>Est Snapshot MB</th><th>Seen Snapshot MB</th><th>Issue</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
