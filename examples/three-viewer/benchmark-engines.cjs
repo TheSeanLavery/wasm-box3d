@@ -553,11 +553,11 @@ function makeChartHtml(result) {
           <td><span class="engine-chip ${row.engine}">${engineLabel(row.engine)}</span></td>
           <td>${row.ok ? (row.floorHit ? 'floor' : 'ok') : 'failed'}</td>
           <td>${Math.round(row.bodies).toLocaleString()}</td>
-          <td>${row.avgSimCapacityFps.toFixed(1)}</td>
-          <td>${row.p50SimCapacityFps.toFixed(1)}</td>
           <td>${row.avgSimFps.toFixed(1)}</td>
           <td>${row.p95PhysicsStepMs.toFixed(2)}</td>
           <td>${row.avgSyncMs.toFixed(2)}</td>
+          <td>${row.avgSimCapacityFps.toFixed(1)}</td>
+          <td>${row.p50SimCapacityFps.toFixed(1)}</td>
           <td>${row.avgRenderFps.toFixed(1)}</td>
           <td>${row.p50RenderFps.toFixed(1)}</td>
           <td>${Math.round(row.resetWallMs).toLocaleString()}</td>
@@ -643,7 +643,7 @@ function makeChartHtml(result) {
       <table>
         <thead>
           <tr>
-            <th>Engine</th><th>Status</th><th>Bodies</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Reset ms</th><th>First Step ms</th><th>Est Snapshot MB</th><th>Seen Snapshot MB</th><th>Issue</th>
+            <th>Engine</th><th>Status</th><th>Bodies</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Reset ms</th><th>First Step ms</th><th>Est Snapshot MB</th><th>Seen Snapshot MB</th><th>Issue</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
