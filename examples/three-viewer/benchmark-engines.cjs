@@ -431,14 +431,19 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
     <div class="chart">
       <div class="chart-heading">
         <h3>${level.toLocaleString()} Bodies - ${label}</h3>
-        <div class="mini-legend">
-          <span><span class="swatch" style="--color:#58a6ff"></span>Box3D</span>
-          <span><span class="swatch" style="--color:#f59e0b"></span>Rapier</span>
-          ${showFloor ? '<span><span class="floor-swatch"></span>20 FPS floor</span>' : ''}
-        </div>
-      </div>
-      <svg viewBox="0 0 ${chartWidth + 72} ${chartHeight + 54}" role="img" aria-label="${label} over time for ${level} bodies">
-        <g transform="translate(52 18)">
+	        <div class="mini-legend">
+	          <span><span class="swatch" style="--color:#58a6ff"></span>Box3D</span>
+	          <span><span class="swatch" style="--color:#f59e0b"></span>Rapier</span>
+	          ${showFloor ? '<span><span class="floor-swatch"></span>20 FPS floor</span>' : ''}
+	        </div>
+	        <div class="zoom-controls" aria-label="Chart zoom controls">
+	          <button type="button" data-zoom="in">Zoom in</button>
+	          <button type="button" data-zoom="out">Zoom out</button>
+	          <button type="button" data-zoom="reset">Reset</button>
+	        </div>
+	      </div>
+	      <svg class="zoomable-chart" viewBox="0 0 ${chartWidth + 72} ${chartHeight + 54}" data-default-viewbox="0 0 ${chartWidth + 72} ${chartHeight + 54}" role="img" aria-label="${label} over time for ${level} bodies">
+	        <g transform="translate(52 18)">
           <rect width="${chartWidth}" height="${chartHeight}" rx="6" fill="#111827" />
           ${makeGridLines({
             width: chartWidth,
@@ -546,14 +551,19 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
     <div class="chart overview-chart">
       <div class="chart-heading">
         <h3>${label} by Body Count</h3>
-        <div class="mini-legend">
-          <span><span class="swatch" style="--color:#58a6ff"></span>Box3D</span>
-          <span><span class="swatch" style="--color:#f59e0b"></span>Rapier</span>
-          ${showFloor ? '<span><span class="floor-swatch"></span>20 FPS floor</span>' : ''}
-          ${scale === 'log' ? '<span class="scale-note">log scale</span>' : ''}
-        </div>
-      </div>
-      <svg viewBox="0 0 ${chartWidth + 82} ${chartHeight + 56}" role="img" aria-label="${label} by body count">
+	        <div class="mini-legend">
+	          <span><span class="swatch" style="--color:#58a6ff"></span>Box3D</span>
+	          <span><span class="swatch" style="--color:#f59e0b"></span>Rapier</span>
+	          ${showFloor ? '<span><span class="floor-swatch"></span>20 FPS floor</span>' : ''}
+	          ${scale === 'log' ? '<span class="scale-note">log scale</span>' : ''}
+	        </div>
+	        <div class="zoom-controls" aria-label="Chart zoom controls">
+	          <button type="button" data-zoom="in">Zoom in</button>
+	          <button type="button" data-zoom="out">Zoom out</button>
+	          <button type="button" data-zoom="reset">Reset</button>
+	        </div>
+	      </div>
+	      <svg class="zoomable-chart" viewBox="0 0 ${chartWidth + 82} ${chartHeight + 56}" data-default-viewbox="0 0 ${chartWidth + 82} ${chartHeight + 56}" role="img" aria-label="${label} by body count">
         <g transform="translate(62 18)">
           <rect width="${chartWidth}" height="${chartHeight}" rx="6" fill="#111827" />
           ${grid}
@@ -697,29 +707,41 @@ function makeChartHtml(result) {
       .table-tools .checkbox-label input { min-height: 0; }
       .filter-count { color: #8ea0b8; font-size: 12px; text-align: right; }
       .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 12px 0 20px; color: #cbd5e1; font-size: 13px; }
+      .zoom-help { margin-top: -10px; margin-bottom: 20px; color: #8ea0b8; font-size: 13px; }
       .key { display: inline-flex; align-items: center; gap: 7px; }
       .swatch { width: 22px; height: 3px; border-radius: 999px; background: var(--color); }
       .dash { border-top: 3px dashed var(--color); background: transparent; height: 0; }
       .panel { margin: 0 0 22px; padding: 18px; border: 1px solid #243041; border-radius: 8px; background: #151f31; }
       .overview-panel { background: #121d2f; }
-      .chart + .chart { margin-top: 16px; }
-      .chart-heading { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
-      .mini-legend { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; color: #aab8ca; font-size: 12px; }
-      .mini-legend span { display: inline-flex; align-items: center; gap: 6px; }
-      .floor-swatch { width: 22px; height: 0; border-top: 2px dashed #e2e8f0; }
-      .scale-note { color: #8ea0b8; }
-      svg { width: 100%; height: auto; display: block; }
-      text { fill: #8ea0b8; font-size: 12px; }
-      .axis-label { fill: #728199; font-size: 11px; }
-      .tick-label { fill: #98a7bb; font-size: 11px; }
-      .grid-line { stroke: rgba(148, 163, 184, 0.22); stroke-width: 1; }
+	      .chart + .chart { margin-top: 16px; }
+	      .chart-heading { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
+	      .mini-legend { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; color: #aab8ca; font-size: 12px; }
+	      .mini-legend span { display: inline-flex; align-items: center; gap: 6px; }
+	      .zoom-controls { display: inline-flex; gap: 6px; align-items: center; }
+	      .zoom-controls button { min-height: 28px; border: 1px solid #334155; border-radius: 6px; background: #172338; color: #dbeafe; padding: 0 9px; font-size: 12px; font-weight: 800; cursor: pointer; }
+	      .zoom-controls button:hover { background: #22324d; }
+	      .floor-swatch { width: 22px; height: 0; border-top: 2px dashed #e2e8f0; }
+	      .scale-note { color: #8ea0b8; }
+	      svg { width: 100%; height: auto; display: block; }
+	      .zoomable-chart { cursor: grab; touch-action: none; user-select: none; border-radius: 8px; }
+	      .zoomable-chart.is-dragging { cursor: grabbing; }
+	      text { fill: #8ea0b8; font-size: 12px; }
+	      .axis-label { fill: #728199; font-size: 11px; }
+	      .tick-label { fill: #98a7bb; font-size: 11px; }
+	      .grid-line { stroke: rgba(148, 163, 184, 0.22); stroke-width: 1; }
       .grid-line.vertical { stroke: rgba(148, 163, 184, 0.14); }
       .floor-line { stroke: #e2e8f0; stroke-width: 1.5; stroke-dasharray: 6 5; opacity: 0.88; }
       .floor-label { fill: #e2e8f0; font-size: 11px; paint-order: stroke; stroke: #111827; stroke-width: 4px; stroke-linejoin: round; }
-      .line-label { font-size: 12px; font-weight: 800; paint-order: stroke; stroke: #111827; stroke-width: 4px; stroke-linejoin: round; }
-      .sample-point { cursor: crosshair; stroke: #0f172a; stroke-width: 1.5px; opacity: 0.86; }
-      .overview-point { opacity: 0.72; }
-      .sample-point:hover, .sample-point:focus { opacity: 1; stroke: #f8fafc; stroke-width: 2.5px; outline: none; }
+	      .line-label { font-size: 12px; font-weight: 800; paint-order: stroke; stroke: #111827; stroke-width: 4px; stroke-linejoin: round; }
+	      .sample-point { cursor: crosshair; stroke: #0f172a; stroke-width: 1.5px; opacity: 0.86; }
+	      .overview-point { opacity: 0.72; }
+	      .sample-point:hover, .sample-point:focus { opacity: 1; stroke: #f8fafc; stroke-width: 2.5px; outline: none; }
+	      .zoomable-chart path,
+	      .zoomable-chart line,
+	      .zoomable-chart rect,
+	      .zoomable-chart circle {
+	        vector-effect: non-scaling-stroke;
+	      }
       @media (max-width: 900px) {
         .table-tools { grid-template-columns: 1fr; }
         .filter-count { text-align: left; }
@@ -734,6 +756,7 @@ function makeChartHtml(result) {
         <span class="key"><span class="swatch" style="--color:#58a6ff"></span>Box3D render</span>
         <span class="key"><span class="swatch" style="--color:#f59e0b"></span>Rapier render</span>
       </div>
+      <p class="zoom-help">Use chart buttons or mouse wheel to zoom, drag charts to pan, and double-click or Reset to restore.</p>
       ${overview}
       <div class="table-tools" aria-label="Benchmark table filters">
         <label>
@@ -862,15 +885,147 @@ function makeChartHtml(result) {
           control.addEventListener('input', applyFilters);
           control.addEventListener('change', applyFilters);
         }
-        clearFilters.addEventListener('click', () => {
-          bodyFilter.value = '';
-          engineFilter.value = 'all';
-          statusFilter.value = 'all';
-          compareFilter.checked = true;
-          applyFilters();
-        });
-        applyFilters();
-      })();
+	        clearFilters.addEventListener('click', () => {
+	          bodyFilter.value = '';
+	          engineFilter.value = 'all';
+	          statusFilter.value = 'all';
+	          compareFilter.checked = true;
+	          applyFilters();
+	        });
+	        applyFilters();
+
+	        function parseViewBox(value) {
+	          const parts = String(value ?? '').split(/\\s+/).map(Number);
+	          return { x: parts[0] || 0, y: parts[1] || 0, width: parts[2] || 1, height: parts[3] || 1 };
+	        }
+
+	        function serializeViewBox(box) {
+	          return [box.x, box.y, box.width, box.height].map((value) => Number(value).toFixed(3)).join(' ');
+	        }
+
+	        function initZoomableChart(svg) {
+	          const defaultBox = parseViewBox(svg.dataset.defaultViewbox || svg.getAttribute('viewBox'));
+	          let viewBox = { ...defaultBox };
+	          let drag = null;
+	          const textItems = [...svg.querySelectorAll('text')].map((element) => ({
+	            element,
+	            fontSize: parseFloat(getComputedStyle(element).fontSize) || 12,
+	          }));
+	          const pointItems = [...svg.querySelectorAll('.sample-point')].map((element) => ({
+	            element,
+	            radius: Number(element.getAttribute('r') || 4),
+	          }));
+
+	          function adjustAnnotationScale() {
+	            const scale = Math.max(viewBox.width / defaultBox.width, viewBox.height / defaultBox.height);
+	            for (const item of textItems) {
+	              item.element.style.fontSize = Math.max(7, Math.min(18, item.fontSize * scale)) + 'px';
+	            }
+	            for (const item of pointItems) {
+	              item.element.setAttribute('r', Math.max(1.8, Math.min(6, item.radius * scale)).toFixed(2));
+	            }
+	          }
+
+	          function setViewBox(nextBox) {
+	            const minWidth = defaultBox.width * 0.025;
+	            const minHeight = defaultBox.height * 0.025;
+	            viewBox = {
+	              x: nextBox.x,
+	              y: nextBox.y,
+	              width: Math.max(minWidth, Math.min(defaultBox.width * 4, nextBox.width)),
+	              height: Math.max(minHeight, Math.min(defaultBox.height * 4, nextBox.height)),
+	            };
+	            svg.setAttribute('viewBox', serializeViewBox(viewBox));
+	            adjustAnnotationScale();
+	          }
+
+	          function pointForEvent(event) {
+	            const rect = svg.getBoundingClientRect();
+	            const xRatio = rect.width > 0 ? (event.clientX - rect.left) / rect.width : 0.5;
+	            const yRatio = rect.height > 0 ? (event.clientY - rect.top) / rect.height : 0.5;
+	            return {
+	              x: viewBox.x + xRatio * viewBox.width,
+	              y: viewBox.y + yRatio * viewBox.height,
+	            };
+	          }
+
+	          function zoomAt(factor, center) {
+	            const nextWidth = viewBox.width * factor;
+	            const nextHeight = viewBox.height * factor;
+	            const xRatio = viewBox.width > 0 ? (center.x - viewBox.x) / viewBox.width : 0.5;
+	            const yRatio = viewBox.height > 0 ? (center.y - viewBox.y) / viewBox.height : 0.5;
+	            setViewBox({
+	              x: center.x - nextWidth * xRatio,
+	              y: center.y - nextHeight * yRatio,
+	              width: nextWidth,
+	              height: nextHeight,
+	            });
+	          }
+
+	          function reset() {
+	            setViewBox(defaultBox);
+	          }
+
+	          svg.addEventListener('wheel', (event) => {
+	            event.preventDefault();
+	            zoomAt(event.deltaY > 0 ? 1.18 : 0.82, pointForEvent(event));
+	          }, { passive: false });
+
+	          svg.addEventListener('pointerdown', (event) => {
+	            if (event.button !== 0) {
+	              return;
+	            }
+	            drag = {
+	              pointerId: event.pointerId,
+	              startX: event.clientX,
+	              startY: event.clientY,
+	              viewBox: { ...viewBox },
+	            };
+	            svg.classList.add('is-dragging');
+	            svg.setPointerCapture(event.pointerId);
+	          });
+
+	          svg.addEventListener('pointermove', (event) => {
+	            if (!drag || drag.pointerId !== event.pointerId) {
+	              return;
+	            }
+	            const rect = svg.getBoundingClientRect();
+	            const dx = rect.width > 0 ? ((event.clientX - drag.startX) / rect.width) * drag.viewBox.width : 0;
+	            const dy = rect.height > 0 ? ((event.clientY - drag.startY) / rect.height) * drag.viewBox.height : 0;
+	            setViewBox({
+	              ...drag.viewBox,
+	              x: drag.viewBox.x - dx,
+	              y: drag.viewBox.y - dy,
+	            });
+	          });
+
+	          svg.addEventListener('pointerup', (event) => {
+	            if (!drag || drag.pointerId !== event.pointerId) {
+	              return;
+	            }
+	            drag = null;
+	            svg.classList.remove('is-dragging');
+	            svg.releasePointerCapture(event.pointerId);
+	          });
+
+	          svg.addEventListener('dblclick', reset);
+
+	          const chart = svg.closest('.chart');
+	          chart?.querySelector('[data-zoom="in"]')?.addEventListener('click', () => zoomAt(0.72, {
+	            x: viewBox.x + viewBox.width * 0.5,
+	            y: viewBox.y + viewBox.height * 0.5,
+	          }));
+	          chart?.querySelector('[data-zoom="out"]')?.addEventListener('click', () => zoomAt(1.28, {
+	            x: viewBox.x + viewBox.width * 0.5,
+	            y: viewBox.y + viewBox.height * 0.5,
+	          }));
+	          chart?.querySelector('[data-zoom="reset"]')?.addEventListener('click', reset);
+	        }
+
+	        for (const svg of document.querySelectorAll('.zoomable-chart')) {
+	          initZoomableChart(svg);
+	        }
+	      })();
     </script>
   </body>
 </html>`;
