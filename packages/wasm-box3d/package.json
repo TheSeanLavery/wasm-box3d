@@ -26,7 +26,7 @@
     "LICENSE"
   ],
   "scripts": {
-    "build:wasm": "export EMSDK_PYTHON=${EMSDK_PYTHON:-/opt/homebrew/opt/python@3.14/bin/python3.14}; emcmake cmake -S . -B ../../build/wasm-box3d -DCMAKE_BUILD_TYPE=Release && cmake --build ../../build/wasm-box3d --config Release",
+    "build:wasm": "if [ -z \"${EMSDK_PYTHON:-}\" ] && [ -x /opt/homebrew/opt/python@3.14/bin/python3.14 ]; then export EMSDK_PYTHON=/opt/homebrew/opt/python@3.14/bin/python3.14; fi; emcmake cmake -S . -B ../../build/wasm-box3d -DCMAKE_BUILD_TYPE=Release && cmake --build ../../build/wasm-box3d --config Release",
     "build": "node ../../scripts/copy-package.mjs src dist",
     "prepack": "npm run build:wasm && npm run build"
   },
@@ -38,4 +38,3 @@
     "3d"
   ]
 }
-
