@@ -320,7 +320,7 @@ function makeChartHtml(result) {
     .map((row) => {
       const levelIndex = levels.indexOf(row.requestedBodies);
       return `
-        <tr class="engine-row ${row.engine} ${levelIndex % 2 === 0 ? 'pair-even' : 'pair-odd'}">
+        <tr class="engine-row ${row.engine} pair-${levelIndex % 2 === 0 ? 'even' : 'odd'} ${row.engine === 'box3d' ? 'pair-start' : 'pair-end'}">
           <td><span class="engine-chip ${row.engine}">${engineLabel(row.engine)}</span></td>
           <td>${row.ok ? (row.floorHit ? 'floor' : 'ok') : 'failed'}</td>
           <td class="issue-cell">${escapeHtml(row.error)}</td>
@@ -355,15 +355,23 @@ function makeChartHtml(result) {
       h2 { margin: 0 0 14px; font-size: 18px; }
       h3 { margin: 0 0 8px; font-size: 13px; color: #c9d7e8; }
       p { margin: 0 0 22px; color: #a8b3c2; }
-      table { width: 100%; border-collapse: collapse; margin: 22px 0 28px; font-size: 13px; }
-      th, td { padding: 10px 12px; border-bottom: 1px solid #263244; text-align: right; }
+      table { width: 100%; border-collapse: separate; border-spacing: 0 8px; margin: 22px 0 28px; font-size: 13px; }
+      th, td { padding: 10px 12px; text-align: right; }
       th:first-child, td:first-child { text-align: left; }
       th { color: #bfcede; font-weight: 700; }
-      tbody tr.pair-even.box3d { background: rgba(88, 166, 255, 0.12); }
-      tbody tr.pair-even.rapier { background: rgba(245, 158, 11, 0.12); }
-      tbody tr.pair-odd.box3d { background: rgba(88, 166, 255, 0.06); }
-      tbody tr.pair-odd.rapier { background: rgba(245, 158, 11, 0.06); }
-      tbody tr.rapier td { border-bottom-color: #3a4658; }
+      tbody tr.engine-row td { background: #151f31; border-style: solid; border-color: rgba(148, 163, 184, 0.26); border-width: 0; }
+      tbody tr.pair-even td { background: #172338; }
+      tbody tr.pair-odd td { background: #121d2f; }
+      tbody tr.box3d td { box-shadow: inset 3px 0 0 #58a6ff; }
+      tbody tr.rapier td { box-shadow: inset 3px 0 0 #f59e0b; }
+      tbody tr.pair-start td { border-top-width: 2px; }
+      tbody tr.pair-end td { border-bottom-width: 2px; }
+      tbody tr.engine-row td:first-child { border-left-width: 2px; }
+      tbody tr.engine-row td:last-child { border-right-width: 2px; }
+      tbody tr.pair-start td:first-child { border-top-left-radius: 8px; }
+      tbody tr.pair-start td:last-child { border-top-right-radius: 8px; }
+      tbody tr.pair-end td:first-child { border-bottom-left-radius: 8px; }
+      tbody tr.pair-end td:last-child { border-bottom-right-radius: 8px; }
       .engine-chip { display: inline-flex; align-items: center; min-width: 58px; font-weight: 800; }
       .engine-chip.box3d { color: #8ec5ff; }
       .engine-chip.rapier { color: #f9c46f; }
