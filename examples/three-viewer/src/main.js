@@ -39,6 +39,7 @@ const STRESS_WARMUP_MS = 1000;
 const STRESS_SAMPLE_MS = 2400;
 const FPS_WINDOW_SIZE = 90;
 const LAB_SAMPLE_MS = 250;
+const LIVE_SNAPSHOT_MS = 1000 / 60;
 const LAB_CHART = { x: 34, y: 14, width: 292, height: 96 };
 const LAB_SCENARIOS = {
   pileDrop: {
@@ -966,24 +967,11 @@ function getSnapshotIntervalMs() {
     return Math.max(50, benchmarkSnapshotMs);
   }
 
-  const bodyCount = physics.getBodyCount();
   const awakeBodies = physics.getAwakeBodyCount();
   if (awakeBodies <= 0) {
     return 500;
   }
-  if (bodyCount >= 100000) {
-    return 500;
-  }
-  if (bodyCount >= 50000) {
-    return 250;
-  }
-  if (bodyCount >= 10000) {
-    return 125;
-  }
-  if (bodyCount >= 2500) {
-    return 66;
-  }
-  return 33;
+  return LIVE_SNAPSHOT_MS;
 }
 
 function animate() {
