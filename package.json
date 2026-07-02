@@ -1,6 +1,6 @@
 {
   "name": "wasm-box3d-workspace",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "workspaces": [
@@ -22,4 +22,3 @@
     "vite": "^7.0.0"
   }
 }
-

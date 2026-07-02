@@ -88,6 +88,12 @@ input {
   background: #314151;
 }
 
+.controls button:disabled {
+  color: #7c8794;
+  background: #1d252e;
+  cursor: not-allowed;
+}
+
 .controls button:active {
   transform: translateY(1px);
 }
@@ -125,6 +131,7 @@ input {
   border: 1px solid rgba(255, 255, 255, 0.10);
   border-radius: 6px;
   background: rgba(17, 20, 25, 0.76);
+  white-space: nowrap;
 }
 
 @media (max-width: 760px) {

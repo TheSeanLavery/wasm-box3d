@@ -14,3 +14,7 @@ physics.step(1 / 60, 4);
 console.log(physics.getBodyCount(), physics.getBodyData());
 ```
 
+Stress scenes are available through `resetStress(dynamicBlockCount)`. The call
+rebuilds the world with the requested number of dynamic boxes, capped by
+`getMaxBodies()`, and `getStressDynamicCount()` reports how many stress boxes
+were actually created.

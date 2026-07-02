@@ -35,6 +35,19 @@ async function verifyViewport(viewport, label) {
   await boxButton.click();
   await page.waitForTimeout(300);
 
+  const stressButton = page.getByRole('button', { name: 'Stress' });
+  const stressButtonCount = await stressButton.count();
+  if (stressButtonCount !== 1) {
+    throw new Error(`Expected one Stress button, found ${stressButtonCount}`);
+  }
+  await stressButton.click();
+  await page.waitForFunction(
+    () => Number(document.querySelector('#body-count')?.textContent?.replace(/\D+/g, '') ?? 0) >= 69,
+    null,
+    { timeout: 10000 }
+  );
+  await page.waitForTimeout(500);
+
   const canvasBounds = await page.locator('#scene').boundingBox();
   const screenshot = await page.screenshot({ fullPage: true });
   const screenshotPath = path.resolve('../../artifacts', `${label}.png`);
@@ -70,6 +83,8 @@ async function verifyViewport(viewport, label) {
     return {
       status: document.querySelector('#wasm-status')?.textContent,
       bodies: document.querySelector('#body-count')?.textContent,
+      fps: document.querySelector('#fps-readout')?.textContent,
+      stress: document.querySelector('#stress-status')?.textContent,
       overflowX: document.documentElement.scrollWidth > window.innerWidth,
       overflowY: document.documentElement.scrollHeight > window.innerHeight,
     };
@@ -93,6 +108,12 @@ async function verifyViewport(viewport, label) {
   if (finalBodies < 41) {
     throw new Error(`${label} spawn check failed: ${state.bodies}`);
   }
+  if (finalBodies < 69 || !state.stress?.startsWith('stress ')) {
+    throw new Error(`${label} stress check failed: bodies=${state.bodies}, stress=${state.stress}`);
+  }
+  if (!/^\d+(\.\d+)? fps$/.test(state.fps ?? '')) {
+    throw new Error(`${label} fps readout invalid: ${state.fps}`);
+  }
   if (state.overflowX || state.overflowY) {
     throw new Error(`${label} viewport overflow detected`);
   }
@@ -102,7 +123,7 @@ async function verifyViewport(viewport, label) {
     );
   }
 
-  return { label, viewport, step: `${before} -> ${after}`, bodies: state.bodies, screenshotPath, brightPixels };
+  return { label, viewport, step: `${before} -> ${after}`, bodies: state.bodies, fps: state.fps, stress: state.stress, screenshotPath, brightPixels };
 }
 
 (async () => {
@@ -115,4 +136,3 @@ async function verifyViewport(viewport, label) {
   console.error(error);
   process.exitCode = 1;
 });
-

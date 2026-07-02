@@ -25,6 +25,7 @@ export async function createBox3DDemo(options = {}) {
   const module = await loadBox3D(options);
   const api = {
     reset: module.cwrap('wb3_reset', 'number', ['number']),
+    resetStressRaw: module.cwrap('wb3_reset_stress', 'number', ['number']),
     stepWorld: module.cwrap('wb3_step', null, ['number', 'number']),
     spawnBoxRaw: module.cwrap('wb3_spawn_box', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
     spawnSphereRaw: module.cwrap('wb3_spawn_sphere', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
@@ -33,6 +34,8 @@ export async function createBox3DDemo(options = {}) {
     getBodyStrideRaw: module.cwrap('wb3_get_body_stride', 'number', []),
     getBodyDataRaw: module.cwrap('wb3_get_body_data', 'number', []),
     getStepCountRaw: module.cwrap('wb3_get_step_count', 'number', []),
+    getStressDynamicCountRaw: module.cwrap('wb3_get_stress_dynamic_count', 'number', []),
+    getLastStressRequestRaw: module.cwrap('wb3_get_last_stress_request', 'number', []),
     getMaxBodiesRaw: module.cwrap('wb3_get_max_bodies', 'number', []),
   };
 
@@ -42,6 +45,9 @@ export async function createBox3DDemo(options = {}) {
     module,
     reset(sceneIndex = 0) {
       return api.reset(sceneIndex);
+    },
+    resetStress(dynamicBlockCount = 64) {
+      return api.resetStressRaw(dynamicBlockCount);
     },
     step(dt = 1 / 60, substeps = 4) {
       api.stepWorld(dt, substeps);
@@ -84,6 +90,12 @@ export async function createBox3DDemo(options = {}) {
     getStepCount() {
       return api.getStepCountRaw();
     },
+    getStressDynamicCount() {
+      return api.getStressDynamicCountRaw();
+    },
+    getLastStressRequest() {
+      return api.getLastStressRequestRaw();
+    },
     getMaxBodies() {
       return api.getMaxBodiesRaw();
     },
@@ -117,4 +129,3 @@ export function readBodyRecord(bodyData, index, stride = BODY_FLOAT_STRIDE) {
     },
   };
 }
-

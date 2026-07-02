@@ -12,8 +12,9 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define MAX_RENDER_BODIES 128
+#define MAX_RENDER_BODIES 8192
 #define BODY_FLOAT_STRIDE 14
+#define DEFAULT_ARENA_HALF_WIDTH 14.0f
 
 enum
 {
@@ -40,6 +41,8 @@ static float g_bodyFloats[MAX_RENDER_BODIES * BODY_FLOAT_STRIDE];
 static int g_bodyCount = 0;
 static int g_stepCount = 0;
 static int g_sceneIndex = 0;
+static int g_lastStressRequested = 0;
+static int g_lastStressDynamicCount = 0;
 static bool g_gravityEnabled = true;
 
 static void clear_world( void )
@@ -124,18 +127,90 @@ static int add_sphere( b3BodyType type, b3Vec3 position, float radius, float den
 	return g_bodyCount++;
 }
 
+static void add_sized_bounds( float halfWidth, float wallCenterY, float wallHalfHeight )
+{
+	add_box( b3_staticBody, (b3Vec3){ 0.0f, -0.55f, 0.0f }, (b3Vec3){ halfWidth, 0.5f, halfWidth }, 0.0f,
+			 (b3Vec3){ 0.33f, 0.36f, 0.40f }, b3Vec3_zero );
+	add_box( b3_staticBody, (b3Vec3){ -halfWidth - 0.25f, wallCenterY, 0.0f }, (b3Vec3){ 0.25f, wallHalfHeight, halfWidth },
+			 0.0f,
+			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
+	add_box( b3_staticBody, (b3Vec3){ halfWidth + 0.25f, wallCenterY, 0.0f }, (b3Vec3){ 0.25f, wallHalfHeight, halfWidth },
+			 0.0f,
+			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
+	add_box( b3_staticBody, (b3Vec3){ 0.0f, wallCenterY, -halfWidth - 0.25f }, (b3Vec3){ halfWidth, wallHalfHeight, 0.25f },
+			 0.0f,
+			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
+	add_box( b3_staticBody, (b3Vec3){ 0.0f, wallCenterY, halfWidth + 0.25f }, (b3Vec3){ halfWidth, wallHalfHeight, 0.25f },
+			 0.0f,
+			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
+}
+
 static void add_bounds( void )
 {
-	add_box( b3_staticBody, (b3Vec3){ 0.0f, -0.55f, 0.0f }, (b3Vec3){ 9.0f, 0.5f, 9.0f }, 0.0f,
-			 (b3Vec3){ 0.33f, 0.36f, 0.40f }, b3Vec3_zero );
-	add_box( b3_staticBody, (b3Vec3){ -9.25f, 2.0f, 0.0f }, (b3Vec3){ 0.25f, 2.5f, 9.0f }, 0.0f,
-			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
-	add_box( b3_staticBody, (b3Vec3){ 9.25f, 2.0f, 0.0f }, (b3Vec3){ 0.25f, 2.5f, 9.0f }, 0.0f,
-			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
-	add_box( b3_staticBody, (b3Vec3){ 0.0f, 2.0f, -9.25f }, (b3Vec3){ 9.0f, 2.5f, 0.25f }, 0.0f,
-			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
-	add_box( b3_staticBody, (b3Vec3){ 0.0f, 2.0f, 9.25f }, (b3Vec3){ 9.0f, 2.5f, 0.25f }, 0.0f,
-			 (b3Vec3){ 0.24f, 0.27f, 0.31f }, b3Vec3_zero );
+	add_sized_bounds( DEFAULT_ARENA_HALF_WIDTH, 3.0f, 3.6f );
+}
+
+static int ceil_sqrt_int( int value )
+{
+	int result = 1;
+	while ( result * result < value )
+	{
+		result += 1;
+	}
+	return result;
+}
+
+static int add_stress_blocks( int requestedDynamicCount )
+{
+	int maxDynamicCount = MAX_RENDER_BODIES - 5;
+	if ( requestedDynamicCount < 1 )
+	{
+		requestedDynamicCount = 1;
+	}
+	if ( requestedDynamicCount > maxDynamicCount )
+	{
+		requestedDynamicCount = maxDynamicCount;
+	}
+
+	const float spacing = 0.78f;
+	int footprint = ceil_sqrt_int( requestedDynamicCount );
+	if ( footprint > 32 )
+	{
+		footprint = 32;
+	}
+
+	float halfWidth = ( (float)footprint * spacing * 0.5f ) + 5.5f;
+	if ( halfWidth < DEFAULT_ARENA_HALF_WIDTH )
+	{
+		halfWidth = DEFAULT_ARENA_HALF_WIDTH;
+	}
+
+	add_sized_bounds( halfWidth, 8.0f, 8.5f );
+
+	int created = 0;
+	for ( int y = 0; created < requestedDynamicCount; ++y )
+	{
+		for ( int z = 0; z < footprint && created < requestedDynamicCount; ++z )
+		{
+			for ( int x = 0; x < footprint && created < requestedDynamicCount; ++x )
+			{
+				float fx = ( (float)x - (float)( footprint - 1 ) * 0.5f ) * spacing;
+				float fz = ( (float)z - (float)( footprint - 1 ) * 0.5f ) * spacing;
+				float fy = 0.42f + (float)y * spacing;
+				float tint = (float)( ( x * 17 + z * 31 + y * 13 ) % 100 ) / 100.0f;
+				b3Vec3 color = { 0.18f + tint * 0.54f, 0.46f + tint * 0.28f, 0.72f - tint * 0.38f };
+
+				if ( add_box( b3_dynamicBody, (b3Vec3){ fx, fy, fz }, (b3Vec3){ 0.34f, 0.34f, 0.34f }, 1.0f, color,
+							  b3Vec3_zero ) < 0 )
+				{
+					return created;
+				}
+				created += 1;
+			}
+		}
+	}
+
+	return created;
 }
 
 static void add_stack_scene( void )
@@ -229,6 +304,8 @@ EMSCRIPTEN_KEEPALIVE
 int wb3_reset( int sceneIndex )
 {
 	clear_world();
+	g_lastStressRequested = 0;
+	g_lastStressDynamicCount = 0;
 
 	b3WorldDef worldDef = b3DefaultWorldDef();
 	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
@@ -248,6 +325,23 @@ int wb3_reset( int sceneIndex )
 	{
 		add_stack_scene();
 	}
+
+	sync_render_data();
+	return g_bodyCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_reset_stress( int dynamicBlockCount )
+{
+	clear_world();
+
+	b3WorldDef worldDef = b3DefaultWorldDef();
+	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
+	worldDef.workerCount = 1;
+	g_worldId = b3CreateWorld( &worldDef );
+	g_sceneIndex = 3;
+	g_lastStressRequested = dynamicBlockCount;
+	g_lastStressDynamicCount = add_stress_blocks( dynamicBlockCount );
 
 	sync_render_data();
 	return g_bodyCount;
@@ -333,6 +427,18 @@ EMSCRIPTEN_KEEPALIVE
 int wb3_get_step_count( void )
 {
 	return g_stepCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_stress_dynamic_count( void )
+{
+	return g_lastStressDynamicCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_last_stress_request( void )
+{
+	return g_lastStressRequested;
 }
 
 EMSCRIPTEN_KEEPALIVE

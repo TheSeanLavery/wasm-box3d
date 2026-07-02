@@ -1,6 +1,6 @@
 {
   "name": "@threecyborgs/wasm-box3d-three",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Three.js helpers for rendering @threecyborgs/wasm-box3d bodies.",
   "type": "module",
   "license": "MIT",
@@ -29,7 +29,7 @@
     "prepack": "npm run build"
   },
   "dependencies": {
-    "@threecyborgs/wasm-box3d": "0.1.0"
+    "@threecyborgs/wasm-box3d": "0.1.1"
   },
   "peerDependencies": {
     "three": ">=0.160.0"
@@ -42,4 +42,3 @@
     "physics"
   ]
 }
-
