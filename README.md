@@ -10,6 +10,18 @@ This repository is not a fork of Box3D. It keeps upstream Box3D pinned as a Git 
 - `@threecyborgs/wasm-box3d-three`: Three.js mesh manager for syncing Box3D render-body data into a scene.
 - `examples/three-viewer`: Vite app used for local development and GitHub Pages.
 
+## Install
+
+```sh
+npm install @threecyborgs/wasm-box3d
+```
+
+For Three.js rendering helpers:
+
+```sh
+npm install three @threecyborgs/wasm-box3d @threecyborgs/wasm-box3d-three
+```
+
 ## Setup
 
 ```sh
