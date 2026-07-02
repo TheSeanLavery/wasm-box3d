@@ -94,6 +94,8 @@ function summarize(result) {
     p50SimCapacityFps: percentile(samples.map((sample) => sample.simCapacityFps), 50),
     p95PhysicsStepMs: percentile(samples.map((sample) => sample.physicsStepMs), 95),
     avgSyncMs: average(samples.map((sample) => sample.syncMs)),
+    maxSpawnBodiesMs: Math.max(0, ...samples.map((sample) => sample.spawnBodiesMs ?? 0)),
+    maxSpawnBodiesCount: Math.max(0, ...samples.map((sample) => sample.spawnBodiesCount ?? 0)),
     sampleCount: samples.length,
   };
 }
@@ -158,6 +160,8 @@ function writeHtml(report, outputPath) {
           <td>${format(row.p50SimCapacityFps)}</td>
           <td>${format(row.p95PhysicsStepMs, ' ms')}</td>
           <td>${format(row.avgSyncMs, ' ms')}</td>
+          <td>${format(row.maxSpawnBodiesMs, ' ms')}</td>
+          <td>${row.maxSpawnBodiesCount.toLocaleString()}</td>
           <td>${format(row.avgRenderFps)}</td>
           <td>${format(row.p50RenderFps)}</td>
           <td>${row.sampleCount}</td>
@@ -204,6 +208,8 @@ function writeHtml(report, outputPath) {
         <th>P50 sim cap</th>
         <th>P95 step</th>
         <th>Avg sync</th>
+        <th>Max spawn</th>
+        <th>Spawn batch</th>
         <th>Avg render FPS</th>
         <th>P50 render FPS</th>
         <th>Samples</th>

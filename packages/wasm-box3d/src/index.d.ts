@@ -36,6 +36,16 @@ export type BoxBodyOptions = {
   density?: number;
 };
 
+export type AddBodiesOptions = {
+  sync?: boolean;
+};
+
+export type AddBodiesResult = {
+  created: number;
+  spawnMs: number;
+  syncMs: number;
+};
+
 export type Box3DDemo = {
   module: unknown;
   threadsEnabled: boolean;
@@ -45,8 +55,8 @@ export type Box3DDemo = {
   step(dt?: number, substeps?: number): void;
   syncRenderData(): void;
   spawnBox(position?: Vec3Like, velocity?: Vec3Like): number;
-  addBox(options?: BoxBodyOptions): number;
-  addBodies(bodies?: BoxBodyOptions[]): number;
+  addBox(options?: BoxBodyOptions, addOptions?: AddBodiesOptions): number;
+  addBodies(bodies?: BoxBodyOptions[], options?: AddBodiesOptions): AddBodiesResult;
   spawnSphere(position?: Vec3Like, velocity?: Vec3Like): number;
   setGravityEnabled(enabled: boolean): void;
   forceSleepAwakeBodies(): number;

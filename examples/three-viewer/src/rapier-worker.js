@@ -30,6 +30,9 @@ let renderSyncMs = 0;
 let snapshotCopyMs = 0;
 let snapshotBytes = 0;
 let resetStressMs = 0;
+let spawnBodiesMs = 0;
+let spawnBodiesCount = 0;
+let spawnBatchCount = 0;
 
 function ceilSqrtInt(value) {
   let result = 1;
@@ -46,6 +49,12 @@ function resetMetrics(now = performance.now()) {
   physicsHz = 0;
   physicsStepMs = 0;
   physicsCapacityFps = 0;
+}
+
+function resetSpawnMetrics() {
+  spawnBodiesMs = 0;
+  spawnBodiesCount = 0;
+  spawnBatchCount = 0;
 }
 
 function createWorld() {
@@ -371,6 +380,9 @@ function snapshot() {
       snapshotCopyMs,
       snapshotBytes,
       resetStressMs,
+      spawnBodiesMs,
+      spawnBodiesCount,
+      spawnBatchCount,
       lastForceSleepMs: 0,
       forcedSleepBodies: 0,
       threadsEnabled: false,
@@ -440,6 +452,7 @@ self.onmessage = async (event) => {
 
   if (message.type === 'reset') {
     reset(message.sceneIndex ?? 0);
+    resetSpawnMetrics();
     paused = false;
     lastStepAt = performance.now();
     resetMetrics(lastStepAt);
@@ -450,6 +463,7 @@ self.onmessage = async (event) => {
   if (message.type === 'resetStress') {
     const resetStartedAt = performance.now();
     resetStress(message.dynamicBlockCount ?? 64);
+    resetSpawnMetrics();
     resetStressMs = performance.now() - resetStartedAt;
     paused = false;
     lastStepAt = performance.now();
@@ -460,6 +474,7 @@ self.onmessage = async (event) => {
 
   if (message.type === 'resetArena') {
     resetArena(message.halfWidth ?? 64);
+    resetSpawnMetrics();
     paused = false;
     lastStepAt = performance.now();
     resetMetrics(lastStepAt);
@@ -478,7 +493,10 @@ self.onmessage = async (event) => {
   }
 
   if (message.type === 'addBodies') {
-    addBodies(message.bodies ?? []);
+    const spawnStartedAt = performance.now();
+    spawnBodiesCount = addBodies(message.bodies ?? []);
+    spawnBodiesMs = performance.now() - spawnStartedAt;
+    spawnBatchCount += 1;
     snapshot();
     return;
   }

@@ -485,9 +485,8 @@ int wb3_spawn_box( float x, float y, float z, float vx, float vy, float vz )
 	return index;
 }
 
-EMSCRIPTEN_KEEPALIVE
-int wb3_spawn_box_ex( float x, float y, float z, float hx, float hy, float hz, float vx, float vy, float vz, float r,
-					  float g, float b, int dynamic, float yaw, float density )
+static int spawn_box_ex( float x, float y, float z, float hx, float hy, float hz, float vx, float vy, float vz, float r,
+						 float g, float b, int dynamic, float yaw, float density, bool shouldSyncRenderData )
 {
 	if ( b3World_IsValid( g_worldId ) == false )
 	{
@@ -504,8 +503,25 @@ int wb3_spawn_box_ex( float x, float y, float z, float hx, float hy, float hz, f
 	b3Quat rotation = b3MakeQuatFromAxisAngle( b3Vec3_axisY, yaw );
 	int index = add_oriented_box( type, (b3Vec3){ x, y, z }, halfExtents, shapeDensity, (b3Vec3){ r, g, b },
 								  (b3Vec3){ vx, vy, vz }, rotation );
-	sync_render_data();
+	if ( shouldSyncRenderData )
+	{
+		sync_render_data();
+	}
 	return index;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_spawn_box_ex( float x, float y, float z, float hx, float hy, float hz, float vx, float vy, float vz, float r,
+					  float g, float b, int dynamic, float yaw, float density )
+{
+	return spawn_box_ex( x, y, z, hx, hy, hz, vx, vy, vz, r, g, b, dynamic, yaw, density, true );
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_spawn_box_ex_no_sync( float x, float y, float z, float hx, float hy, float hz, float vx, float vy, float vz, float r,
+							  float g, float b, int dynamic, float yaw, float density )
+{
+	return spawn_box_ex( x, y, z, hx, hy, hz, vx, vy, vz, r, g, b, dynamic, yaw, density, false );
 }
 
 EMSCRIPTEN_KEEPALIVE

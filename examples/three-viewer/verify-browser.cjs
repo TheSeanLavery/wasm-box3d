@@ -129,7 +129,11 @@ async function verifyViewport(viewport, label) {
   if (!/^phys \d+(\.\d+)? fps awake \d+$/.test(state.physicsFps ?? '')) {
     throw new Error(`${label} physics fps readout invalid: ${state.physicsFps}`);
   }
-  if (!/^step \d+(\.\d+)?ms wasm \d+(\.\d+)?ms sync \d+(\.\d+)?ms render \d+(\.\d+)?ms snap \d+(\.\d+)?ms$/.test(state.profile ?? '')) {
+  if (
+    !/^step \d+(\.\d+)?ms spawn \d+(\.\d+)?ms\/\d+ wasm \d+(\.\d+)?ms sync \d+(\.\d+)?ms render \d+(\.\d+)?ms snap \d+(\.\d+)?ms$/.test(
+      state.profile ?? ''
+    )
+  ) {
     throw new Error(`${label} profile readout invalid: ${state.profile}`);
   }
   if (state.overflowX || state.overflowY) {

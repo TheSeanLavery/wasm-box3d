@@ -23,6 +23,9 @@ let renderSyncMs = 0;
 let snapshotCopyMs = 0;
 let snapshotBytes = 0;
 let resetStressMs = 0;
+let spawnBodiesMs = 0;
+let spawnBodiesCount = 0;
+let spawnBatchCount = 0;
 let lastForceSleepMs = 0;
 let forcedSleepBodies = 0;
 let lastSleepSample = null;
@@ -35,6 +38,12 @@ function resetMetrics(now = performance.now()) {
   physicsHz = 0;
   physicsStepMs = 0;
   physicsCapacityFps = 0;
+}
+
+function resetSpawnMetrics() {
+  spawnBodiesMs = 0;
+  spawnBodiesCount = 0;
+  spawnBatchCount = 0;
 }
 
 function resetSleepMonitor() {
@@ -127,6 +136,9 @@ function snapshot() {
       snapshotCopyMs,
       snapshotBytes,
       resetStressMs,
+      spawnBodiesMs,
+      spawnBodiesCount,
+      spawnBatchCount,
       lastForceSleepMs,
       forcedSleepBodies,
       threadsEnabled: physics.threadsEnabled,
@@ -173,6 +185,7 @@ function startLoop() {
 async function init() {
   physics = await createBox3DDemo({ sceneIndex, threads: self.__wasmBox3DThreadMode ?? 'auto' });
   resetSleepMonitor();
+  resetSpawnMetrics();
   startLoop();
   snapshot();
 }
@@ -196,6 +209,7 @@ self.onmessage = async (event) => {
     sceneIndex = message.sceneIndex ?? 0;
     physics.reset(sceneIndex);
     resetSleepMonitor();
+    resetSpawnMetrics();
     paused = false;
     lastStepAt = performance.now();
     resetMetrics(lastStepAt);
@@ -207,6 +221,7 @@ self.onmessage = async (event) => {
     const resetStartedAt = performance.now();
     physics.resetStress(message.dynamicBlockCount ?? 64);
     resetSleepMonitor();
+    resetSpawnMetrics();
     resetStressMs = performance.now() - resetStartedAt;
     paused = false;
     lastStepAt = performance.now();
@@ -218,6 +233,7 @@ self.onmessage = async (event) => {
   if (message.type === 'resetArena') {
     physics.resetArena(message.halfWidth ?? 64);
     resetSleepMonitor();
+    resetSpawnMetrics();
     paused = false;
     lastStepAt = performance.now();
     resetMetrics(lastStepAt);
@@ -233,7 +249,10 @@ self.onmessage = async (event) => {
   }
 
   if (message.type === 'addBodies') {
-    physics.addBodies(message.bodies ?? []);
+    const result = physics.addBodies(message.bodies ?? [], { sync: false });
+    spawnBodiesMs = result.spawnMs;
+    spawnBodiesCount = result.created;
+    spawnBatchCount += 1;
     resetSleepMonitor();
     snapshot();
     return;

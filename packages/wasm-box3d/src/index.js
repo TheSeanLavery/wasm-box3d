@@ -73,6 +73,23 @@ export async function createBox3DDemo(options = {}) {
       'number',
       'number',
     ]),
+    spawnBoxExNoSyncRaw: module.cwrap('wb3_spawn_box_ex_no_sync', 'number', [
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+    ]),
     spawnSphereRaw: module.cwrap('wb3_spawn_sphere', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
     setGravityEnabledRaw: module.cwrap('wb3_set_gravity_enabled', null, ['number']),
     forceSleepAwakeBodiesRaw: module.cwrap('wb3_force_sleep_awake_bodies', 'number', []),
@@ -116,12 +133,13 @@ export async function createBox3DDemo(options = {}) {
         velocity.z ?? 0
       );
     },
-    addBox(options = {}) {
+    addBox(options = {}, addOptions = {}) {
       const position = options.position ?? {};
       const halfExtents = options.halfExtents ?? {};
       const velocity = options.velocity ?? {};
       const color = options.color ?? {};
-      return api.spawnBoxExRaw(
+      const spawnRaw = addOptions.sync === false ? api.spawnBoxExNoSyncRaw : api.spawnBoxExRaw;
+      return spawnRaw(
         position.x ?? 0,
         position.y ?? 6,
         position.z ?? 0,
@@ -139,14 +157,22 @@ export async function createBox3DDemo(options = {}) {
         options.density ?? 1
       );
     },
-    addBodies(bodies = []) {
+    addBodies(bodies = [], options = {}) {
+      const startedAt = performance.now();
       let created = 0;
       for (const body of bodies) {
-        if (this.addBox(body) >= 0) {
+        if (this.addBox(body, { sync: false }) >= 0) {
           created += 1;
         }
       }
-      return created;
+      const spawnMs = performance.now() - startedAt;
+      let syncMs = 0;
+      if (options.sync !== false) {
+        const syncStartedAt = performance.now();
+        api.syncRenderDataRaw();
+        syncMs = performance.now() - syncStartedAt;
+      }
+      return { created, spawnMs, syncMs };
     },
     spawnSphere(position = {}, velocity = {}) {
       return api.spawnSphereRaw(

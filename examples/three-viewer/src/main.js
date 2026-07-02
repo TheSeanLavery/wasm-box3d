@@ -206,6 +206,9 @@ function createWorkerPhysics(sceneIndex) {
     snapshotCopyMs: 0,
     snapshotBytes: 0,
     resetStressMs: 0,
+    spawnBodiesMs: 0,
+    spawnBodiesCount: 0,
+    spawnBatchCount: 0,
     lastForceSleepMs: 0,
     forcedSleepBodies: 0,
     threadsEnabled: false,
@@ -316,6 +319,15 @@ function createWorkerPhysics(sceneIndex) {
     },
     getResetStressMs() {
       return state.resetStressMs;
+    },
+    getSpawnBodiesMs() {
+      return state.spawnBodiesMs;
+    },
+    getSpawnBodiesCount() {
+      return state.spawnBodiesCount;
+    },
+    getSpawnBatchCount() {
+      return state.spawnBatchCount;
     },
     getLastForceSleepMs() {
       return state.lastForceSleepMs;
@@ -570,6 +582,9 @@ function sampleLab(now) {
     syncMs,
     renderMs,
     snapshotCopyMs: physics.getSnapshotCopyMs(),
+    spawnBodiesMs: physics.getSpawnBodiesMs(),
+    spawnBodiesCount: physics.getSpawnBodiesCount(),
+    spawnBatchCount: physics.getSpawnBatchCount(),
   };
   labRun.samples.push(sample);
   drawLabChart(labRun.samples);
@@ -697,7 +712,7 @@ function updateReadout() {
   fpsReadoutEl.textContent = `render ${fpsAverage.toFixed(1)} fps`;
   physicsFpsReadoutEl.textContent = `phys ${physics.getPhysicsHz().toFixed(1)} fps awake ${physics.getAwakeBodyCount()}`;
   profileReadoutEl.textContent =
-    `step ${physics.getPhysicsStepMs().toFixed(1)}ms wasm ${physics.getRenderSyncMs().toFixed(1)}ms sync ${syncMs.toFixed(1)}ms render ${renderMs.toFixed(1)}ms snap ${physics.getSnapshotCopyMs().toFixed(1)}ms`;
+    `step ${physics.getPhysicsStepMs().toFixed(1)}ms spawn ${physics.getSpawnBodiesMs().toFixed(1)}ms/${physics.getSpawnBodiesCount()} wasm ${physics.getRenderSyncMs().toFixed(1)}ms sync ${syncMs.toFixed(1)}ms render ${renderMs.toFixed(1)}ms snap ${physics.getSnapshotCopyMs().toFixed(1)}ms`;
   stressStatusEl.textContent = getStressLabel();
   window.__wasmBox3DProfile = {
     bodies: physics.getBodyCount(),
@@ -712,6 +727,9 @@ function updateReadout() {
     snapshotCopyMs: physics.getSnapshotCopyMs(),
     snapshotBytes: physics.getSnapshotBytes(),
     resetStressMs: physics.getResetStressMs(),
+    spawnBodiesMs: physics.getSpawnBodiesMs(),
+    spawnBodiesCount: physics.getSpawnBodiesCount(),
+    spawnBatchCount: physics.getSpawnBatchCount(),
     lastForceSleepMs: physics.getLastForceSleepMs(),
     forcedSleepBodies: physics.getForcedSleepBodies(),
     threadsEnabled: physics.getThreadsEnabled(),
@@ -943,6 +961,31 @@ function syncLatestPhysicsState() {
   syncedStateVersion = stateVersion;
 }
 
+function getSnapshotIntervalMs() {
+  if (benchmarkMode) {
+    return Math.max(50, benchmarkSnapshotMs);
+  }
+
+  const bodyCount = physics.getBodyCount();
+  const awakeBodies = physics.getAwakeBodyCount();
+  if (awakeBodies <= 0) {
+    return 500;
+  }
+  if (bodyCount >= 100000) {
+    return 500;
+  }
+  if (bodyCount >= 50000) {
+    return 250;
+  }
+  if (bodyCount >= 10000) {
+    return 125;
+  }
+  if (bodyCount >= 2500) {
+    return 66;
+  }
+  return 33;
+}
+
 function animate() {
   requestAnimationFrame(animate);
   const actualDt = clock.getDelta();
@@ -951,8 +994,8 @@ function animate() {
   controls.update();
 
   if (physics) {
-    const snapshotIntervalMs = benchmarkMode ? Math.max(50, benchmarkSnapshotMs) : physics.getAwakeBodyCount() > 0 ? 0 : 500;
-    if (snapshotIntervalMs === 0 || now - lastSnapshotRequestedAt >= snapshotIntervalMs) {
+    const snapshotIntervalMs = getSnapshotIntervalMs();
+    if (now - lastSnapshotRequestedAt >= snapshotIntervalMs) {
       physics.requestSnapshot();
       lastSnapshotRequestedAt = now;
     }

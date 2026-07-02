@@ -98,13 +98,21 @@ export function createThreeBodyMeshManager({ THREE, scene, materialFactory } = {
     mesh.material.dispose();
   }
 
+  function growInstanceCapacity(currentCapacity, required) {
+    let nextCapacity = Math.max(256, currentCapacity || 0);
+    while (nextCapacity < required) {
+      nextCapacity = Math.ceil(nextCapacity * 1.5);
+    }
+    return nextCapacity;
+  }
+
   function ensureInstances(kind, required) {
     if (kind === RenderShapeType.sphere) {
       if (sphereInstances && sphereCapacity >= required) {
         return sphereInstances;
       }
       disposeInstancedMesh(sphereInstances);
-      sphereCapacity = Math.max(1, required);
+      sphereCapacity = growInstanceCapacity(sphereCapacity, required);
       lastSphereColorCount = -1;
       sphereInstances = new THREE.InstancedMesh(sphereGeometry, makeInstanceMaterial(RenderShapeType.sphere), sphereCapacity);
       sphereInstances.castShadow = false;
@@ -118,7 +126,7 @@ export function createThreeBodyMeshManager({ THREE, scene, materialFactory } = {
       return boxInstances;
     }
     disposeInstancedMesh(boxInstances);
-    boxCapacity = Math.max(1, required);
+    boxCapacity = growInstanceCapacity(boxCapacity, required);
     lastBoxColorCount = -1;
     boxInstances = new THREE.InstancedMesh(boxGeometry, makeInstanceMaterial(RenderShapeType.box), boxCapacity);
     boxInstances.castShadow = false;
