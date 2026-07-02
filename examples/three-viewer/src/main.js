@@ -21,7 +21,10 @@ const STRESS_TARGET_FPS = 20;
 const STRESS_WARMUP_MS = 1000;
 const STRESS_SAMPLE_MS = 2400;
 const FPS_WINDOW_SIZE = 90;
-const threadParam = new URLSearchParams(window.location.search).get('threads');
+const urlParams = new URLSearchParams(window.location.search);
+const engineParam = urlParams.get('engine');
+const physicsEngine = engineParam === 'rapier' ? 'rapier' : 'box3d';
+const threadParam = urlParams.get('threads');
 const physicsThreadMode = threadParam === 'single' ? false : threadParam === 'pthreads' ? true : 'auto';
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -91,7 +94,11 @@ let stressRun = {
 };
 
 function createWorkerPhysics(sceneIndex) {
-  const worker = new Worker(new URL('./physics-worker.js', import.meta.url), { type: 'module' });
+  const workerUrl =
+    physicsEngine === 'rapier'
+      ? new URL('./rapier-worker.js', import.meta.url)
+      : new URL('./physics-worker.js', import.meta.url);
+  const worker = new Worker(workerUrl, { type: 'module' });
   let readyResolve;
   let stateVersion = 0;
   let snapshotPending = false;
@@ -265,6 +272,7 @@ function updateReadout() {
     lastForceSleepMs: physics.getLastForceSleepMs(),
     forcedSleepBodies: physics.getForcedSleepBodies(),
     threadsEnabled: physics.getThreadsEnabled(),
+    engine: physicsEngine,
     stressStatus: stressStatusEl.textContent,
     stepCount: physics.getStepCount(),
   };
@@ -580,7 +588,12 @@ async function boot() {
   syncedStateVersion = physics.getStateVersion();
   bindControls();
   updateReadout();
-  wasmStatusEl.textContent = physics.getThreadsEnabled() ? 'wasm pthreads active' : 'wasm single-thread active';
+  wasmStatusEl.textContent =
+    physicsEngine === 'rapier'
+      ? 'rapier active'
+      : physics.getThreadsEnabled()
+        ? 'wasm pthreads active'
+        : 'wasm single-thread active';
   animate();
 }
 

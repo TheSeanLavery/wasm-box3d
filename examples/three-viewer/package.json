@@ -8,9 +8,11 @@
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5300",
     "verify:browser": "node verify-browser.cjs",
-    "verify:sleep": "node verify-sleep.cjs"
+    "verify:sleep": "node verify-sleep.cjs",
+    "benchmark:engines": "node benchmark-engines.cjs"
   },
   "dependencies": {
+    "@dimforge/rapier3d-compat": "^0.19.3",
     "@threecyborgs/wasm-box3d": "0.1.2",
     "@threecyborgs/wasm-box3d-three": "0.1.2",
     "three": "^0.179.1"

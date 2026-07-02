@@ -15,11 +15,19 @@ async function verifyViewport(viewport, label) {
   });
   page.on('pageerror', (error) => errors.push(error.message));
 
+  const engine = process.env.WB3_VERIFY_ENGINE;
   const forcedThreads = process.env.WB3_VERIFY_THREADS;
-  const url = forcedThreads ? `http://127.0.0.1:5300/?threads=${forcedThreads}` : 'http://127.0.0.1:5300/';
+  const params = new URLSearchParams();
+  if (engine) {
+    params.set('engine', engine);
+  }
+  if (forcedThreads) {
+    params.set('threads', forcedThreads);
+  }
+  const url = params.size > 0 ? `http://127.0.0.1:5300/?${params.toString()}` : 'http://127.0.0.1:5300/';
   await page.goto(url, { waitUntil: 'networkidle' });
   await page.waitForFunction(
-    () => /^wasm (pthreads|single-thread) active$/.test(document.querySelector('#wasm-status')?.textContent ?? ''),
+    () => /^(wasm (pthreads|single-thread)|rapier) active$/.test(document.querySelector('#wasm-status')?.textContent ?? ''),
     null,
     { timeout: 10000 }
   );
@@ -103,7 +111,7 @@ async function verifyViewport(viewport, label) {
   if (errors.length > 0) {
     throw new Error(`${label} console errors:\n${errors.join('\n')}`);
   }
-  if (!/^wasm (pthreads|single-thread) active$/.test(state.status ?? '')) {
+  if (!/^(wasm (pthreads|single-thread)|rapier) active$/.test(state.status ?? '')) {
     throw new Error(`${label} did not activate WASM`);
   }
   if (!(afterStep > beforeStep)) {

@@ -44,6 +44,30 @@ npm run verify:browser
 
 The verifier checks desktop and mobile viewports for WASM activation, advancing physics steps, spawn behavior, console errors, viewport overflow, and nonblank Three.js screenshot pixels.
 
+## Engine Benchmark
+
+The example can compare the Box3D WASM worker with a Rapier worker using the same Three.js renderer and body snapshot format.
+
+With the dev server running on `http://127.0.0.1:5300`:
+
+```sh
+npm run benchmark:engines
+```
+
+The benchmark launches headed Playwright by default and writes:
+
+- `bench-results/latest.json`
+- `bench-results/latest.csv`
+- `bench-results/latest.html`
+
+Useful overrides:
+
+```sh
+WB3_BENCH_LEVELS=64,256,1024 WB3_BENCH_SAMPLE_MS=3000 npm run benchmark:engines
+WB3_BENCH_HEADLESS=1 npm run benchmark:engines
+WB3_VERIFY_ENGINE=rapier npm run verify:browser
+```
+
 ## Updating Box3D
 
 ```sh
