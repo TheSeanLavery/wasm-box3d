@@ -40,6 +40,7 @@ const STRESS_SAMPLE_MS = 2400;
 const FPS_WINDOW_SIZE = 90;
 const LAB_SAMPLE_MS = 250;
 const LIVE_SNAPSHOT_MS = 1000 / 60;
+const LAB_ARENA_PREVIEW_DEBOUNCE_MS = 180;
 const LAB_CHART = { x: 34, y: 14, width: 292, height: 96 };
 const LAB_SCENARIOS = {
   pileDrop: {
@@ -144,6 +145,8 @@ const spawnPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -7.5);
 const spawnPoint = new THREE.Vector3();
 const dragStart = new THREE.Vector2();
 let pointerWasDragged = false;
+let labArenaPreviewTimer = 0;
+let labArenaHalfWidth = 14;
 
 let physics;
 let meshManager;
@@ -350,6 +353,7 @@ function resize() {
 }
 
 function resetScene(index) {
+  window.clearTimeout(labArenaPreviewTimer);
   stopLab('scene reset');
   stopStress(stressRun.active ? 'stress stopped' : stressRun.result);
   currentScene = index;
@@ -451,6 +455,38 @@ function estimateLabArenaHalfWidth(config) {
     return Math.max(48, 2.2 + perRow * config.spacing * 0.18 + scenarioRows * 2.6 + 16);
   }
   return Math.max(42, Math.ceil(config.count / Math.max(1, config.batchSize)) * config.spacing + 20);
+}
+
+function applyLabArenaVisuals(halfWidth) {
+  labArenaHalfWidth = halfWidth;
+  const diameter = Math.max(32, halfWidth * 2);
+  grid.scale.set(diameter / 32, 1, diameter / 32);
+  controls.maxDistance = Math.max(900, halfWidth * 6);
+  camera.far = Math.max(2400, halfWidth * 10);
+  camera.updateProjectionMatrix();
+}
+
+function previewLabArena({ immediate = false } = {}) {
+  if (!physics || labRun.active) {
+    return;
+  }
+
+  window.clearTimeout(labArenaPreviewTimer);
+  const update = () => {
+    const halfWidth = estimateLabArenaHalfWidth(labConfig);
+    applyLabArenaVisuals(halfWidth);
+    currentScene = 4;
+    physics.resetArena(halfWidth);
+    lastSnapshotRequestedAt = 0;
+    setLabStatus(`arena ${Math.round(halfWidth * 2)} wide`);
+  };
+
+  if (immediate) {
+    update();
+    return;
+  }
+
+  labArenaPreviewTimer = window.setTimeout(update, LAB_ARENA_PREVIEW_DEBOUNCE_MS);
 }
 
 function makePileBatch(config, startIndex, batchSize) {
@@ -648,12 +684,15 @@ function startLab(config = readLabFormConfig()) {
   const normalized = normalizeLabConfig(config);
   labConfig = cloneConfig(normalized);
   syncLabFormFromConfig();
+  window.clearTimeout(labArenaPreviewTimer);
   stopStress(stressRun.active ? 'stress stopped' : stressRun.result);
   currentScene = 4;
   paused = false;
   pauseButton.textContent = 'Pause';
   physics.setPaused(false);
-  physics.resetArena(estimateLabArenaHalfWidth(normalized));
+  const halfWidth = estimateLabArenaHalfWidth(normalized);
+  applyLabArenaVisuals(halfWidth);
+  physics.resetArena(halfWidth);
   fpsSamples = [];
   lastSnapshotRequestedAt = 0;
   drawLabChart([]);
@@ -1028,9 +1067,17 @@ function bindControls() {
   labScenarioInput.addEventListener('change', () => {
     labConfig = normalizeLabConfig(LAB_SCENARIOS[labScenarioInput.value].defaults);
     syncLabFormFromConfig();
+    previewLabArena();
   });
   for (const input of [labDurationInput, labIntervalInput, labCountInput, labBatchInput, labRowsInput, labSpacingInput]) {
-    input.addEventListener('change', readLabFormConfig);
+    input.addEventListener('input', () => {
+      readLabFormConfig();
+      previewLabArena();
+    });
+    input.addEventListener('change', () => {
+      readLabFormConfig();
+      previewLabArena({ immediate: true });
+    });
   }
   labRunButton.addEventListener('click', () => {
     startLab(readLabFormConfig());
@@ -1041,6 +1088,7 @@ function bindControls() {
       labConfig = normalizeLabConfig(JSON.parse(labJsonInput.value));
       syncLabFormFromConfig();
       setLabStatus('variant applied');
+      previewLabArena({ immediate: true });
     } catch (error) {
       setLabStatus('json error');
       console.error(error);
@@ -1074,6 +1122,7 @@ window.__wasmBox3DLab = {
   setConfig(config) {
     labConfig = normalizeLabConfig(config);
     syncLabFormFromConfig();
+    previewLabArena({ immediate: true });
     return cloneConfig(labConfig);
   },
   run(config) {
