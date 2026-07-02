@@ -15,12 +15,85 @@ const pauseButton = document.querySelector('#toggle-pause');
 const startStressButton = document.querySelector('#start-stress');
 const stopStressButton = document.querySelector('#stop-stress');
 const gravityInput = document.querySelector('#gravity');
+const labEngineEl = document.querySelector('#lab-engine');
+const labStatusEl = document.querySelector('#lab-status');
+const labScenarioInput = document.querySelector('#lab-scenario');
+const labDurationInput = document.querySelector('#lab-duration');
+const labIntervalInput = document.querySelector('#lab-interval');
+const labCountInput = document.querySelector('#lab-count');
+const labBatchInput = document.querySelector('#lab-batch');
+const labRowsInput = document.querySelector('#lab-rows');
+const labSpacingInput = document.querySelector('#lab-spacing');
+const labRunButton = document.querySelector('#lab-run');
+const labStopButton = document.querySelector('#lab-stop');
+const labApplyButton = document.querySelector('#lab-apply');
+const labDownloadButton = document.querySelector('#lab-download');
+const labJsonInput = document.querySelector('#lab-json');
+const labRenderPathEl = document.querySelector('#lab-render-path');
+const labSimPathEl = document.querySelector('#lab-sim-path');
+const labLastSampleEl = document.querySelector('#lab-last-sample');
 
 const STRESS_START_BLOCKS = 64;
 const STRESS_TARGET_FPS = 20;
 const STRESS_WARMUP_MS = 1000;
 const STRESS_SAMPLE_MS = 2400;
 const FPS_WINDOW_SIZE = 90;
+const LAB_SAMPLE_MS = 250;
+const LAB_CHART = { x: 34, y: 14, width: 292, height: 96 };
+const LAB_SCENARIOS = {
+  pileDrop: {
+    label: 'Pile drop',
+    defaults: {
+      scenario: 'pileDrop',
+      name: '256 block pile drops',
+      durationMs: 18000,
+      intervalMs: 1400,
+      count: 2048,
+      batchSize: 256,
+      rows: 1,
+      spacing: 8,
+    },
+  },
+  lineSpawn: {
+    label: 'Line spawn',
+    defaults: {
+      scenario: 'lineSpawn',
+      name: 'line spawn batches',
+      durationMs: 16000,
+      intervalMs: 180,
+      count: 3000,
+      batchSize: 20,
+      rows: 1,
+      spacing: 0.82,
+    },
+  },
+  dominoSpiral: {
+    label: 'Domino spiral',
+    defaults: {
+      scenario: 'dominoSpiral',
+      name: 'single spiral domino knockdown',
+      durationMs: 20000,
+      intervalMs: 750,
+      count: 720,
+      batchSize: 720,
+      rows: 1,
+      spacing: 0.42,
+    },
+  },
+  multiSpiral: {
+    label: 'Multi spiral',
+    defaults: {
+      scenario: 'multiSpiral',
+      name: 'multi-row spiral domino knockdown',
+      durationMs: 22000,
+      intervalMs: 900,
+      count: 1440,
+      batchSize: 360,
+      rows: 4,
+      spacing: 0.48,
+    },
+  },
+};
 const urlParams = new URLSearchParams(window.location.search);
 const engineParam = urlParams.get('engine');
 const physicsEngine = engineParam === 'rapier' ? 'rapier' : 'box3d';
@@ -94,6 +167,19 @@ let stressRun = {
   lastAverage: 0,
   result: 'stress idle',
 };
+let labConfig = structuredClone(LAB_SCENARIOS.pileDrop.defaults);
+let labRun = {
+  active: false,
+  config: null,
+  startedAt: 0,
+  nextActionAt: 0,
+  lastSampleAt: 0,
+  spawned: 0,
+  batchIndex: 0,
+  samples: [],
+  result: null,
+  resolve: null,
+};
 
 function createWorkerPhysics(sceneIndex) {
   const workerUrl =
@@ -160,8 +246,14 @@ function createWorkerPhysics(sceneIndex) {
     resetStress(dynamicBlockCount = 64) {
       worker.postMessage({ type: 'resetStress', dynamicBlockCount });
     },
+    resetArena(halfWidth = 64) {
+      worker.postMessage({ type: 'resetArena', halfWidth });
+    },
     spawnBox(position = {}, velocity = {}) {
       worker.postMessage({ type: 'spawnBox', position, velocity });
+    },
+    addBodies(bodies = []) {
+      worker.postMessage({ type: 'addBodies', bodies });
     },
     spawnSphere(position = {}, velocity = {}) {
       worker.postMessage({ type: 'spawnSphere', position, velocity });
@@ -245,9 +337,358 @@ function resize() {
 }
 
 function resetScene(index) {
+  stopLab('scene reset');
   stopStress(stressRun.active ? 'stress stopped' : stressRun.result);
   currentScene = index;
   physics.reset(index);
+}
+
+function boundedNumber(value, fallback, min = -Infinity, max = Infinity) {
+  const next = Number(value);
+  if (!Number.isFinite(next)) {
+    return fallback;
+  }
+  return THREE.MathUtils.clamp(next, min, max);
+}
+
+function cloneConfig(config) {
+  return JSON.parse(JSON.stringify(config));
+}
+
+function normalizeLabConfig(config = {}) {
+  const scenario = LAB_SCENARIOS[config.scenario] ? config.scenario : 'pileDrop';
+  const defaults = LAB_SCENARIOS[scenario].defaults;
+  return {
+    ...defaults,
+    ...config,
+    scenario,
+    durationMs: Math.round(boundedNumber(config.durationMs, defaults.durationMs, 1000, 180000)),
+    intervalMs: Math.round(boundedNumber(config.intervalMs, defaults.intervalMs, 16, 60000)),
+    count: Math.round(boundedNumber(config.count, defaults.count, 1, 10000000)),
+    batchSize: Math.round(boundedNumber(config.batchSize, defaults.batchSize, 1, 1000000)),
+    rows: Math.round(boundedNumber(config.rows, defaults.rows, 1, 256)),
+    spacing: boundedNumber(config.spacing, defaults.spacing, 0.1, 64),
+  };
+}
+
+function updateLabJson() {
+  labJsonInput.value = JSON.stringify(labConfig, null, 2);
+}
+
+function syncLabFormFromConfig() {
+  labScenarioInput.value = labConfig.scenario;
+  labDurationInput.value = labConfig.durationMs;
+  labIntervalInput.value = labConfig.intervalMs;
+  labCountInput.value = labConfig.count;
+  labBatchInput.value = labConfig.batchSize;
+  labRowsInput.value = labConfig.rows;
+  labSpacingInput.value = labConfig.spacing;
+  updateLabJson();
+}
+
+function readLabFormConfig() {
+  labConfig = normalizeLabConfig({
+    ...labConfig,
+    scenario: labScenarioInput.value,
+    durationMs: labDurationInput.value,
+    intervalMs: labIntervalInput.value,
+    count: labCountInput.value,
+    batchSize: labBatchInput.value,
+    rows: labRowsInput.value,
+    spacing: labSpacingInput.value,
+  });
+  updateLabJson();
+  return cloneConfig(labConfig);
+}
+
+function setLabControls(active) {
+  labRunButton.disabled = active;
+  labStopButton.disabled = !active;
+  labDownloadButton.disabled = !labRun.result;
+}
+
+function setLabStatus(status) {
+  labStatusEl.textContent = status;
+}
+
+function labColor(index, channel = 0) {
+  const tint = ((index * 37 + channel * 19) % 100) / 100;
+  return {
+    x: 0.22 + tint * 0.5,
+    y: 0.45 + ((index * 17) % 45) / 100,
+    z: 0.78 - tint * 0.34,
+  };
+}
+
+function estimateLabArenaHalfWidth(config) {
+  if (config.scenario === 'lineSpawn') {
+    return Math.max(32, config.count * config.spacing * 0.28);
+  }
+  if (config.scenario === 'dominoSpiral' || config.scenario === 'multiSpiral') {
+    return Math.max(36, config.count * config.spacing * 0.015 + config.rows * 4);
+  }
+  return Math.max(42, Math.ceil(config.count / Math.max(1, config.batchSize)) * config.spacing + 20);
+}
+
+function makePileBatch(config, startIndex, batchSize) {
+  const pileIndex = Math.floor(startIndex / Math.max(1, config.batchSize));
+  const footprint = Math.max(2, Math.ceil(Math.sqrt(batchSize / 4)));
+  const layerHeight = 0.74;
+  const baseX = (pileIndex - 2) * config.spacing;
+  const baseZ = ((pileIndex % 5) - 2) * config.spacing * 0.55;
+  const bodies = [];
+
+  for (let i = 0; i < batchSize; i += 1) {
+    const local = startIndex + i;
+    const x = i % footprint;
+    const z = Math.floor(i / footprint) % footprint;
+    const y = Math.floor(i / (footprint * footprint));
+    bodies.push({
+      bodyType: 'dynamic',
+      position: {
+        x: baseX + (x - (footprint - 1) * 0.5) * 0.78,
+        y: 1.1 + y * layerHeight,
+        z: baseZ + (z - (footprint - 1) * 0.5) * 0.78,
+      },
+      halfExtents: { x: 0.34, y: 0.34, z: 0.34 },
+      velocity: { x: ((local % 7) - 3) * 0.08, y: 0, z: ((local % 5) - 2) * 0.08 },
+      color: labColor(local),
+      density: 1,
+    });
+  }
+
+  return bodies;
+}
+
+function makeLineBatch(config, startIndex, batchSize) {
+  const bodies = [];
+  const rowWidth = Math.max(1, Math.ceil(Math.sqrt(config.count)));
+  for (let i = 0; i < batchSize; i += 1) {
+    const index = startIndex + i;
+    const x = (index % rowWidth) * config.spacing - rowWidth * config.spacing * 0.5;
+    const z = Math.floor(index / rowWidth) * config.spacing - 8;
+    bodies.push({
+      bodyType: 'dynamic',
+      position: { x, y: 3.8 + (index % 4) * 0.08, z },
+      halfExtents: { x: 0.32, y: 0.32, z: 0.32 },
+      velocity: { x: 0, y: 0, z: 0 },
+      color: labColor(index, 1),
+      density: 1,
+    });
+  }
+  return bodies;
+}
+
+function makeSpiralDomino(index, row, perRow, config, push) {
+  const angle = index * 0.34 + row * 0.26;
+  const radius = 2.2 + index * config.spacing * 0.18 + row * 2.6;
+  const x = Math.cos(angle) * radius;
+  const z = Math.sin(angle) * radius;
+  const yaw = angle + Math.PI * 0.5;
+  const pushSpeed = push ? 5.4 : 0;
+  return {
+    bodyType: 'dynamic',
+    position: { x, y: 0.92, z },
+    halfExtents: { x: 0.11, y: 0.72, z: 0.32 },
+    velocity: {
+      x: Math.cos(yaw) * pushSpeed,
+      y: 0,
+      z: Math.sin(yaw) * pushSpeed,
+    },
+    rotationY: yaw,
+    color: labColor(row * perRow + index, 2),
+    density: 0.85,
+  };
+}
+
+function makeDominoBatch(config, startIndex, batchSize) {
+  const scenarioRows = config.scenario === 'multiSpiral' ? config.rows : 1;
+  const perRow = Math.max(1, Math.ceil(config.count / scenarioRows));
+  const bodies = [];
+  for (let i = 0; i < batchSize; i += 1) {
+    const globalIndex = startIndex + i;
+    const row = Math.floor(globalIndex / perRow);
+    const index = globalIndex % perRow;
+    const push = config.scenario === 'multiSpiral' ? index === 0 : globalIndex === 0;
+    bodies.push(makeSpiralDomino(index, row, perRow, config, push));
+  }
+  return bodies;
+}
+
+function makeLabBatch(config, startIndex) {
+  const remaining = config.count - startIndex;
+  const batchSize = Math.min(config.batchSize, remaining);
+  if (batchSize <= 0) {
+    return [];
+  }
+  if (config.scenario === 'lineSpawn') {
+    return makeLineBatch(config, startIndex, batchSize);
+  }
+  if (config.scenario === 'dominoSpiral' || config.scenario === 'multiSpiral') {
+    return makeDominoBatch(config, startIndex, batchSize);
+  }
+  return makePileBatch(config, startIndex, batchSize);
+}
+
+function drawLabChart(samples = []) {
+  if (samples.length < 2) {
+    labRenderPathEl.setAttribute('d', '');
+    labSimPathEl.setAttribute('d', '');
+    return;
+  }
+
+  const maxElapsed = Math.max(...samples.map((sample) => sample.elapsedMs), 1);
+  const maxValue = Math.max(
+    60,
+    ...samples.map((sample) => Math.min(240, sample.renderFps || 0)),
+    ...samples.map((sample) => Math.min(240, sample.simCapacityFps || 0))
+  );
+  const makePath = (key) =>
+    samples
+      .map((sample, index) => {
+        const x = LAB_CHART.x + (sample.elapsedMs / maxElapsed) * LAB_CHART.width;
+        const y = LAB_CHART.y + LAB_CHART.height - (Math.min(240, sample[key] || 0) / maxValue) * LAB_CHART.height;
+        return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
+      })
+      .join(' ');
+
+  labRenderPathEl.setAttribute('d', makePath('renderFps'));
+  labSimPathEl.setAttribute('d', makePath('simCapacityFps'));
+}
+
+function sampleLab(now) {
+  const elapsedMs = now - labRun.startedAt;
+  const sample = {
+    elapsedMs,
+    bodyCount: physics.getBodyCount(),
+    awakeBodies: physics.getAwakeBodyCount(),
+    renderFps: fpsAverage,
+    simFps: physics.getPhysicsHz(),
+    simCapacityFps: physics.getPhysicsCapacityFps(),
+    physicsStepMs: physics.getPhysicsStepMs(),
+    renderSyncMs: physics.getRenderSyncMs(),
+    syncMs,
+    renderMs,
+    snapshotCopyMs: physics.getSnapshotCopyMs(),
+  };
+  labRun.samples.push(sample);
+  drawLabChart(labRun.samples);
+  labLastSampleEl.textContent =
+    `${Math.round(elapsedMs / 1000)}s ${sample.bodyCount} bodies render ${sample.renderFps.toFixed(1)} sim cap ${sample.simCapacityFps.toFixed(1)}`;
+}
+
+function finalizeLabRun(reason = 'complete') {
+  if (!labRun.active && !labRun.result) {
+    return null;
+  }
+
+  const endedAt = performance.now();
+  const result = {
+    runId: `lab-${Date.now()}`,
+    engine: physicsEngine,
+    reason,
+    config: cloneConfig(labRun.config ?? labConfig),
+    startedAt: labRun.startedAt,
+    endedAt,
+    durationMs: labRun.startedAt ? endedAt - labRun.startedAt : 0,
+    spawned: labRun.spawned,
+    bodyCount: physics?.getBodyCount?.() ?? 0,
+    samples: labRun.samples,
+  };
+  labRun.active = false;
+  labRun.result = result;
+  window.__wasmBox3DLabResult = result;
+  setLabControls(false);
+  setLabStatus(`${reason}: ${result.spawned} bodies`);
+  labDownloadButton.disabled = false;
+  if (labRun.resolve) {
+    labRun.resolve(result);
+    labRun.resolve = null;
+  }
+  return result;
+}
+
+function stopLab(reason = 'stopped') {
+  if (!labRun.active) {
+    return labRun.result;
+  }
+  return finalizeLabRun(reason);
+}
+
+function startLab(config = readLabFormConfig()) {
+  const normalized = normalizeLabConfig(config);
+  labConfig = cloneConfig(normalized);
+  syncLabFormFromConfig();
+  stopStress(stressRun.active ? 'stress stopped' : stressRun.result);
+  currentScene = 4;
+  paused = false;
+  pauseButton.textContent = 'Pause';
+  physics.setPaused(false);
+  physics.resetArena(estimateLabArenaHalfWidth(normalized));
+  fpsSamples = [];
+  lastSnapshotRequestedAt = 0;
+  drawLabChart([]);
+  labLastSampleEl.textContent = 'warming';
+
+  const startedAt = performance.now();
+  labRun = {
+    active: true,
+    config: normalized,
+    startedAt,
+    nextActionAt: startedAt,
+    lastSampleAt: 0,
+    spawned: 0,
+    batchIndex: 0,
+    samples: [],
+    result: null,
+    resolve: null,
+  };
+  setLabControls(true);
+  setLabStatus(`${LAB_SCENARIOS[normalized.scenario].label} running`);
+
+  return new Promise((resolve) => {
+    labRun.resolve = resolve;
+  });
+}
+
+function evaluateLabRun(now) {
+  if (!labRun.active || paused) {
+    return;
+  }
+
+  const config = labRun.config;
+  while (labRun.spawned < config.count && now >= labRun.nextActionAt) {
+    const bodies = makeLabBatch(config, labRun.spawned);
+    if (bodies.length === 0) {
+      break;
+    }
+    physics.addBodies(bodies);
+    labRun.spawned += bodies.length;
+    labRun.batchIndex += 1;
+    labRun.nextActionAt += config.intervalMs;
+  }
+
+  if (labRun.lastSampleAt === 0 || now - labRun.lastSampleAt >= LAB_SAMPLE_MS) {
+    sampleLab(now);
+    labRun.lastSampleAt = now;
+  }
+
+  if (now - labRun.startedAt >= config.durationMs) {
+    finalizeLabRun('complete');
+  }
+}
+
+function downloadLabResult() {
+  const result = labRun.result ?? window.__wasmBox3DLabResult;
+  if (!result) {
+    return;
+  }
+  const blob = new Blob([JSON.stringify(result, null, 2)], { type: 'application/json' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${result.runId}-${result.engine}-${result.config.scenario}.json`;
+  link.click();
+  URL.revokeObjectURL(link.href);
 }
 
 function updateReadout() {
@@ -517,6 +958,7 @@ function animate() {
     }
     syncLatestPhysicsState();
     evaluateStressRound(now, actualDt);
+    evaluateLabRun(now);
     updateReadout();
   }
 
@@ -539,6 +981,28 @@ function bindControls() {
     physics.setPaused(paused);
   });
   gravityInput.addEventListener('change', () => physics.setGravityEnabled(gravityInput.checked));
+  labScenarioInput.addEventListener('change', () => {
+    labConfig = normalizeLabConfig(LAB_SCENARIOS[labScenarioInput.value].defaults);
+    syncLabFormFromConfig();
+  });
+  for (const input of [labDurationInput, labIntervalInput, labCountInput, labBatchInput, labRowsInput, labSpacingInput]) {
+    input.addEventListener('change', readLabFormConfig);
+  }
+  labRunButton.addEventListener('click', () => {
+    startLab(readLabFormConfig());
+  });
+  labStopButton.addEventListener('click', () => stopLab('stopped'));
+  labApplyButton.addEventListener('click', () => {
+    try {
+      labConfig = normalizeLabConfig(JSON.parse(labJsonInput.value));
+      syncLabFormFromConfig();
+      setLabStatus('variant applied');
+    } catch (error) {
+      setLabStatus('json error');
+      console.error(error);
+    }
+  });
+  labDownloadButton.addEventListener('click', downloadLabResult);
   canvas.addEventListener('pointerdown', (event) => {
     dragStart.set(event.clientX, event.clientY);
     pointerWasDragged = false;
@@ -557,6 +1021,27 @@ function bindControls() {
     spawn(event.shiftKey ? 'sphere' : 'box', point);
   });
 }
+
+window.__wasmBox3DLab = {
+  scenarios: LAB_SCENARIOS,
+  getConfig() {
+    return cloneConfig(labConfig);
+  },
+  setConfig(config) {
+    labConfig = normalizeLabConfig(config);
+    syncLabFormFromConfig();
+    return cloneConfig(labConfig);
+  },
+  run(config) {
+    return startLab(config ? normalizeLabConfig(config) : readLabFormConfig());
+  },
+  stop(reason = 'stopped') {
+    return stopLab(reason);
+  },
+  getResult() {
+    return labRun.result ?? window.__wasmBox3DLabResult ?? null;
+  },
+};
 
 window.__wasmBox3DTest = {
   startStress(dynamicBlockCount = STRESS_START_BLOCKS) {
@@ -590,6 +1075,9 @@ async function boot() {
   meshManager.sync(physics);
   syncedStateVersion = physics.getStateVersion();
   bindControls();
+  labEngineEl.textContent = physicsEngine;
+  syncLabFormFromConfig();
+  setLabControls(false);
   updateReadout();
   wasmStatusEl.textContent =
     physicsEngine === 'rapier'

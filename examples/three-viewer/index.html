@@ -36,6 +36,70 @@
         <span id="stress-status">stress idle</span>
         <span id="wasm-status">loading wasm</span>
       </aside>
+      <section class="lab-panel" aria-label="Benchmark lab">
+        <div class="lab-header">
+          <div>
+            <span>Benchmark Lab</span>
+            <strong id="lab-engine">box3d</strong>
+          </div>
+          <div class="lab-status" id="lab-status">idle</div>
+        </div>
+        <div class="lab-row">
+          <label for="lab-scenario">Scenario</label>
+          <select id="lab-scenario">
+            <option value="pileDrop">Pile drop</option>
+            <option value="lineSpawn">Line spawn</option>
+            <option value="dominoSpiral">Domino spiral</option>
+            <option value="multiSpiral">Multi spiral</option>
+          </select>
+        </div>
+        <div class="lab-grid">
+          <label>
+            Duration ms
+            <input id="lab-duration" type="number" min="1000" step="500" />
+          </label>
+          <label>
+            Interval ms
+            <input id="lab-interval" type="number" min="16" step="16" />
+          </label>
+          <label>
+            Total bodies
+            <input id="lab-count" type="number" min="1" step="1" />
+          </label>
+          <label>
+            Batch size
+            <input id="lab-batch" type="number" min="1" step="1" />
+          </label>
+          <label>
+            Rows
+            <input id="lab-rows" type="number" min="1" step="1" />
+          </label>
+          <label>
+            Spacing
+            <input id="lab-spacing" type="number" min="0.1" step="0.1" />
+          </label>
+        </div>
+        <div class="lab-actions">
+          <button id="lab-run" type="button">Run</button>
+          <button id="lab-stop" type="button" disabled>Stop</button>
+          <button id="lab-apply" type="button">Apply</button>
+          <button id="lab-download" type="button" disabled>JSON</button>
+        </div>
+        <textarea id="lab-json" spellcheck="false"></textarea>
+        <svg id="lab-chart" viewBox="0 0 340 140" role="img" aria-label="Benchmark lab live chart">
+          <line class="lab-axis" x1="34" y1="110" x2="326" y2="110"></line>
+          <line class="lab-axis" x1="34" y1="14" x2="34" y2="110"></line>
+          <text x="34" y="128">time</text>
+          <text x="2" y="18">fps</text>
+          <path id="lab-render-path" class="lab-render-path"></path>
+          <path id="lab-sim-path" class="lab-sim-path"></path>
+        </svg>
+        <div class="lab-legend">
+          <span><i class="lab-render-key"></i>render FPS</span>
+          <span><i class="lab-sim-key"></i>sim capacity</span>
+          <span id="lab-last-sample">no samples</span>
+        </div>
+      </section>
     </main>
     <script type="module" src="/src/main.js"></script>
   </body>

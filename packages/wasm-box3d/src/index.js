@@ -52,9 +52,27 @@ export async function createBox3DDemo(options = {}) {
   const api = {
     reset: module.cwrap('wb3_reset', 'number', ['number']),
     resetStressRaw: module.cwrap('wb3_reset_stress', 'number', ['number']),
+    resetArenaRaw: module.cwrap('wb3_reset_arena', 'number', ['number']),
     stepWorld: module.cwrap('wb3_step', null, ['number', 'number']),
     syncRenderDataRaw: module.cwrap('wb3_sync_render_data', null, []),
     spawnBoxRaw: module.cwrap('wb3_spawn_box', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
+    spawnBoxExRaw: module.cwrap('wb3_spawn_box_ex', 'number', [
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+    ]),
     spawnSphereRaw: module.cwrap('wb3_spawn_sphere', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
     setGravityEnabledRaw: module.cwrap('wb3_set_gravity_enabled', null, ['number']),
     forceSleepAwakeBodiesRaw: module.cwrap('wb3_force_sleep_awake_bodies', 'number', []),
@@ -79,6 +97,9 @@ export async function createBox3DDemo(options = {}) {
     resetStress(dynamicBlockCount = 64) {
       return api.resetStressRaw(dynamicBlockCount);
     },
+    resetArena(halfWidth = 64) {
+      return api.resetArenaRaw(halfWidth);
+    },
     step(dt = 1 / 60, substeps = 4) {
       api.stepWorld(dt, substeps);
     },
@@ -94,6 +115,38 @@ export async function createBox3DDemo(options = {}) {
         velocity.y ?? 0,
         velocity.z ?? 0
       );
+    },
+    addBox(options = {}) {
+      const position = options.position ?? {};
+      const halfExtents = options.halfExtents ?? {};
+      const velocity = options.velocity ?? {};
+      const color = options.color ?? {};
+      return api.spawnBoxExRaw(
+        position.x ?? 0,
+        position.y ?? 6,
+        position.z ?? 0,
+        halfExtents.x ?? 0.45,
+        halfExtents.y ?? 0.45,
+        halfExtents.z ?? 0.45,
+        velocity.x ?? 0,
+        velocity.y ?? 0,
+        velocity.z ?? 0,
+        color.x ?? color.r ?? 0.94,
+        color.y ?? color.g ?? 0.6,
+        color.z ?? color.b ?? 0.22,
+        options.bodyType === 'fixed' ? 0 : 1,
+        options.rotationY ?? 0,
+        options.density ?? 1
+      );
+    },
+    addBodies(bodies = []) {
+      let created = 0;
+      for (const body of bodies) {
+        if (this.addBox(body) >= 0) {
+          created += 1;
+        }
+      }
+      return created;
     },
     spawnSphere(position = {}, velocity = {}) {
       return api.spawnSphereRaw(

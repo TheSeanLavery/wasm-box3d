@@ -26,14 +26,27 @@ export type BodyRecord = {
   color: { r: number; g: number; b: number };
 };
 
+export type BoxBodyOptions = {
+  position?: Vec3Like;
+  halfExtents?: Vec3Like;
+  velocity?: Vec3Like;
+  color?: Vec3Like & { r?: number; g?: number; b?: number };
+  bodyType?: 'dynamic' | 'fixed';
+  rotationY?: number;
+  density?: number;
+};
+
 export type Box3DDemo = {
   module: unknown;
   threadsEnabled: boolean;
   reset(sceneIndex?: number): number;
   resetStress(dynamicBlockCount?: number): number;
+  resetArena(halfWidth?: number): number;
   step(dt?: number, substeps?: number): void;
   syncRenderData(): void;
   spawnBox(position?: Vec3Like, velocity?: Vec3Like): number;
+  addBox(options?: BoxBodyOptions): number;
+  addBodies(bodies?: BoxBodyOptions[]): number;
   spawnSphere(position?: Vec3Like, velocity?: Vec3Like): number;
   setGravityEnabled(enabled: boolean): void;
   forceSleepAwakeBodies(): number;

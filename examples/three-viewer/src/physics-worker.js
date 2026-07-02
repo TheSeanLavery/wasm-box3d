@@ -215,8 +215,25 @@ self.onmessage = async (event) => {
     return;
   }
 
+  if (message.type === 'resetArena') {
+    physics.resetArena(message.halfWidth ?? 64);
+    resetSleepMonitor();
+    paused = false;
+    lastStepAt = performance.now();
+    resetMetrics(lastStepAt);
+    snapshot();
+    return;
+  }
+
   if (message.type === 'spawnBox') {
     physics.spawnBox(message.position, message.velocity);
+    resetSleepMonitor();
+    snapshot();
+    return;
+  }
+
+  if (message.type === 'addBodies') {
+    physics.addBodies(message.bodies ?? []);
     resetSleepMonitor();
     snapshot();
     return;

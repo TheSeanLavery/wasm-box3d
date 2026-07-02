@@ -9,7 +9,8 @@
     "preview": "vite preview --host 127.0.0.1 --port 5300",
     "verify:browser": "node verify-browser.cjs",
     "verify:sleep": "node verify-sleep.cjs",
-    "benchmark:engines": "node benchmark-engines.cjs"
+    "benchmark:engines": "node benchmark-engines.cjs",
+    "benchmark:lab": "node benchmark-lab.cjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.19.3",

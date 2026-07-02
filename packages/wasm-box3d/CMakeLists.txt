@@ -51,7 +51,7 @@ if(EMSCRIPTEN)
 		-sFILESYSTEM=0
 		-sASSERTIONS=1
 		-sEXPORTED_RUNTIME_METHODS=['cwrap','HEAPF32']
-		-sEXPORTED_FUNCTIONS=['_wb3_reset','_wb3_reset_stress','_wb3_step','_wb3_sync_render_data','_wb3_spawn_box','_wb3_spawn_sphere','_wb3_set_gravity_enabled','_wb3_force_sleep_awake_bodies','_wb3_get_body_count','_wb3_get_awake_body_count','_wb3_get_body_stride','_wb3_get_body_data','_wb3_get_step_count','_wb3_get_stress_dynamic_count','_wb3_get_last_stress_request','_wb3_get_max_bodies']
+		-sEXPORTED_FUNCTIONS=['_wb3_reset','_wb3_reset_stress','_wb3_reset_arena','_wb3_step','_wb3_sync_render_data','_wb3_spawn_box','_wb3_spawn_box_ex','_wb3_spawn_sphere','_wb3_set_gravity_enabled','_wb3_force_sleep_awake_bodies','_wb3_get_body_count','_wb3_get_awake_body_count','_wb3_get_body_stride','_wb3_get_body_data','_wb3_get_step_count','_wb3_get_stress_dynamic_count','_wb3_get_last_stress_request','_wb3_get_max_bodies']
 	)
 	if(WB3_ENABLE_PTHREADS)
 		list(APPEND WB3_LINK_OPTIONS

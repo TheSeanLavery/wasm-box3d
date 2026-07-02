@@ -69,7 +69,7 @@ function ensureBodyDataCapacity() {
   bodyData = new Float32Array(nextLength);
 }
 
-function addBox(type, position, halfExtents, density, color, velocity = { x: 0, y: 0, z: 0 }) {
+function addBox(type, position, halfExtents, density, color, velocity = { x: 0, y: 0, z: 0 }, rotationY = 0) {
   if (bodies.length >= MAX_RENDER_BODIES) {
     return -1;
   }
@@ -79,6 +79,9 @@ function addBox(type, position, halfExtents, density, color, velocity = { x: 0, 
       ? RAPIER.RigidBodyDesc.dynamic().setCanSleep(true)
       : RAPIER.RigidBodyDesc.fixed();
   desc.setTranslation(position.x, position.y, position.z);
+  if (rotationY) {
+    desc.setRotation({ x: 0, y: Math.sin(rotationY * 0.5), z: 0, w: Math.cos(rotationY * 0.5) });
+  }
   if (type === 'dynamic') {
     desc.setLinvel(velocity.x, velocity.y, velocity.z);
   }
@@ -101,6 +104,21 @@ function addBox(type, position, halfExtents, density, color, velocity = { x: 0, 
     color,
   });
   return bodies.length - 1;
+}
+
+function addBodies(nextBodies = []) {
+  let created = 0;
+  for (const body of nextBodies) {
+    const position = body.position ?? { x: 0, y: 6, z: 0 };
+    const halfExtents = body.halfExtents ?? { x: 0.45, y: 0.45, z: 0.45 };
+    const velocity = body.velocity ?? { x: 0, y: 0, z: 0 };
+    const color = body.color ?? { x: 0.94, y: 0.6, z: 0.22 };
+    const type = body.bodyType === 'fixed' ? 'fixed' : 'dynamic';
+    if (addBox(type, position, halfExtents, body.density ?? 1, color, velocity, body.rotationY ?? 0) >= 0) {
+      created += 1;
+    }
+  }
+  return created;
 }
 
 function addSphere(type, position, radius, density, color, velocity = { x: 0, y: 0, z: 0 }) {
@@ -305,6 +323,16 @@ function resetStress(dynamicBlockCount = 64) {
   return bodies.length;
 }
 
+function resetArena(halfWidth = 64) {
+  createWorld();
+  sceneIndex = 4;
+  lastStressRequested = 0;
+  lastStressDynamicCount = 0;
+  addSizedBounds(Math.max(DEFAULT_ARENA_HALF_WIDTH, halfWidth), 8.0, 8.5);
+  syncRenderData();
+  return bodies.length;
+}
+
 function getAwakeBodyCount() {
   let count = 0;
   for (const record of bodies) {
@@ -430,12 +458,27 @@ self.onmessage = async (event) => {
     return;
   }
 
+  if (message.type === 'resetArena') {
+    resetArena(message.halfWidth ?? 64);
+    paused = false;
+    lastStepAt = performance.now();
+    resetMetrics(lastStepAt);
+    snapshot();
+    return;
+  }
+
   if (message.type === 'spawnBox') {
     addBox('dynamic', message.position ?? { x: 0, y: 6, z: 0 }, { x: 0.45, y: 0.45, z: 0.45 }, 1, {
       x: 0.94,
       y: 0.6,
       z: 0.22,
     }, message.velocity ?? { x: 0, y: 0, z: 0 });
+    snapshot();
+    return;
+  }
+
+  if (message.type === 'addBodies') {
+    addBodies(message.bodies ?? []);
     snapshot();
     return;
   }

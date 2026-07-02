@@ -16,6 +16,7 @@
     "verify:browser": "npm run verify:browser -w wasm-box3d-three-viewer",
     "verify:sleep": "npm run verify:sleep -w wasm-box3d-three-viewer",
     "benchmark:engines": "npm run benchmark:engines -w wasm-box3d-three-viewer",
+    "benchmark:lab": "npm run benchmark:lab -w wasm-box3d-three-viewer",
     "pack:dry": "npm pack --dry-run -w @threecyborgs/wasm-box3d && npm pack --dry-run -w @threecyborgs/wasm-box3d-three"
   },
   "devDependencies": {

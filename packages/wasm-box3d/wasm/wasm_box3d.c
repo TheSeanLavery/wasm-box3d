@@ -124,7 +124,8 @@ static bool ensure_body_capacity( int requiredCapacity )
 	return true;
 }
 
-static int add_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float density, b3Vec3 color, b3Vec3 velocity )
+static int add_oriented_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float density, b3Vec3 color,
+							 b3Vec3 velocity, b3Quat rotation )
 {
 	if ( g_bodyCount >= MAX_RENDER_BODIES || ensure_body_capacity( g_bodyCount + 1 ) == false )
 	{
@@ -134,6 +135,7 @@ static int add_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float 
 	b3BodyDef bodyDef = b3DefaultBodyDef();
 	bodyDef.type = type;
 	bodyDef.position = (b3Pos){ position.x, position.y, position.z };
+	bodyDef.rotation = rotation;
 	bodyDef.linearVelocity = velocity;
 	if ( type == b3_dynamicBody )
 	{
@@ -161,6 +163,11 @@ static int add_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float 
 	renderBody->b = color.z;
 
 	return g_bodyCount++;
+}
+
+static int add_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float density, b3Vec3 color, b3Vec3 velocity )
+{
+	return add_oriented_box( type, position, halfExtents, density, color, velocity, b3Quat_identity );
 }
 
 static int add_sphere( b3BodyType type, b3Vec3 position, float radius, float density, b3Vec3 color, b3Vec3 velocity )
@@ -416,6 +423,25 @@ int wb3_reset_stress( int dynamicBlockCount )
 }
 
 EMSCRIPTEN_KEEPALIVE
+int wb3_reset_arena( float halfWidth )
+{
+	clear_world();
+	g_lastStressRequested = 0;
+	g_lastStressDynamicCount = 0;
+
+	b3WorldDef worldDef = b3DefaultWorldDef();
+	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
+	worldDef.workerCount = WB3_WORKER_COUNT;
+	g_worldId = b3CreateWorld( &worldDef );
+	g_sceneIndex = 4;
+
+	float clampedHalfWidth = halfWidth < DEFAULT_ARENA_HALF_WIDTH ? DEFAULT_ARENA_HALF_WIDTH : halfWidth;
+	add_sized_bounds( clampedHalfWidth, 8.0f, 8.5f );
+	sync_render_data();
+	return g_bodyCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
 void wb3_step( float dt, int substeps )
 {
 	if ( b3World_IsValid( g_worldId ) == false )
@@ -455,6 +481,29 @@ int wb3_spawn_box( float x, float y, float z, float vx, float vy, float vz )
 
 	int index = add_box( b3_dynamicBody, (b3Vec3){ x, y, z }, (b3Vec3){ 0.45f, 0.45f, 0.45f }, 1.0f,
 						 (b3Vec3){ 0.94f, 0.60f, 0.22f }, (b3Vec3){ vx, vy, vz } );
+	sync_render_data();
+	return index;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_spawn_box_ex( float x, float y, float z, float hx, float hy, float hz, float vx, float vy, float vz, float r,
+					  float g, float b, int dynamic, float yaw, float density )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return -1;
+	}
+
+	b3Vec3 halfExtents = {
+		hx > 0.01f ? hx : 0.45f,
+		hy > 0.01f ? hy : 0.45f,
+		hz > 0.01f ? hz : 0.45f,
+	};
+	float shapeDensity = density > 0.0f ? density : 1.0f;
+	b3BodyType type = dynamic != 0 ? b3_dynamicBody : b3_staticBody;
+	b3Quat rotation = b3MakeQuatFromAxisAngle( b3Vec3_axisY, yaw );
+	int index = add_oriented_box( type, (b3Vec3){ x, y, z }, halfExtents, shapeDensity, (b3Vec3){ r, g, b },
+								  (b3Vec3){ vx, vy, vz }, rotation );
 	sync_render_data();
 	return index;
 }
