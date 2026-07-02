@@ -434,11 +434,21 @@ function labColor(index, channel = 0) {
 }
 
 function estimateLabArenaHalfWidth(config) {
+  if (config.scenario === 'pileDrop') {
+    const pileCount = Math.ceil(config.count / Math.max(1, config.batchSize));
+    const footprint = Math.max(2, Math.ceil(Math.sqrt(config.batchSize / 4)));
+    const pileRadius = footprint * 0.78 * 0.5 + 8;
+    return Math.max(48, Math.sqrt(Math.max(1, pileCount)) * config.spacing + pileRadius + 16);
+  }
   if (config.scenario === 'lineSpawn') {
-    return Math.max(32, config.count * config.spacing * 0.28);
+    const rowWidth = Math.max(1, Math.ceil(Math.sqrt(config.count)));
+    const rowCount = Math.ceil(config.count / rowWidth);
+    return Math.max(48, rowWidth * config.spacing * 0.5 + 16, rowCount * config.spacing * 0.5 + 16);
   }
   if (config.scenario === 'dominoSpiral' || config.scenario === 'multiSpiral') {
-    return Math.max(36, config.count * config.spacing * 0.015 + config.rows * 4);
+    const scenarioRows = config.scenario === 'multiSpiral' ? config.rows : 1;
+    const perRow = Math.max(1, Math.ceil(config.count / scenarioRows));
+    return Math.max(48, 2.2 + perRow * config.spacing * 0.18 + scenarioRows * 2.6 + 16);
   }
   return Math.max(42, Math.ceil(config.count / Math.max(1, config.batchSize)) * config.spacing + 20);
 }
@@ -447,8 +457,11 @@ function makePileBatch(config, startIndex, batchSize) {
   const pileIndex = Math.floor(startIndex / Math.max(1, config.batchSize));
   const footprint = Math.max(2, Math.ceil(Math.sqrt(batchSize / 4)));
   const layerHeight = 0.74;
-  const baseX = (pileIndex - 2) * config.spacing;
-  const baseZ = ((pileIndex % 5) - 2) * config.spacing * 0.55;
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  const spiralRadius = Math.sqrt(pileIndex) * config.spacing;
+  const spiralAngle = pileIndex * goldenAngle;
+  const baseX = Math.cos(spiralAngle) * spiralRadius;
+  const baseZ = Math.sin(spiralAngle) * spiralRadius;
   const bodies = [];
 
   for (let i = 0; i < batchSize; i += 1) {
