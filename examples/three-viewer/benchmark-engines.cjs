@@ -247,6 +247,10 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/[<>&"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[char]);
 }
 
+function escapeAttr(value) {
+  return escapeHtml(value).replace(/'/g, '&#39;');
+}
+
 function engineLabel(engine) {
   return engine === 'box3d' ? 'Box3D' : engine === 'rapier' ? 'Rapier' : engine;
 }
@@ -299,8 +303,8 @@ function makeGridLines({ width, height, xTicks = [], yTicks = [], xMax, yMax, yS
     .map((tick) => {
       const y = height - (tick / yMax) * height;
       return `
-        <line class="grid-line" x1="0" y1="${y.toFixed(1)}" x2="${width}" y2="${y.toFixed(1)}" />
-        <text class="tick-label" x="-10" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml((yFormatter ?? formatAxisValue)(tick, ySuffix))}</text>
+        <line class="grid-line y-grid" x1="0" y1="${y.toFixed(1)}" x2="${width}" y2="${y.toFixed(1)}" />
+        <text class="tick-label y-tick" x="-10" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml((yFormatter ?? formatAxisValue)(tick, ySuffix))}</text>
       `;
     })
     .join('\n');
@@ -308,8 +312,8 @@ function makeGridLines({ width, height, xTicks = [], yTicks = [], xMax, yMax, yS
     .map((tick) => {
       const x = (tick / xMax) * width;
       return `
-        <line class="grid-line vertical" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${height}" />
-        <text class="tick-label" x="${x.toFixed(1)}" y="${height + 20}" text-anchor="middle">${escapeHtml((xFormatter ?? formatAxisValue)(tick))}</text>
+        <line class="grid-line vertical x-grid" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${height}" />
+        <text class="tick-label x-tick" x="${x.toFixed(1)}" y="${height + 20}" text-anchor="middle">${escapeHtml((xFormatter ?? formatAxisValue)(tick))}</text>
       `;
     })
     .join('\n');
@@ -391,7 +395,7 @@ function makeSamplePoints(points, width, height, xMax, yMax, valueKey, color, la
       const x = (point.tMs / xMax) * width;
       const y = height - (Math.max(0, point[valueKey]) / yMax) * height;
       const title = `${label} ${point.requestedBodies.toLocaleString()} bodies\n${Math.round(point.tMs)}ms\n${valueKey}: ${formatMetric(point[valueKey], ' fps')}\nrender: ${formatMetric(point.renderFps, ' fps')}\nsim capacity: ${formatMetric(point.simCapacityFps, ' fps')}\nsync: ${formatMetric(point.syncMs, ' ms')}\nsnapshot: ${formatMetric(point.snapshotMB, ' MB')}`;
-      return `<circle class="sample-point" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${color}" tabindex="0"><title>${escapeHtml(title)}</title></circle>`;
+      return `<circle class="sample-point" data-x="${point.tMs.toFixed(3)}" data-y="${Number(point[valueKey] ?? 0).toFixed(6)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${color}" tabindex="0"><title>${escapeHtml(title)}</title></circle>`;
     })
     .join('\n');
 }
@@ -416,15 +420,19 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
     }
     const color = colors[engine] ?? '#94a3b8';
     const sortedPoints = [...points].sort((a, b) => a.tMs - b.tMs);
+    const seriesPoints = sortedPoints.map((point) => ({
+      x: point.tMs,
+      y: Number(point[metricKey] ?? 0),
+    }));
     const last = sortedPoints.at(-1);
     const lastX = last ? (last.tMs / xMax) * chartWidth : 0;
     const lastY = last ? chartHeight - (Math.max(0, last[metricKey]) / yMax) * chartHeight : 0;
     return `
-      <path d="${makeSeriesPath(sortedPoints, chartWidth, chartHeight, xMax, yMax, metricKey)}" fill="none" stroke="${color}" stroke-width="2.5">
+      <path class="series-line" data-engine="${engine}" data-points='${escapeAttr(JSON.stringify(seriesPoints))}' d="${makeSeriesPath(sortedPoints, chartWidth, chartHeight, xMax, yMax, metricKey)}" fill="none" stroke="${color}" stroke-width="2.5">
         <title>${escapeHtml(`${engineLabel(engine)} ${label}`)}</title>
       </path>
       ${makeSamplePoints(sortedPoints, chartWidth, chartHeight, xMax, yMax, metricKey, color, engineLabel(engine))}
-      ${last ? `<text class="line-label" x="${Math.min(chartWidth - 78, lastX + 8).toFixed(1)}" y="${Math.max(12, Math.min(chartHeight - 6, lastY - 6)).toFixed(1)}" fill="${color}">${engineLabel(engine)}</text>` : ''}
+      ${last ? `<text class="line-label" data-engine="${engine}" x="${Math.min(chartWidth - 78, lastX + 8).toFixed(1)}" y="${Math.max(12, Math.min(chartHeight - 6, lastY - 6)).toFixed(1)}" fill="${color}">${engineLabel(engine)}</text>` : ''}
     `;
   }).join('\n');
 
@@ -443,7 +451,7 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 ${chartWidth + 72} ${chartHeight + 54}" role="img" aria-label="${label} over time for ${level} bodies">
+	      <svg class="zoomable-chart chart-data" data-chart-kind="metric" data-level="${level}" data-default-x-min="0" data-default-x-max="${xMax.toFixed(3)}" data-y-scale="linear" data-y-suffix=" FPS" data-x-format="time" data-show-floor="${showFloor ? '1' : '0'}" viewBox="0 0 ${chartWidth + 72} ${chartHeight + 54}" role="img" aria-label="${label} over time for ${level} bodies">
 	        <g transform="translate(52 18)">
           <defs>
             <clipPath id="${chartId}-clip">
@@ -508,8 +516,8 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
     .map((tick) => {
       const y = chartHeight - yTransform(tick) * chartHeight;
       return `
-        <line class="grid-line" x1="0" y1="${y.toFixed(1)}" x2="${chartWidth}" y2="${y.toFixed(1)}" />
-        <text class="tick-label" x="-10" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml(formatAxisValue(tick))}</text>
+        <line class="grid-line y-grid" x1="0" y1="${y.toFixed(1)}" x2="${chartWidth}" y2="${y.toFixed(1)}" />
+        <text class="tick-label y-tick" x="-10" y="${(y + 4).toFixed(1)}" text-anchor="end">${escapeHtml(formatAxisValue(tick))}</text>
       `;
     })
     .join('\n');
@@ -517,8 +525,8 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
     .map((tick) => {
       const x = (tick / xMax) * chartWidth;
       return `
-        <line class="grid-line vertical" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${chartHeight}" />
-        <text class="tick-label" x="${x.toFixed(1)}" y="${chartHeight + 20}" text-anchor="middle">${escapeHtml(formatAxisValue(tick))}</text>
+        <line class="grid-line vertical x-grid" x1="${x.toFixed(1)}" y1="0" x2="${x.toFixed(1)}" y2="${chartHeight}" />
+        <text class="tick-label x-tick" x="${x.toFixed(1)}" y="${chartHeight + 20}" text-anchor="middle">${escapeHtml(formatAxisValue(tick))}</text>
       `;
     })
     .join('\n');
@@ -531,6 +539,10 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
       return [];
     }
     const color = colors[engine] ?? '#94a3b8';
+    const seriesPoints = enginePoints.map((point) => ({
+      x: point.requestedBodies,
+      y: Number(point[metricKey] ?? 0),
+    }));
     const path = enginePoints
       .map((point, index) => {
         const x = (point.requestedBodies / xMax) * chartWidth;
@@ -543,18 +555,18 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
         const x = (point.requestedBodies / xMax) * chartWidth;
         const y = chartHeight - yTransform(point[metricKey]) * chartHeight;
         const title = `${engineLabel(engine)}\n${point.requestedBodies.toLocaleString()} requested bodies\n${Math.round(point.bodies).toLocaleString()} bodies\n${label}: ${formatMetric(point[metricKey])}\nP95 step: ${formatMetric(point.p95PhysicsStepMs, ' ms')}\nAvg sync: ${formatMetric(point.avgSyncMs, ' ms')}`;
-        return `<circle class="sample-point overview-point" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.8" fill="${color}" tabindex="0"><title>${escapeHtml(title)}</title></circle>`;
+        return `<circle class="sample-point overview-point" data-x="${point.requestedBodies}" data-y="${Number(point[metricKey] ?? 0).toFixed(6)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.8" fill="${color}" tabindex="0"><title>${escapeHtml(title)}</title></circle>`;
       })
       .join('\n');
     const last = enginePoints.at(-1);
     const lastX = last ? (last.requestedBodies / xMax) * chartWidth : 0;
     const lastY = last ? chartHeight - yTransform(last[metricKey]) * chartHeight : 0;
     return `
-      <path d="${path}" fill="none" stroke="${color}" stroke-width="2.8">
+      <path class="series-line" data-engine="${engine}" data-points='${escapeAttr(JSON.stringify(seriesPoints))}' d="${path}" fill="none" stroke="${color}" stroke-width="2.8">
         <title>${escapeHtml(`${engineLabel(engine)} ${label}`)}</title>
       </path>
       ${dots}
-      ${last ? `<text class="line-label" x="${Math.min(chartWidth - 78, lastX + 8).toFixed(1)}" y="${Math.max(12, Math.min(chartHeight - 6, lastY - 6)).toFixed(1)}" fill="${color}">${engineLabel(engine)}</text>` : ''}
+      ${last ? `<text class="line-label" data-engine="${engine}" x="${Math.min(chartWidth - 78, lastX + 8).toFixed(1)}" y="${Math.max(12, Math.min(chartHeight - 6, lastY - 6)).toFixed(1)}" fill="${color}">${engineLabel(engine)}</text>` : ''}
     `;
   }).join('\n');
 
@@ -574,7 +586,7 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 ${chartWidth + 82} ${chartHeight + 56}" role="img" aria-label="${label} by body count">
+	      <svg class="zoomable-chart chart-data" data-chart-kind="overview" data-default-x-min="0" data-default-x-max="${xMax}" data-y-scale="${scale}" data-y-suffix="" data-x-format="count" data-show-floor="${showFloor ? '1' : '0'}" viewBox="0 0 ${chartWidth + 82} ${chartHeight + 56}" role="img" aria-label="${label} by body count">
         <g transform="translate(62 18)">
           <defs>
             <clipPath id="${chartId}-clip">
@@ -631,7 +643,7 @@ function makeChartHtml(result) {
       const levelSamples = result.samples.filter((sample) => sample.requestedBodies === level);
 
       return `
-        <section class="panel">
+        <section class="panel body-panel" data-level="${level}">
           <h2>${level.toLocaleString()} requested bodies</h2>
           ${makeMetricChart({ level, levelSamples, metricKey: 'renderFps', label: 'Render FPS' })}
           ${makeMetricChart({ level, levelSamples, metricKey: 'simCapacityFps', label: 'Simulation capacity FPS' })}
@@ -726,6 +738,11 @@ function makeChartHtml(result) {
       .table-tools .checkbox-label { display: inline-flex; gap: 8px; align-items: center; min-height: 34px; }
       .table-tools .checkbox-label input { min-height: 0; }
       .filter-count { color: #8ea0b8; font-size: 12px; text-align: right; }
+      .chart-range-tools { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) auto auto; gap: 10px; align-items: end; margin: 0 0 18px; padding: 14px; border: 1px solid #243041; border-radius: 8px; background: #121d2f; }
+      .chart-range-tools label { display: grid; gap: 5px; color: #aab8ca; font-size: 12px; font-weight: 700; }
+      .chart-range-tools input { min-height: 34px; border: 1px solid #334155; border-radius: 6px; background: #0f172a; color: #e5edf6; padding: 0 10px; font: inherit; }
+      .chart-range-tools button { min-height: 34px; border: 1px solid #334155; border-radius: 6px; background: #172338; color: #e5edf6; padding: 0 12px; font-weight: 800; cursor: pointer; }
+      .chart-range-status { color: #8ea0b8; font-size: 12px; text-align: right; }
       .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 12px 0 20px; color: #cbd5e1; font-size: 13px; }
       .zoom-help { margin-top: -10px; margin-bottom: 20px; color: #8ea0b8; font-size: 13px; }
       .key { display: inline-flex; align-items: center; gap: 7px; }
@@ -733,6 +750,8 @@ function makeChartHtml(result) {
       .dash { border-top: 3px dashed var(--color); background: transparent; height: 0; }
       .panel { margin: 0 0 22px; padding: 18px; border: 1px solid #243041; border-radius: 8px; background: #151f31; }
       .overview-panel { background: #121d2f; }
+      body.chart-range-active main { max-width: min(1680px, calc(100vw - 56px)); }
+      .chart.range-focused { border: 1px solid rgba(148, 163, 184, 0.26); border-radius: 8px; padding: 10px; background: rgba(15, 23, 42, 0.42); }
 	      .chart + .chart { margin-top: 16px; }
 	      .chart-heading { display: flex; justify-content: space-between; gap: 16px; align-items: baseline; flex-wrap: wrap; margin-bottom: 6px; }
 	      .mini-legend { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; color: #aab8ca; font-size: 12px; }
@@ -765,7 +784,9 @@ function makeChartHtml(result) {
 	      }
       @media (max-width: 900px) {
         .table-tools { grid-template-columns: 1fr; }
+        .chart-range-tools { grid-template-columns: 1fr; }
         .filter-count { text-align: left; }
+        .chart-range-status { text-align: left; }
       }
     </style>
   </head>
@@ -778,6 +799,19 @@ function makeChartHtml(result) {
         <span class="key"><span class="swatch" style="--color:#f59e0b"></span>Rapier render</span>
       </div>
       <p class="zoom-help">Use chart buttons or mouse wheel over the plot to zoom the data. Drag to pan inside the plot bounds; axes and labels stay fixed. Double-click or Reset to restore.</p>
+      <div class="chart-range-tools" aria-label="Chart range controls">
+        <label>
+          Body chart range
+          <input id="chart-body-range" type="search" placeholder="10k-35k, >=80k, 5000" />
+        </label>
+        <label>
+          Time chart range
+          <input id="chart-time-range" type="search" placeholder="0-2s, 750ms-2500ms" />
+        </label>
+        <button id="apply-chart-ranges" type="button">Apply ranges</button>
+        <button id="clear-chart-ranges" type="button">Clear ranges</button>
+        <span id="chart-range-status" class="chart-range-status"></span>
+      </div>
       ${overview}
       <div class="table-tools" aria-label="Benchmark table filters">
         <label>
@@ -827,6 +861,12 @@ function makeChartHtml(result) {
         const clearFilters = document.querySelector('#clear-filters');
         const filterCount = document.querySelector('#filter-count');
         const rows = [...document.querySelectorAll('#summary-table tbody tr')];
+        const chartBodyRange = document.querySelector('#chart-body-range');
+        const chartTimeRange = document.querySelector('#chart-time-range');
+        const applyChartRangesButton = document.querySelector('#apply-chart-ranges');
+        const clearChartRangesButton = document.querySelector('#clear-chart-ranges');
+        const chartRangeStatus = document.querySelector('#chart-range-status');
+        const bodyPanels = [...document.querySelectorAll('.body-panel')];
 
         function parseCount(value) {
           const clean = String(value ?? '').trim().toLowerCase().replace(/,/g, '');
@@ -835,6 +875,93 @@ function makeChartHtml(result) {
           }
           const multiplier = clean.endsWith('m') ? 1000000 : clean.endsWith('k') ? 1000 : 1;
           return Number(clean.replace(/[km]$/, '')) * multiplier;
+        }
+
+        function parseTimeMs(value) {
+          const clean = String(value ?? '').trim().toLowerCase().replace(/,/g, '');
+          if (!clean) {
+            return NaN;
+          }
+          if (clean.endsWith('ms')) {
+            return Number(clean.slice(0, -2));
+          }
+          if (clean.endsWith('s')) {
+            return Number(clean.slice(0, -1)) * 1000;
+          }
+          return Number(clean);
+        }
+
+        function formatChartValue(value, format, suffix) {
+          if (!Number.isFinite(value)) {
+            return '';
+          }
+          if (format === 'time') {
+            return (value / 1000).toFixed(value % 1000 === 0 ? 0 : 1) + 's';
+          }
+          if (value === 0) {
+            return '0' + (suffix || '');
+          }
+          if (Math.abs(value) >= 1000) {
+            return (value / 1000).toFixed(Math.abs(value) >= 10000 ? 0 : 1) + 'k' + (suffix || '');
+          }
+          if (Math.abs(value) >= 100) {
+            return Math.round(value) + (suffix || '');
+          }
+          if (Math.abs(value) >= 10) {
+            return value.toFixed(0) + (suffix || '');
+          }
+          return value.toFixed(1) + (suffix || '');
+        }
+
+        function niceCeilClient(value) {
+          if (!Number.isFinite(value) || value <= 0) {
+            return 1;
+          }
+          const power = Math.pow(10, Math.floor(Math.log10(value)));
+          const scaled = value / power;
+          const step = scaled <= 1 ? 1 : scaled <= 2 ? 2 : scaled <= 5 ? 5 : 10;
+          return step * power;
+        }
+
+        function makeClientTicks(maxValue, tickCount) {
+          const niceMax = niceCeilClient(maxValue);
+          return Array.from({ length: tickCount }, (_, index) => (niceMax * index) / Math.max(1, tickCount - 1));
+        }
+
+        function parseContinuousRange(text, defaultMin, defaultMax, parser) {
+          const token = String(text ?? '').trim().split(/[\\s,]+/).filter(Boolean)[0] ?? '';
+          if (!token) {
+            return { min: defaultMin, max: defaultMax, active: false, ok: true };
+          }
+          const clean = token.toLowerCase();
+          if (clean.startsWith('>=')) {
+            const min = parser(clean.slice(2));
+            return Number.isFinite(min) ? { min, max: defaultMax, active: true, ok: true } : { min: defaultMin, max: defaultMax, active: false, ok: false };
+          }
+          if (clean.startsWith('>')) {
+            const min = parser(clean.slice(1));
+            return Number.isFinite(min) ? { min, max: defaultMax, active: true, ok: true } : { min: defaultMin, max: defaultMax, active: false, ok: false };
+          }
+          if (clean.startsWith('<=')) {
+            const max = parser(clean.slice(2));
+            return Number.isFinite(max) ? { min: defaultMin, max, active: true, ok: true } : { min: defaultMin, max: defaultMax, active: false, ok: false };
+          }
+          if (clean.startsWith('<')) {
+            const max = parser(clean.slice(1));
+            return Number.isFinite(max) ? { min: defaultMin, max, active: true, ok: true } : { min: defaultMin, max: defaultMax, active: false, ok: false };
+          }
+          const range = clean.match(/^(.+?)-(.+)$/);
+          if (range) {
+            const start = parser(range[1]);
+            const end = parser(range[2]);
+            return Number.isFinite(start) && Number.isFinite(end)
+              ? { min: Math.min(start, end), max: Math.max(start, end), active: true, ok: true }
+              : { min: defaultMin, max: defaultMax, active: false, ok: false };
+          }
+          const exact = parser(clean);
+          return Number.isFinite(exact)
+            ? { min: exact, max: exact, active: true, ok: true }
+            : { min: defaultMin, max: defaultMax, active: false, ok: false };
         }
 
         function matchesBodyFilter(level, filterText) {
@@ -914,6 +1041,214 @@ function makeChartHtml(result) {
 	          applyFilters();
 	        });
 	        applyFilters();
+
+        function updateTickSet(svg, selector, values, updater) {
+          const nodes = [...svg.querySelectorAll(selector)];
+          nodes.forEach((node, index) => {
+            const value = values[index];
+            node.hidden = !Number.isFinite(value);
+            if (Number.isFinite(value)) {
+              updater(node, value);
+            }
+          });
+        }
+
+        function scaleChartY(value, yMax, height, scale) {
+          if (scale === 'log') {
+            const denom = Math.log10(Math.max(10, yMax));
+            return height - (Math.log10(Math.max(1, value)) / denom) * height;
+          }
+          return height - (Math.max(0, value) / yMax) * height;
+        }
+
+        function updateChartDomain(svg, xRange) {
+          const layer = svg.querySelector('.plot-zoom-layer');
+          if (!layer) {
+            return { visibleSeries: 0, visiblePoints: 0 };
+          }
+
+          const width = Math.max(1, Number(layer.dataset.plotWidth || 1));
+          const height = Math.max(1, Number(layer.dataset.plotHeight || 1));
+          const defaultMin = Number(svg.dataset.defaultXMin || 0);
+          const defaultMax = Math.max(defaultMin + 1, Number(svg.dataset.defaultXMax || 1));
+          const yScale = svg.dataset.yScale || 'linear';
+          const xFormat = svg.dataset.xFormat || 'count';
+          const ySuffix = svg.dataset.ySuffix || '';
+          const activeRange = xRange?.active;
+          let minX = activeRange ? Math.max(defaultMin, xRange.min) : defaultMin;
+          let maxX = activeRange ? Math.min(defaultMax, xRange.max) : defaultMax;
+          if (!Number.isFinite(minX) || !Number.isFinite(maxX) || maxX < minX) {
+            minX = defaultMin;
+            maxX = defaultMax;
+          }
+          if (maxX === minX) {
+            const pad = Math.max(1, defaultMax * 0.02);
+            minX = Math.max(defaultMin, minX - pad);
+            maxX = Math.min(defaultMax, maxX + pad);
+            if (maxX === minX) {
+              maxX = minX + 1;
+            }
+          }
+
+          const allVisible = [];
+          for (const point of svg.querySelectorAll('.sample-point')) {
+            const x = Number(point.dataset.x);
+            const y = Number(point.dataset.y);
+            const visible = Number.isFinite(x) && Number.isFinite(y) && x >= minX && x <= maxX;
+            point.hidden = !visible;
+            if (visible) {
+              allVisible.push({ x, y });
+            }
+          }
+
+          const visibleMaxY = Math.max(1, ...allVisible.map((point) => point.y));
+          const yMax = yScale === 'log' ? niceCeilClient(visibleMaxY) : niceCeilClient(visibleMaxY * 1.12);
+          const xSpan = Math.max(1, maxX - minX);
+          const xToPlot = (x) => ((x - minX) / xSpan) * width;
+          const yToPlot = (y) => scaleChartY(y, yMax, height, yScale);
+
+          for (const point of svg.querySelectorAll('.sample-point')) {
+            if (point.hidden) {
+              continue;
+            }
+            const x = Number(point.dataset.x);
+            const y = Number(point.dataset.y);
+            point.setAttribute('cx', xToPlot(x).toFixed(1));
+            point.setAttribute('cy', yToPlot(y).toFixed(1));
+          }
+
+          let visibleSeries = 0;
+          for (const line of svg.querySelectorAll('.series-line')) {
+            let points = [];
+            try {
+              points = JSON.parse(line.dataset.points || '[]');
+            } catch {
+              points = [];
+            }
+            const visible = points.filter((point) => point.x >= minX && point.x <= maxX);
+            line.hidden = visible.length === 0;
+            if (visible.length > 0) {
+              visibleSeries += 1;
+              line.setAttribute(
+                'd',
+                visible
+                  .map((point, index) => (index === 0 ? 'M' : 'L') + xToPlot(point.x).toFixed(1) + ' ' + yToPlot(point.y).toFixed(1))
+                  .join(' ')
+              );
+            }
+
+            const label = svg.querySelector('.line-label[data-engine="' + line.dataset.engine + '"]');
+            if (!label) {
+              continue;
+            }
+            label.hidden = visible.length === 0;
+            if (visible.length > 0) {
+              const last = visible[visible.length - 1];
+              const labelX = Math.max(8, Math.min(width - 78, xToPlot(last.x) + 8));
+              const labelY = Math.max(12, Math.min(height - 6, yToPlot(last.y) - 6));
+              label.setAttribute('x', labelX.toFixed(1));
+              label.setAttribute('y', labelY.toFixed(1));
+            }
+          }
+
+          const xTicks = Array.from({ length: 5 }, (_, index) => minX + (xSpan * index) / 4);
+          updateTickSet(svg, '.x-grid', xTicks, (node, value) => {
+            const x = xToPlot(value).toFixed(1);
+            node.setAttribute('x1', x);
+            node.setAttribute('x2', x);
+          });
+          updateTickSet(svg, '.x-tick', xTicks, (node, value) => {
+            node.setAttribute('x', xToPlot(value).toFixed(1));
+            node.textContent = formatChartValue(value, xFormat, '');
+          });
+
+          const yTicks = yScale === 'log'
+            ? [1, 10, 20, 100, 1000, 10000, 100000, yMax].filter((tick, index, values) => tick <= yMax && values.indexOf(tick) === index)
+            : makeClientTicks(yMax, 5);
+          updateTickSet(svg, '.y-grid', yTicks, (node, value) => {
+            const y = yToPlot(value).toFixed(1);
+            node.setAttribute('y1', y);
+            node.setAttribute('y2', y);
+          });
+          updateTickSet(svg, '.y-tick', yTicks, (node, value) => {
+            node.setAttribute('y', (yToPlot(value) + 4).toFixed(1));
+            node.textContent = formatChartValue(value, 'count', ySuffix);
+          });
+
+          const floorLine = svg.querySelector('.floor-line');
+          const floorLabel = svg.querySelector('.floor-label');
+          if (floorLine && floorLabel) {
+            const showFloor = svg.dataset.showFloor === '1' && ${MIN_FPS_FLOOR} <= yMax;
+            floorLine.hidden = !showFloor;
+            floorLabel.hidden = !showFloor;
+            if (showFloor) {
+              const y = yToPlot(${MIN_FPS_FLOOR});
+              floorLine.setAttribute('y1', y.toFixed(1));
+              floorLine.setAttribute('y2', y.toFixed(1));
+              floorLabel.setAttribute('y', Math.max(12, y - 6).toFixed(1));
+            }
+          }
+
+          layer.setAttribute('transform', 'translate(0.000 0.000) scale(1.0000)');
+          svg.closest('.chart')?.classList.toggle('range-focused', Boolean(activeRange));
+          return { visibleSeries, visiblePoints: allVisible.length };
+        }
+
+        function applyChartRanges() {
+          const bodyRange = parseContinuousRange(chartBodyRange.value, 0, Math.max(...[...document.querySelectorAll('.overview-chart svg')].map((svg) => Number(svg.dataset.defaultXMax || 0)), 1), parseCount);
+          const timeRange = parseContinuousRange(chartTimeRange.value, 0, Math.max(...[...document.querySelectorAll('svg[data-chart-kind="metric"]')].map((svg) => Number(svg.dataset.defaultXMax || 0)), 1), parseTimeMs);
+          let visibleCharts = 0;
+          let visiblePanels = 0;
+
+          for (const svg of document.querySelectorAll('svg.chart-data')) {
+            const range = svg.dataset.chartKind === 'overview' ? bodyRange : timeRange;
+            const result = updateChartDomain(svg, range);
+            svg.dispatchEvent(new CustomEvent('chartdomainchange'));
+            if (result.visiblePoints > 0) {
+              visibleCharts += 1;
+            }
+          }
+
+          for (const panel of bodyPanels) {
+            const level = Number(panel.dataset.level);
+            const visible = !bodyRange.active || (bodyRange.ok && level >= bodyRange.min && level <= bodyRange.max);
+            panel.hidden = !visible;
+            if (visible) {
+              visiblePanels += 1;
+            }
+          }
+
+          const active = Boolean((bodyRange.active && bodyRange.ok) || (timeRange.active && timeRange.ok));
+          document.body.classList.toggle('chart-range-active', active);
+          const problems = [];
+          if (chartBodyRange.value.trim() && !bodyRange.ok) {
+            problems.push('body range was not understood');
+          }
+          if (chartTimeRange.value.trim() && !timeRange.ok) {
+            problems.push('time range was not understood');
+          }
+          chartRangeStatus.textContent = problems.length > 0
+            ? problems.join(', ')
+            : (active ? visibleCharts + ' charts focused, ' + visiblePanels + ' body sections visible' : 'all charts');
+        }
+
+        applyChartRangesButton.addEventListener('click', applyChartRanges);
+        clearChartRangesButton.addEventListener('click', () => {
+          chartBodyRange.value = '';
+          chartTimeRange.value = '';
+          applyChartRanges();
+        });
+        chartBodyRange.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            applyChartRanges();
+          }
+        });
+        chartTimeRange.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter') {
+            applyChartRanges();
+          }
+        });
+        applyChartRanges();
 
 	        function initZoomableChart(svg) {
 	          const layer = svg.querySelector('.plot-zoom-layer');
@@ -1028,6 +1363,7 @@ function makeChartHtml(result) {
 	          });
 
 	          svg.addEventListener('dblclick', reset);
+	          svg.addEventListener('chartdomainchange', reset);
 
 	          const chart = svg.closest('.chart');
 	          const center = () => ({
