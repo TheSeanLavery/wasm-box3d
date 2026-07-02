@@ -26,6 +26,7 @@ const engineParam = urlParams.get('engine');
 const physicsEngine = engineParam === 'rapier' ? 'rapier' : 'box3d';
 const threadParam = urlParams.get('threads');
 const benchmarkMode = urlParams.get('benchmark') === '1' || urlParams.get('benchmark') === 'true';
+const benchmarkSnapshotMs = Number(urlParams.get('snapshotMs') ?? 250);
 const physicsThreadMode = threadParam === 'single' ? false : threadParam === 'pthreads' ? true : 'auto';
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
@@ -509,7 +510,7 @@ function animate() {
   controls.update();
 
   if (physics) {
-    const snapshotIntervalMs = physics.getAwakeBodyCount() > 0 ? 0 : 500;
+    const snapshotIntervalMs = benchmarkMode ? Math.max(50, benchmarkSnapshotMs) : physics.getAwakeBodyCount() > 0 ? 0 : 500;
     if (snapshotIntervalMs === 0 || now - lastSnapshotRequestedAt >= snapshotIntervalMs) {
       physics.requestSnapshot();
       lastSnapshotRequestedAt = now;

@@ -126,11 +126,11 @@ function snapshot() {
       renderSyncMs,
       snapshotCopyMs,
       snapshotBytes,
-    resetStressMs,
-    lastForceSleepMs,
-    forcedSleepBodies,
-    threadsEnabled: physics.threadsEnabled,
-    benchmarkMode,
+      resetStressMs,
+      lastForceSleepMs,
+      forcedSleepBodies,
+      threadsEnabled: physics.threadsEnabled,
+      benchmarkMode,
     },
     [bodyData.buffer]
   );

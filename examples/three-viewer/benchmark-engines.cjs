@@ -6,14 +6,18 @@ const ROOT = path.resolve(__dirname, '../..');
 const OUTPUT_DIR = path.join(ROOT, 'bench-results');
 const SERVER_URL = process.env.WB3_BENCH_URL ?? 'http://127.0.0.1:5300/';
 const ENGINES = (process.env.WB3_BENCH_ENGINES ?? 'box3d,rapier').split(',').map((engine) => engine.trim()).filter(Boolean);
-const LEVELS = (process.env.WB3_BENCH_LEVELS ?? '64,256,1024,4096,8192,16384,32768')
+const LEVELS = (process.env.WB3_BENCH_LEVELS ?? '64,1024,4096,16384,65536,262144,1000000')
   .split(',')
   .map((level) => Number(level.trim()))
   .filter((level) => Number.isFinite(level) && level > 0);
 const WARMUP_MS = Number(process.env.WB3_BENCH_WARMUP_MS ?? 1000);
-const SAMPLE_MS = Number(process.env.WB3_BENCH_SAMPLE_MS ?? 4000);
+const SAMPLE_MS = Number(process.env.WB3_BENCH_SAMPLE_MS ?? 3000);
 const SAMPLE_INTERVAL_MS = Number(process.env.WB3_BENCH_INTERVAL_MS ?? 250);
 const MIN_FPS_FLOOR = Number(process.env.WB3_BENCH_MIN_FPS ?? 20);
+const RESET_TIMEOUT_MS = Number(process.env.WB3_BENCH_RESET_TIMEOUT_MS ?? 180000);
+const LEVEL_TIMEOUT_MS = Number(process.env.WB3_BENCH_LEVEL_TIMEOUT_MS ?? Math.max(RESET_TIMEOUT_MS + WARMUP_MS + SAMPLE_MS + 30000, 240000));
+const STOP_ON_FLOOR = process.env.WB3_BENCH_STOP_ON_FLOOR === '1';
+const SNAPSHOT_INTERVAL_MS = Number(process.env.WB3_BENCH_SNAPSHOT_MS ?? 250);
 const HEADLESS = process.env.WB3_BENCH_HEADLESS === '1';
 const THREADS = process.env.WB3_BENCH_THREADS ?? 'auto';
 
@@ -31,6 +35,10 @@ function average(values) {
   return clean.length > 0 ? clean.reduce((sum, value) => sum + value, 0) / clean.length : 0;
 }
 
+function positive(values) {
+  return values.filter((value) => Number.isFinite(value) && value > 0);
+}
+
 function median(values) {
   return percentile(values, 50);
 }
@@ -39,10 +47,23 @@ function makeUrl(engine) {
   const url = new URL(SERVER_URL);
   url.searchParams.set('engine', engine);
   url.searchParams.set('benchmark', '1');
+  url.searchParams.set('snapshotMs', String(SNAPSHOT_INTERVAL_MS));
   if (engine === 'box3d' && THREADS !== 'auto') {
     url.searchParams.set('threads', THREADS);
   }
   return url.toString();
+}
+
+function estimateSnapshotBytes(bodyCount) {
+  return bodyCount * 14 * Float32Array.BYTES_PER_ELEMENT;
+}
+
+function withTimeout(promise, timeoutMs, label) {
+  let timeoutId;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs}ms`)), timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timeoutId));
 }
 
 async function waitForReady(page) {
@@ -57,12 +78,14 @@ async function waitForReady(page) {
 }
 
 async function runLevel(page, engine, level) {
+  const resetStartedAt = Date.now();
   await page.evaluate((count) => window.__wasmBox3DTest.resetStress(count), level);
   await page.waitForFunction(
     (count) => Number(document.querySelector('#body-count')?.textContent?.replace(/\D+/g, '') ?? 0) >= count,
     level,
-    { timeout: 60000 }
+    { timeout: RESET_TIMEOUT_MS }
   );
+  const resetWallMs = Date.now() - resetStartedAt;
   await page.waitForTimeout(WARMUP_MS);
 
   const startedAt = Date.now();
@@ -86,34 +109,78 @@ async function runLevel(page, engine, level) {
       renderMs: sample.renderMs,
       snapshotCopyMs: sample.snapshotCopyMs,
       snapshotBytes: sample.snapshotBytes,
+      snapshotMB: sample.snapshotBytes / (1024 * 1024),
       threadsEnabled: sample.threadsEnabled,
       stressStatus: sample.stressStatus,
       stepCount: sample.stepCount,
+      resetWallMs,
     });
   }
 
+  const renderFpsValues = positive(samples.map((sample) => sample.renderFps));
+  const simFpsValues = positive(samples.map((sample) => sample.simFps));
+  const simCapacityValues = positive(samples.map((sample) => sample.simCapacityFps));
+  const floorHit =
+    Math.min(...renderFpsValues) < MIN_FPS_FLOOR || simCapacityValues.length === 0 || Math.min(...simCapacityValues) < MIN_FPS_FLOOR;
   const summary = {
+    ok: true,
+    error: '',
     engine,
     requestedBodies: level,
     bodies: samples.at(-1)?.bodies ?? 0,
     threadsEnabled: samples.some((sample) => sample.threadsEnabled),
-    avgRenderFps: average(samples.map((sample) => sample.renderFps)),
-    p50RenderFps: median(samples.map((sample) => sample.renderFps)),
+    estimatedSnapshotMB: estimateSnapshotBytes(level + 5) / (1024 * 1024),
+    observedSnapshotMB: (samples.at(-1)?.snapshotBytes ?? 0) / (1024 * 1024),
+    resetWallMs,
+    sampleCount: samples.length,
+    floorHit,
+    avgRenderFps: average(renderFpsValues),
+    p50RenderFps: median(renderFpsValues),
     p95RenderMs: percentile(samples.map((sample) => sample.renderMs), 95),
-    avgSimFps: average(samples.map((sample) => sample.simFps)),
-    p50SimFps: median(samples.map((sample) => sample.simFps)),
-    avgSimCapacityFps: average(samples.map((sample) => sample.simCapacityFps)),
-    p50SimCapacityFps: median(samples.map((sample) => sample.simCapacityFps)),
+    avgSimFps: average(simFpsValues),
+    p50SimFps: median(simFpsValues),
+    avgSimCapacityFps: average(simCapacityValues),
+    p50SimCapacityFps: median(simCapacityValues),
     p95PhysicsStepMs: percentile(samples.map((sample) => sample.physicsStepMs), 95),
     avgSyncMs: average(samples.map((sample) => sample.syncMs)),
     avgRenderSyncMs: average(samples.map((sample) => sample.renderSyncMs)),
     avgSnapshotCopyMs: average(samples.map((sample) => sample.snapshotCopyMs)),
-    minRenderFps: Math.min(...samples.map((sample) => sample.renderFps)),
-    minSimFps: Math.min(...samples.map((sample) => sample.simFps)),
-    minSimCapacityFps: Math.min(...samples.map((sample) => sample.simCapacityFps)),
+    minRenderFps: renderFpsValues.length > 0 ? Math.min(...renderFpsValues) : 0,
+    minSimFps: simFpsValues.length > 0 ? Math.min(...simFpsValues) : 0,
+    minSimCapacityFps: simCapacityValues.length > 0 ? Math.min(...simCapacityValues) : 0,
   };
 
   return { summary, samples };
+}
+
+function makeFailureSummary(engine, level, error) {
+  return {
+    ok: false,
+    error: error?.message ?? String(error),
+    engine,
+    requestedBodies: level,
+    bodies: 0,
+    threadsEnabled: false,
+    estimatedSnapshotMB: estimateSnapshotBytes(level + 5) / (1024 * 1024),
+    observedSnapshotMB: 0,
+    resetWallMs: 0,
+    sampleCount: 0,
+    floorHit: false,
+    avgRenderFps: 0,
+    p50RenderFps: 0,
+    p95RenderMs: 0,
+    avgSimFps: 0,
+    p50SimFps: 0,
+    avgSimCapacityFps: 0,
+    p50SimCapacityFps: 0,
+    p95PhysicsStepMs: 0,
+    avgSyncMs: 0,
+    avgRenderSyncMs: 0,
+    avgSnapshotCopyMs: 0,
+    minRenderFps: 0,
+    minSimFps: 0,
+    minSimCapacityFps: 0,
+  };
 }
 
 function writeCsv(samples, filePath) {
@@ -133,7 +200,9 @@ function writeCsv(samples, filePath) {
     'renderMs',
     'snapshotCopyMs',
     'snapshotBytes',
+    'snapshotMB',
     'threadsEnabled',
+    'resetWallMs',
     'stepCount',
   ];
   const rows = [columns.join(',')];
@@ -209,8 +278,13 @@ function makeChartHtml(result) {
       (row) => `
         <tr>
           <td>${row.engine}${row.threadsEnabled ? ' pthreads' : ''}</td>
+          <td>${row.ok ? (row.floorHit ? 'floor' : 'ok') : 'failed'}</td>
+          <td>${row.error ? row.error.replace(/[<>&]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[char]) : ''}</td>
           <td>${row.requestedBodies.toLocaleString()}</td>
           <td>${Math.round(row.bodies).toLocaleString()}</td>
+          <td>${row.estimatedSnapshotMB.toFixed(1)}</td>
+          <td>${row.observedSnapshotMB.toFixed(1)}</td>
+          <td>${Math.round(row.resetWallMs).toLocaleString()}</td>
           <td>${row.avgRenderFps.toFixed(1)}</td>
           <td>${row.p50RenderFps.toFixed(1)}</td>
           <td>${row.avgSimCapacityFps.toFixed(1)}</td>
@@ -254,7 +328,7 @@ function makeChartHtml(result) {
   <body>
     <main>
       <h1>WasmBox3D Engine Benchmark</h1>
-      <p>Generated ${new Date(result.generatedAt).toLocaleString()} from headed Playwright against ${SERVER_URL}. Benchmark mode uses a dense stacked stress layout and disables the Box3D worker's forced-sleep shortcut.</p>
+      <p>Generated ${new Date(result.generatedAt).toLocaleString()} from headed Playwright against ${SERVER_URL}. Benchmark mode uses a dense stacked stress layout, disables the Box3D worker's forced-sleep shortcut, and throttles large body snapshots to ${SNAPSHOT_INTERVAL_MS}ms.</p>
       <div class="legend">
         <span class="key"><span class="swatch" style="--color:#58a6ff"></span>Box3D render</span>
         <span class="key"><span class="swatch" style="--color:#f59e0b"></span>Rapier render</span>
@@ -262,7 +336,7 @@ function makeChartHtml(result) {
       <table>
         <thead>
           <tr>
-            <th>Engine</th><th>Requested</th><th>Bodies</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th>
+            <th>Engine</th><th>Status</th><th>Issue</th><th>Requested</th><th>Bodies</th><th>Est Snapshot MB</th><th>Seen Snapshot MB</th><th>Reset ms</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -276,15 +350,18 @@ function makeChartHtml(result) {
 async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   const browser = await chromium.launch({ headless: HEADLESS });
-  const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
   const consoleErrors = [];
-  page.on('console', (message) => {
-    const text = message.text();
-    if (message.type() === 'error' && !/Failed to load resource: the server responded with a status of 404/.test(text)) {
-      consoleErrors.push(text);
-    }
-  });
-  page.on('pageerror', (error) => consoleErrors.push(error.message));
+  const attachPageChecks = (checkedPage) => {
+    checkedPage.on('console', (message) => {
+      const text = message.text();
+      if (message.type() === 'error' && !/Failed to load resource: the server responded with a status of 404/.test(text)) {
+        consoleErrors.push(text);
+      }
+    });
+    checkedPage.on('pageerror', (error) => consoleErrors.push(error.message));
+  };
+  let page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+  attachPageChecks(page);
 
   const samples = [];
   const summary = [];
@@ -293,24 +370,44 @@ async function main() {
     await page.goto(makeUrl(engine), { waitUntil: 'networkidle' });
     await waitForReady(page);
     for (const level of LEVELS) {
-      const result = await runLevel(page, engine, level);
-      samples.push(...result.samples);
-      summary.push(result.summary);
-      console.log(
-        `${engine} ${level} bodies: render ${result.summary.avgRenderFps.toFixed(1)} fps, sim ${result.summary.avgSimFps.toFixed(1)} fps`
-      );
-      if (result.summary.minRenderFps < MIN_FPS_FLOOR || result.summary.minSimCapacityFps < MIN_FPS_FLOOR) {
-        console.log(`${engine} stopped after ${level}; minimum FPS floor ${MIN_FPS_FLOOR} reached`);
+      try {
+        const consoleErrorStart = consoleErrors.length;
+        const result = await withTimeout(runLevel(page, engine, level), LEVEL_TIMEOUT_MS, `${engine} ${level}`);
+        const levelConsoleErrors = consoleErrors.slice(consoleErrorStart);
+        if (levelConsoleErrors.length > 0) {
+          result.summary.ok = false;
+          result.summary.error = levelConsoleErrors.slice(0, 4).join(' | ');
+        }
+        samples.push(...result.samples);
+        summary.push(result.summary);
+        console.log(
+          `${engine} ${level} bodies: render ${result.summary.avgRenderFps.toFixed(1)} fps, sim capacity ${result.summary.avgSimCapacityFps.toFixed(1)} fps, reset ${Math.round(result.summary.resetWallMs)}ms`
+        );
+        if (result.summary.floorHit) {
+          console.log(`${engine} ${level} hit minimum FPS floor ${MIN_FPS_FLOOR}`);
+          if (STOP_ON_FLOOR) {
+            break;
+          }
+        }
+      } catch (error) {
+        console.error(`${engine} ${level} failed: ${error.message}`);
+        summary.push(makeFailureSummary(engine, level, error));
+        await page.close({ runBeforeUnload: false }).catch(() => {});
+        page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+        attachPageChecks(page);
+        await page.goto(makeUrl(engine), { waitUntil: 'networkidle' });
+        await waitForReady(page);
+        if (STOP_ON_FLOOR) {
+          break;
+        }
+      }
+      if (level >= 1000000) {
         break;
       }
     }
   }
 
   await browser.close();
-
-  if (consoleErrors.length > 0) {
-    throw new Error(`console errors:\n${consoleErrors.join('\n')}`);
-  }
 
   const result = {
     generatedAt: new Date().toISOString(),
@@ -321,7 +418,12 @@ async function main() {
     warmupMs: WARMUP_MS,
     sampleMs: SAMPLE_MS,
     sampleIntervalMs: SAMPLE_INTERVAL_MS,
+    snapshotIntervalMs: SNAPSHOT_INTERVAL_MS,
+    resetTimeoutMs: RESET_TIMEOUT_MS,
+    levelTimeoutMs: LEVEL_TIMEOUT_MS,
     minFpsFloor: MIN_FPS_FLOOR,
+    stopOnFloor: STOP_ON_FLOOR,
+    consoleErrors,
     summary,
     samples,
   };
