@@ -402,6 +402,7 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
     rapier: '#f59e0b',
   };
   const chartWidth = 760;
+  const chartId = `metric-${level}-${metricKey}`.replace(/[^a-z0-9_-]/gi, '-');
   const xMax = Math.max(1, ...levelSamples.map((sample) => sample.tMs));
   const yMax = niceCeil(Math.max(1, ...levelSamples.map((sample) => sample[metricKey] ?? 0)) * 1.12);
   const yTicks = makeTicks(yMax, 5);
@@ -442,8 +443,13 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 ${chartWidth + 72} ${chartHeight + 54}" data-default-viewbox="0 0 ${chartWidth + 72} ${chartHeight + 54}" role="img" aria-label="${label} over time for ${level} bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 ${chartWidth + 72} ${chartHeight + 54}" role="img" aria-label="${label} over time for ${level} bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="${chartId}-clip">
+              <rect x="0" y="0" width="${chartWidth}" height="${chartHeight}" />
+            </clipPath>
+          </defs>
           <rect width="${chartWidth}" height="${chartHeight}" rx="6" fill="#111827" />
           ${makeGridLines({
             width: chartWidth,
@@ -465,7 +471,11 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
           <line x1="0" y1="0" x2="0" y2="${chartHeight}" stroke="#334155" />
           <text class="axis-label" x="${chartWidth / 2}" y="${chartHeight + 34}" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-${chartHeight / 2}" y="-38" transform="rotate(-90)" text-anchor="middle">${label}</text>
-          ${paths}
+          <g class="plot-window" clip-path="url(#${chartId}-clip)">
+            <g class="plot-zoom-layer" data-plot-width="${chartWidth}" data-plot-height="${chartHeight}">
+              ${paths}
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -478,6 +488,7 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
     rapier: '#f59e0b',
   };
   const chartWidth = 860;
+  const chartId = `overview-${metricKey}`.replace(/[^a-z0-9_-]/gi, '-');
   const points = sortSummaryRows(summary).filter((row) => Number.isFinite(row[metricKey]));
   const xMax = Math.max(1, ...points.map((point) => point.requestedBodies));
   const rawYMax = Math.max(1, ...points.map((point) => point[metricKey] ?? 0));
@@ -563,8 +574,13 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 ${chartWidth + 82} ${chartHeight + 56}" data-default-viewbox="0 0 ${chartWidth + 82} ${chartHeight + 56}" role="img" aria-label="${label} by body count">
+	      <svg class="zoomable-chart" viewBox="0 0 ${chartWidth + 82} ${chartHeight + 56}" role="img" aria-label="${label} by body count">
         <g transform="translate(62 18)">
+          <defs>
+            <clipPath id="${chartId}-clip">
+              <rect x="0" y="0" width="${chartWidth}" height="${chartHeight}" />
+            </clipPath>
+          </defs>
           <rect width="${chartWidth}" height="${chartHeight}" rx="6" fill="#111827" />
           ${grid}
           ${xGrid}
@@ -578,7 +594,11 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
           <line x1="0" y1="0" x2="0" y2="${chartHeight}" stroke="#334155" />
           <text class="axis-label" x="${chartWidth / 2}" y="${chartHeight + 38}" text-anchor="middle">requested bodies</text>
           <text class="axis-label" x="-${chartHeight / 2}" y="-48" transform="rotate(-90)" text-anchor="middle">${yLabel}</text>
-          ${paths}
+          <g class="plot-window" clip-path="url(#${chartId}-clip)">
+            <g class="plot-zoom-layer" data-plot-width="${chartWidth}" data-plot-height="${chartHeight}">
+              ${paths}
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -723,9 +743,10 @@ function makeChartHtml(result) {
 	      .floor-swatch { width: 22px; height: 0; border-top: 2px dashed #e2e8f0; }
 	      .scale-note { color: #8ea0b8; }
 	      svg { width: 100%; height: auto; display: block; }
-	      .zoomable-chart { cursor: grab; touch-action: none; user-select: none; border-radius: 8px; }
-	      .zoomable-chart.is-dragging { cursor: grabbing; }
-	      text { fill: #8ea0b8; font-size: 12px; }
+		      .zoomable-chart { cursor: grab; touch-action: none; user-select: none; border-radius: 8px; }
+		      .zoomable-chart.is-dragging { cursor: grabbing; }
+		      .plot-window { pointer-events: all; }
+		      text { fill: #8ea0b8; font-size: 12px; }
 	      .axis-label { fill: #728199; font-size: 11px; }
 	      .tick-label { fill: #98a7bb; font-size: 11px; }
 	      .grid-line { stroke: rgba(148, 163, 184, 0.22); stroke-width: 1; }
@@ -756,7 +777,7 @@ function makeChartHtml(result) {
         <span class="key"><span class="swatch" style="--color:#58a6ff"></span>Box3D render</span>
         <span class="key"><span class="swatch" style="--color:#f59e0b"></span>Rapier render</span>
       </div>
-      <p class="zoom-help">Use chart buttons or mouse wheel to zoom, drag charts to pan, and double-click or Reset to restore.</p>
+      <p class="zoom-help">Use chart buttons or mouse wheel over the plot to zoom the data. Drag to pan inside the plot bounds; axes and labels stay fixed. Double-click or Reset to restore.</p>
       ${overview}
       <div class="table-tools" aria-label="Benchmark table filters">
         <label>
@@ -894,81 +915,82 @@ function makeChartHtml(result) {
 	        });
 	        applyFilters();
 
-	        function parseViewBox(value) {
-	          const parts = String(value ?? '').split(/\\s+/).map(Number);
-	          return { x: parts[0] || 0, y: parts[1] || 0, width: parts[2] || 1, height: parts[3] || 1 };
-	        }
-
-	        function serializeViewBox(box) {
-	          return [box.x, box.y, box.width, box.height].map((value) => Number(value).toFixed(3)).join(' ');
-	        }
-
 	        function initZoomableChart(svg) {
-	          const defaultBox = parseViewBox(svg.dataset.defaultViewbox || svg.getAttribute('viewBox'));
-	          let viewBox = { ...defaultBox };
+	          const layer = svg.querySelector('.plot-zoom-layer');
+	          if (!layer) {
+	            return;
+	          }
+	          const plotFrame = layer.closest('.plot-window') || layer.parentNode;
+	          const plotWidth = Math.max(1, Number(layer.dataset.plotWidth || 1));
+	          const plotHeight = Math.max(1, Number(layer.dataset.plotHeight || 1));
+	          const minScale = 1;
+	          const maxScale = 16;
+	          let transform = { k: 1, x: 0, y: 0 };
 	          let drag = null;
-	          const textItems = [...svg.querySelectorAll('text')].map((element) => ({
+	          const textItems = [...layer.querySelectorAll('text')].map((element) => ({
 	            element,
 	            fontSize: parseFloat(getComputedStyle(element).fontSize) || 12,
+	            strokeWidth: parseFloat(getComputedStyle(element).strokeWidth) || 0,
 	          }));
-	          const pointItems = [...svg.querySelectorAll('.sample-point')].map((element) => ({
+	          const pointItems = [...layer.querySelectorAll('.sample-point')].map((element) => ({
 	            element,
 	            radius: Number(element.getAttribute('r') || 4),
 	          }));
 
-	          function adjustAnnotationScale() {
-	            const scale = Math.max(viewBox.width / defaultBox.width, viewBox.height / defaultBox.height);
-	            for (const item of textItems) {
-	              item.element.style.fontSize = Math.max(7, Math.min(18, item.fontSize * scale)) + 'px';
-	            }
-	            for (const item of pointItems) {
-	              item.element.setAttribute('r', Math.max(1.8, Math.min(6, item.radius * scale)).toFixed(2));
-	            }
+	          function clampTransform(next) {
+	            const k = Math.max(minScale, Math.min(maxScale, Number.isFinite(next.k) ? next.k : minScale));
+	            const minX = plotWidth - plotWidth * k;
+	            const minY = plotHeight - plotHeight * k;
+	            return {
+	              k,
+	              x: Math.min(0, Math.max(minX, Number.isFinite(next.x) ? next.x : 0)),
+	              y: Math.min(0, Math.max(minY, Number.isFinite(next.y) ? next.y : 0)),
+	            };
 	          }
 
-	          function setViewBox(nextBox) {
-	            const minWidth = defaultBox.width * 0.025;
-	            const minHeight = defaultBox.height * 0.025;
-	            viewBox = {
-	              x: nextBox.x,
-	              y: nextBox.y,
-	              width: Math.max(minWidth, Math.min(defaultBox.width * 4, nextBox.width)),
-	              height: Math.max(minHeight, Math.min(defaultBox.height * 4, nextBox.height)),
-	            };
-	            svg.setAttribute('viewBox', serializeViewBox(viewBox));
-	            adjustAnnotationScale();
+	          function applyTransform(next) {
+	            transform = clampTransform(next);
+	            layer.setAttribute('transform', 'translate(' + transform.x.toFixed(3) + ' ' + transform.y.toFixed(3) + ') scale(' + transform.k.toFixed(4) + ')');
+	            const inverse = 1 / transform.k;
+	            for (const item of textItems) {
+	              item.element.style.fontSize = Math.max(8, item.fontSize * inverse).toFixed(2) + 'px';
+	              if (item.strokeWidth > 0) {
+	                item.element.style.strokeWidth = Math.max(1, item.strokeWidth * inverse).toFixed(2) + 'px';
+	              }
+	            }
+	            for (const item of pointItems) {
+	              item.element.setAttribute('r', Math.max(1.8, item.radius * inverse).toFixed(2));
+	            }
 	          }
 
 	          function pointForEvent(event) {
-	            const rect = svg.getBoundingClientRect();
-	            const xRatio = rect.width > 0 ? (event.clientX - rect.left) / rect.width : 0.5;
-	            const yRatio = rect.height > 0 ? (event.clientY - rect.top) / rect.height : 0.5;
-	            return {
-	              x: viewBox.x + xRatio * viewBox.width,
-	              y: viewBox.y + yRatio * viewBox.height,
-	            };
+	            const matrix = plotFrame.getScreenCTM();
+	            if (!matrix) {
+	              return { x: plotWidth / 2, y: plotHeight / 2 };
+	            }
+	            const point = svg.createSVGPoint();
+	            point.x = event.clientX;
+	            point.y = event.clientY;
+	            return point.matrixTransform(matrix.inverse());
 	          }
 
 	          function zoomAt(factor, center) {
-	            const nextWidth = viewBox.width * factor;
-	            const nextHeight = viewBox.height * factor;
-	            const xRatio = viewBox.width > 0 ? (center.x - viewBox.x) / viewBox.width : 0.5;
-	            const yRatio = viewBox.height > 0 ? (center.y - viewBox.y) / viewBox.height : 0.5;
-	            setViewBox({
-	              x: center.x - nextWidth * xRatio,
-	              y: center.y - nextHeight * yRatio,
-	              width: nextWidth,
-	              height: nextHeight,
+	            const nextScale = Math.max(minScale, Math.min(maxScale, transform.k * factor));
+	            const ratio = nextScale / transform.k;
+	            applyTransform({
+	              k: nextScale,
+	              x: center.x - (center.x - transform.x) * ratio,
+	              y: center.y - (center.y - transform.y) * ratio,
 	            });
 	          }
 
 	          function reset() {
-	            setViewBox(defaultBox);
+	            applyTransform({ k: 1, x: 0, y: 0 });
 	          }
 
 	          svg.addEventListener('wheel', (event) => {
 	            event.preventDefault();
-	            zoomAt(event.deltaY > 0 ? 1.18 : 0.82, pointForEvent(event));
+	            zoomAt(event.deltaY > 0 ? 1 / 1.18 : 1.18, pointForEvent(event));
 	          }, { passive: false });
 
 	          svg.addEventListener('pointerdown', (event) => {
@@ -977,9 +999,8 @@ function makeChartHtml(result) {
 	            }
 	            drag = {
 	              pointerId: event.pointerId,
-	              startX: event.clientX,
-	              startY: event.clientY,
-	              viewBox: { ...viewBox },
+	              startPoint: pointForEvent(event),
+	              transform: { ...transform },
 	            };
 	            svg.classList.add('is-dragging');
 	            svg.setPointerCapture(event.pointerId);
@@ -989,13 +1010,11 @@ function makeChartHtml(result) {
 	            if (!drag || drag.pointerId !== event.pointerId) {
 	              return;
 	            }
-	            const rect = svg.getBoundingClientRect();
-	            const dx = rect.width > 0 ? ((event.clientX - drag.startX) / rect.width) * drag.viewBox.width : 0;
-	            const dy = rect.height > 0 ? ((event.clientY - drag.startY) / rect.height) * drag.viewBox.height : 0;
-	            setViewBox({
-	              ...drag.viewBox,
-	              x: drag.viewBox.x - dx,
-	              y: drag.viewBox.y - dy,
+	            const point = pointForEvent(event);
+	            applyTransform({
+	              ...drag.transform,
+	              x: drag.transform.x + point.x - drag.startPoint.x,
+	              y: drag.transform.y + point.y - drag.startPoint.y,
 	            });
 	          });
 
@@ -1011,15 +1030,14 @@ function makeChartHtml(result) {
 	          svg.addEventListener('dblclick', reset);
 
 	          const chart = svg.closest('.chart');
-	          chart?.querySelector('[data-zoom="in"]')?.addEventListener('click', () => zoomAt(0.72, {
-	            x: viewBox.x + viewBox.width * 0.5,
-	            y: viewBox.y + viewBox.height * 0.5,
-	          }));
-	          chart?.querySelector('[data-zoom="out"]')?.addEventListener('click', () => zoomAt(1.28, {
-	            x: viewBox.x + viewBox.width * 0.5,
-	            y: viewBox.y + viewBox.height * 0.5,
-	          }));
+	          const center = () => ({
+	            x: (plotWidth / 2 - transform.x) / transform.k,
+	            y: (plotHeight / 2 - transform.y) / transform.k,
+	          });
+	          chart?.querySelector('[data-zoom="in"]')?.addEventListener('click', () => zoomAt(1.35, center()));
+	          chart?.querySelector('[data-zoom="out"]')?.addEventListener('click', () => zoomAt(1 / 1.35, center()));
 	          chart?.querySelector('[data-zoom="reset"]')?.addEventListener('click', reset);
+	          reset();
 	        }
 
 	        for (const svg of document.querySelectorAll('.zoomable-chart')) {

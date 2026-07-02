@@ -64,9 +64,10 @@
 	      .floor-swatch { width: 22px; height: 0; border-top: 2px dashed #e2e8f0; }
 	      .scale-note { color: #8ea0b8; }
 	      svg { width: 100%; height: auto; display: block; }
-	      .zoomable-chart { cursor: grab; touch-action: none; user-select: none; border-radius: 8px; }
-	      .zoomable-chart.is-dragging { cursor: grabbing; }
-	      text { fill: #8ea0b8; font-size: 12px; }
+		      .zoomable-chart { cursor: grab; touch-action: none; user-select: none; border-radius: 8px; }
+		      .zoomable-chart.is-dragging { cursor: grabbing; }
+		      .plot-window { pointer-events: all; }
+		      text { fill: #8ea0b8; font-size: 12px; }
 	      .axis-label { fill: #728199; font-size: 11px; }
 	      .tick-label { fill: #98a7bb; font-size: 11px; }
 	      .grid-line { stroke: rgba(148, 163, 184, 0.22); stroke-width: 1; }
@@ -97,7 +98,7 @@
         <span class="key"><span class="swatch" style="--color:#58a6ff"></span>Box3D render</span>
         <span class="key"><span class="swatch" style="--color:#f59e0b"></span>Rapier render</span>
       </div>
-      <p class="zoom-help">Use chart buttons or mouse wheel to zoom, drag charts to pan, and double-click or Reset to restore.</p>
+      <p class="zoom-help">Use chart buttons or mouse wheel over the plot to zoom the data. Drag to pan inside the plot bounds; axes and labels stay fixed. Double-click or Reset to restore.</p>
 
     <section class="panel overview-panel">
       <h2>Overview</h2>
@@ -117,8 +118,13 @@
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 942 316" data-default-viewbox="0 0 942 316" role="img" aria-label="Average Sim Capacity FPS by body count">
+	      <svg class="zoomable-chart" viewBox="0 0 942 316" role="img" aria-label="Average Sim Capacity FPS by body count">
         <g transform="translate(62 18)">
+          <defs>
+            <clipPath id="overview-avgSimCapacityFps-clip">
+              <rect x="0" y="0" width="860" height="260" />
+            </clipPath>
+          </defs>
           <rect width="860" height="260" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="260.0" x2="860" y2="260.0" />
@@ -174,6 +180,8 @@
           <line x1="0" y1="0" x2="0" y2="260" stroke="#334155" />
           <text class="axis-label" x="430" y="298" text-anchor="middle">requested bodies</text>
           <text class="axis-label" x="-130" y="-48" transform="rotate(-90)" text-anchor="middle">sim capacity FPS</text>
+          <g class="plot-window" clip-path="url(#overview-avgSimCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="860" data-plot-height="260">
 
       <path d="M0.7 21.0 L3.6 16.4 L7.2 21.9 L35.8 17.5 L71.7 17.3 L107.5 17.0 L143.3 20.6 L179.2 59.6 L215.0 156.6 L250.8 174.8 L286.7 181.9 L322.5 188.4 L358.3 193.3 L394.2 194.2 L430.0 196.3 L465.8 198.0 L501.7 198.5 L537.5 199.3 L573.3 199.6 L609.2 201.2 L645.0 201.4 L680.8 202.7 L716.7 204.6 L752.5 205.0 L788.3 204.8 L824.2 207.0 L860.0 206.4" fill="none" stroke="#58a6ff" stroke-width="2.8">
         <title>Box3D Average Sim Capacity FPS</title>
@@ -510,6 +518,8 @@ P95 step: 239.1 ms
 Avg sync: 3.2 ms</title></circle>
       <text class="line-label" x="782.0" y="199.1" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -530,8 +540,13 @@ Avg sync: 3.2 ms</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 942 316" data-default-viewbox="0 0 942 316" role="img" aria-label="P95 Physics Step by body count">
+	      <svg class="zoomable-chart" viewBox="0 0 942 316" role="img" aria-label="P95 Physics Step by body count">
         <g transform="translate(62 18)">
+          <defs>
+            <clipPath id="overview-p95PhysicsStepMs-clip">
+              <rect x="0" y="0" width="860" height="260" />
+            </clipPath>
+          </defs>
           <rect width="860" height="260" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="260.0" x2="860" y2="260.0" />
@@ -578,6 +593,8 @@ Avg sync: 3.2 ms</title></circle>
           <line x1="0" y1="0" x2="0" y2="260" stroke="#334155" />
           <text class="axis-label" x="430" y="298" text-anchor="middle">requested bodies</text>
           <text class="axis-label" x="-130" y="-48" transform="rotate(-90)" text-anchor="middle">milliseconds</text>
+          <g class="plot-window" clip-path="url(#overview-p95PhysicsStepMs-clip)">
+            <g class="plot-zoom-layer" data-plot-width="860" data-plot-height="260">
 
       <path d="M0.7 259.9 L3.6 259.9 L7.2 259.8 L35.8 258.9 L71.7 257.4 L107.5 256.4 L143.3 254.4 L179.2 252.0 L215.0 248.7 L250.8 242.4 L286.7 229.7 L322.5 226.2 L358.3 208.5 L394.2 197.2 L430.0 186.4 L465.8 200.1 L501.7 202.3 L537.5 198.5 L573.3 208.3 L609.2 207.6 L645.0 204.3 L680.8 200.8 L716.7 203.9 L752.5 201.7 L788.3 199.7 L824.2 199.8 L860.0 196.0" fill="none" stroke="#58a6ff" stroke-width="2.8">
         <title>Box3D P95 Physics Step</title>
@@ -914,6 +931,8 @@ P95 step: 239.1 ms
 Avg sync: 3.2 ms</title></circle>
       <text class="line-label" x="782.0" y="129.7" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -2513,8 +2532,13 @@ Avg sync: 3.2 ms</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 100 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 100 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-100-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -2561,6 +2585,8 @@ Avg sync: 3.2 ms</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-100-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M64.8 84.0 L127.9 84.0 L191.2 84.1 L254.5 84.0 L317.6 84.1 L380.9 84.1 L443.9 83.4 L507.3 84.0 L570.6 84.1 L633.9 84.1 L696.9 84.0 L760.0 84.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -2741,6 +2767,8 @@ sync: 0.0 ms
 snapshot: 0.0 MB</title></circle>
       <text class="line-label" x="682.0" y="78.1" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -2760,8 +2788,13 @@ snapshot: 0.0 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 100 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 100 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-100-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -2809,6 +2842,8 @@ snapshot: 0.0 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-100-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M64.8 193.1 L127.9 169.9 L191.2 169.9 L254.5 173.4 L317.6 173.4 L380.9 83.2 L443.9 83.2 L507.3 85.6 L570.6 85.6 L633.9 78.2 L696.9 78.2 L760.0 95.6" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -2989,6 +3024,8 @@ sync: 0.0 ms
 snapshot: 0.0 MB</title></circle>
       <text class="line-label" x="682.0" y="125.9" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -3013,8 +3050,13 @@ snapshot: 0.0 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 500 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 500 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-500-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -3061,6 +3103,8 @@ snapshot: 0.0 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-500-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.1 88.0 L126.3 88.2 L189.7 87.9 L253.1 84.0 L316.0 84.2 L379.1 84.0 L442.5 84.0 L505.7 84.2 L569.8 83.9 L633.2 84.0 L696.6 84.0 L760.0 83.7" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -3241,6 +3285,8 @@ sync: 0.0 ms
 snapshot: 0.0 MB</title></circle>
       <text class="line-label" x="682.0" y="78.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -3260,8 +3306,13 @@ snapshot: 0.0 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 500 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 500 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-500-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -3309,6 +3360,8 @@ snapshot: 0.0 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-500-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.1 188.4 L126.3 78.2 L189.7 78.2 L253.1 156.3 L316.0 156.3 L379.1 93.6 L442.5 93.6 L505.7 70.7 L569.8 70.7 L633.2 70.7 L696.6 102.5 L760.0 87.2" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -3489,6 +3542,8 @@ sync: 0.0 ms
 snapshot: 0.0 MB</title></circle>
       <text class="line-label" x="682.0" y="168.3" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -3513,8 +3568,13 @@ snapshot: 0.0 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 1000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 1000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-1000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -3561,6 +3621,8 @@ snapshot: 0.0 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-1000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.4 84.0 L127.0 84.1 L190.4 84.1 L254.0 84.0 L317.4 84.0 L380.5 84.0 L444.1 84.0 L507.3 84.1 L570.1 83.8 L633.5 83.9 L696.6 84.0 L760.0 84.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -3741,6 +3803,8 @@ sync: 0.0 ms
 snapshot: 0.1 MB</title></circle>
       <text class="line-label" x="682.0" y="78.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -3760,8 +3824,13 @@ snapshot: 0.1 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 1000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 1000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-1000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -3809,6 +3878,8 @@ snapshot: 0.1 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-1000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.4 195.9 L127.0 195.9 L190.4 122.2 L254.0 122.2 L317.4 122.2 L380.5 148.8 L444.1 148.8 L507.3 110.2 L570.1 86.1 L633.5 86.1 L696.6 85.0 L760.0 85.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -3989,6 +4060,8 @@ sync: 0.0 ms
 snapshot: 0.1 MB</title></circle>
       <text class="line-label" x="682.0" y="178.3" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -4013,8 +4086,13 @@ snapshot: 0.1 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 5000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 5000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-5000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -4061,6 +4139,8 @@ snapshot: 0.1 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-5000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.7 84.0 L126.8 84.0 L190.0 83.9 L253.4 84.0 L316.6 84.1 L380.0 84.0 L442.9 84.0 L506.3 84.2 L569.5 84.0 L632.9 84.0 L696.6 84.0 L760.0 84.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -4241,6 +4321,8 @@ sync: 0.1 ms
 snapshot: 0.3 MB</title></circle>
       <text class="line-label" x="682.0" y="78.1" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -4260,8 +4342,13 @@ snapshot: 0.3 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 5000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 5000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-5000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -4309,6 +4396,8 @@ snapshot: 0.3 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-5000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.7 208.0 L126.8 208.0 L190.0 67.8 L253.4 34.3 L316.6 34.3 L380.0 34.3 L442.9 88.9 L506.3 88.9 L569.5 92.1 L632.9 92.1 L696.6 176.9 L760.0 176.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -4489,6 +4578,8 @@ sync: 0.1 ms
 snapshot: 0.3 MB</title></circle>
       <text class="line-label" x="682.0" y="199.1" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -4513,8 +4604,13 @@ snapshot: 0.3 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 10000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 10000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-10000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -4561,6 +4657,8 @@ snapshot: 0.3 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-10000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.5 84.1 L126.7 84.0 L189.9 84.0 L253.6 84.1 L317.0 84.0 L380.5 84.1 L443.5 84.0 L506.7 83.9 L570.1 84.0 L633.3 84.0 L696.5 84.0 L760.0 84.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -4741,6 +4839,8 @@ sync: 0.3 ms
 snapshot: 0.5 MB</title></circle>
       <text class="line-label" x="682.0" y="77.9" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -4760,8 +4860,13 @@ snapshot: 0.5 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 10000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 10000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-10000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -4809,6 +4914,8 @@ snapshot: 0.5 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-10000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.5 209.2 L126.7 209.2 L189.9 194.0 L253.6 194.0 L317.0 95.6 L380.5 95.6 L443.5 44.1 L506.7 44.1 L570.1 43.0 L633.3 43.0 L696.5 60.7 L760.0 60.7" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -4989,6 +5096,8 @@ sync: 0.3 ms
 snapshot: 0.5 MB</title></circle>
       <text class="line-label" x="682.0" y="201.3" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -5013,8 +5122,13 @@ snapshot: 0.5 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 15000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 15000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-15000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -5061,6 +5175,8 @@ snapshot: 0.5 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-15000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.4 84.0 L127.6 84.0 L190.8 84.0 L253.9 83.9 L317.3 84.0 L380.5 84.0 L443.7 83.9 L506.6 84.2 L569.7 84.0 L633.2 83.9 L696.6 84.1 L760.0 83.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -5241,6 +5357,8 @@ sync: 0.4 ms
 snapshot: 0.8 MB</title></circle>
       <text class="line-label" x="682.0" y="78.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -5260,8 +5378,13 @@ snapshot: 0.8 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 15000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 15000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-15000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -5309,6 +5432,8 @@ snapshot: 0.8 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-15000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.4 209.4 L127.6 209.4 L190.8 209.0 L253.9 209.0 L317.3 68.5 L380.5 68.5 L443.7 27.1 L506.6 27.1 L569.7 67.8 L633.2 67.8 L696.6 58.1 L760.0 58.1" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -5489,6 +5614,8 @@ sync: 0.4 ms
 snapshot: 0.8 MB</title></circle>
       <text class="line-label" x="682.0" y="203.8" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -5513,8 +5640,13 @@ snapshot: 0.8 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 20000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 20000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-20000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -5561,6 +5693,8 @@ snapshot: 0.8 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-20000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.1 83.9 L126.5 84.0 L189.6 84.0 L252.9 84.1 L317.0 84.1 L379.9 83.9 L443.0 83.9 L505.8 84.0 L569.9 84.6 L633.3 84.0 L696.6 84.1 L760.0 84.2" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -5741,6 +5875,8 @@ sync: 0.6 ms
 snapshot: 1.1 MB</title></circle>
       <text class="line-label" x="682.0" y="78.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -5760,8 +5896,13 @@ snapshot: 1.1 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 20000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 20000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-20000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -5809,6 +5950,8 @@ snapshot: 1.1 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-20000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.1 209.6 L126.5 209.6 L189.6 209.6 L252.9 209.6 L317.0 205.9 L379.9 205.9 L443.0 29.6 L505.8 29.6 L569.9 39.9 L633.3 39.9 L696.6 30.8 L760.0 30.8" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -5989,6 +6132,8 @@ sync: 0.6 ms
 snapshot: 1.1 MB</title></circle>
       <text class="line-label" x="682.0" y="203.9" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -6013,8 +6158,13 @@ snapshot: 1.1 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 25000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 25000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-25000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -6061,6 +6211,8 @@ snapshot: 1.1 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-25000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.4 84.0 L126.8 84.0 L189.9 84.0 L253.0 84.0 L315.9 84.0 L379.0 84.0 L442.1 83.9 L505.5 84.0 L568.6 84.0 L631.5 84.1 L695.9 84.0 L760.0 84.3" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -6241,6 +6393,8 @@ sync: 0.8 ms
 snapshot: 1.3 MB</title></circle>
       <text class="line-label" x="682.0" y="78.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -6260,8 +6414,13 @@ snapshot: 1.3 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 25000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 25000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-25000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -6309,6 +6468,8 @@ snapshot: 1.3 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-25000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.4 209.7 L126.8 209.7 L189.9 209.7 L253.0 209.6 L315.9 209.6 L379.0 209.5 L442.1 209.5 L505.5 208.0 L568.6 208.0 L631.5 208.0 L695.9 177.1 L760.0 40.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -6489,6 +6650,8 @@ sync: 0.8 ms
 snapshot: 1.3 MB</title></circle>
       <text class="line-label" x="682.0" y="204.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -6513,8 +6676,13 @@ snapshot: 1.3 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 30000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 30000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-30000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -6561,6 +6729,8 @@ snapshot: 1.3 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-30000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 84.0 L126.4 84.0 L189.6 84.0 L252.5 83.9 L315.4 84.1 L378.6 83.9 L441.6 84.0 L504.5 84.0 L567.7 84.0 L630.9 83.9 L693.8 84.0 L760.0 84.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -6741,6 +6911,8 @@ sync: 0.8 ms
 snapshot: 1.6 MB</title></circle>
       <text class="line-label" x="682.0" y="77.9" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -6760,8 +6932,13 @@ snapshot: 1.6 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 30000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 30000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-30000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -6809,6 +6986,8 @@ snapshot: 1.6 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-30000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 161.5 L126.4 161.5 L189.6 158.4 L252.5 158.4 L315.4 145.6 L378.6 145.6 L441.6 140.5 L504.5 140.5 L567.7 98.9 L630.9 98.9 L693.8 88.8 L760.0 88.8" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -6989,6 +7168,8 @@ sync: 0.8 ms
 snapshot: 1.6 MB</title></circle>
       <text class="line-label" x="682.0" y="200.6" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -7013,8 +7194,13 @@ snapshot: 1.6 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 35000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 35000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-35000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -7061,6 +7247,8 @@ snapshot: 1.6 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-35000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.4 84.0 L126.9 84.0 L190.3 84.0 L253.2 84.0 L316.4 84.0 L379.9 84.0 L443.3 84.0 L506.5 84.0 L570.2 83.9 L633.4 83.9 L696.6 84.0 L760.0 83.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -7241,6 +7429,8 @@ sync: 0.9 ms
 snapshot: 1.9 MB</title></circle>
       <text class="line-label" x="682.0" y="77.9" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -7260,8 +7450,13 @@ snapshot: 1.9 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 35000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 35000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-35000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -7309,6 +7504,8 @@ snapshot: 1.9 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-35000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.4 51.4 L126.9 51.4 L190.3 77.1 L253.2 77.1 L316.4 81.2 L379.9 81.2 L443.3 49.6 L506.5 49.6 L570.2 41.3 L633.4 41.3 L696.6 86.0 L760.0 86.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -7489,6 +7686,8 @@ sync: 0.9 ms
 snapshot: 1.9 MB</title></circle>
       <text class="line-label" x="682.0" y="193.8" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -7513,8 +7712,13 @@ snapshot: 1.9 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 40000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 40000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-40000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -7561,6 +7765,8 @@ snapshot: 1.9 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-40000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 84.0 L126.5 84.0 L189.8 84.0 L253.0 84.0 L316.5 84.0 L379.5 84.0 L442.5 84.0 L506.0 84.0 L569.0 84.1 L632.3 84.0 L695.5 84.0 L758.5 83.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -7741,6 +7947,8 @@ sync: 1.0 ms
 snapshot: 2.1 MB</title></circle>
       <text class="line-label" x="682.0" y="78.1" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -7760,8 +7968,13 @@ snapshot: 2.1 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 40000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 40000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-40000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -7809,6 +8022,8 @@ snapshot: 2.1 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-40000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 85.9 L126.5 85.9 L189.8 111.3 L253.0 111.3 L316.5 138.0 L379.5 138.0 L442.5 110.2 L506.0 110.2 L569.0 103.6 L632.3 103.6 L695.5 60.5 L758.5 60.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -7989,6 +8204,8 @@ sync: 1.0 ms
 snapshot: 2.1 MB</title></circle>
       <text class="line-label" x="682.0" y="192.6" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -8013,8 +8230,13 @@ snapshot: 2.1 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 45000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 45000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-45000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -8061,6 +8283,8 @@ snapshot: 2.1 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-45000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 84.1 L127.0 84.0 L190.2 84.0 L253.4 83.9 L316.6 84.0 L380.1 84.0 L443.4 84.0 L506.8 84.0 L570.3 83.9 L633.8 84.0 L696.8 84.0 L760.0 84.2" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -8241,6 +8465,8 @@ sync: 1.2 ms
 snapshot: 2.4 MB</title></circle>
       <text class="line-label" x="682.0" y="78.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -8260,8 +8486,13 @@ snapshot: 2.4 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 45000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 45000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-45000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -8309,6 +8540,8 @@ snapshot: 2.4 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-45000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 100.6 L127.0 100.6 L190.2 114.8 L253.4 114.8 L316.6 135.0 L380.1 135.0 L443.4 145.4 L506.8 145.4 L570.3 131.8 L633.8 131.8 L696.8 135.9 L760.0 135.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -8489,6 +8722,8 @@ sync: 1.2 ms
 snapshot: 2.4 MB</title></circle>
       <text class="line-label" x="682.0" y="192.8" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -8513,8 +8748,13 @@ snapshot: 2.4 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 50000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 50000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-50000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -8561,6 +8801,8 @@ snapshot: 2.4 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-50000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 84.0 L128.4 84.0 L191.4 84.0 L254.6 83.9 L318.0 83.8 L381.0 84.0 L444.0 83.9 L507.2 84.2 L570.4 84.0 L633.6 84.1 L697.0 84.0 L760.0 84.1" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -8741,6 +8983,8 @@ sync: 1.3 ms
 snapshot: 2.7 MB</title></circle>
       <text class="line-label" x="682.0" y="78.1" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -8760,8 +9004,13 @@ snapshot: 2.7 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 50000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 50000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-50000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -8809,6 +9058,8 @@ snapshot: 2.7 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-50000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 108.2 L128.4 108.2 L191.4 125.2 L254.6 125.2 L318.0 144.7 L381.0 144.7 L444.0 154.0 L507.2 154.0 L570.4 167.6 L633.6 167.6 L697.0 156.2 L760.0 156.2" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -8989,6 +9240,8 @@ sync: 1.3 ms
 snapshot: 2.7 MB</title></circle>
       <text class="line-label" x="682.0" y="192.9" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -9013,8 +9266,13 @@ snapshot: 2.7 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 55000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 55000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-55000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -9061,6 +9319,8 @@ snapshot: 2.7 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-55000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M62.8 83.9 L125.8 83.9 L188.8 83.9 L251.8 84.0 L314.9 84.0 L377.6 84.0 L440.4 84.0 L503.2 84.0 L566.2 84.0 L634.2 84.0 L697.2 84.0 L760.0 84.1" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -9241,6 +9501,8 @@ sync: 1.5 ms
 snapshot: 2.9 MB</title></circle>
       <text class="line-label" x="682.0" y="77.9" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -9260,8 +9522,13 @@ snapshot: 2.9 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 55000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 55000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-55000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -9309,6 +9576,8 @@ snapshot: 2.9 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-55000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M62.8 114.6 L125.8 114.6 L188.8 128.5 L251.8 128.5 L314.9 135.8 L377.6 135.8 L440.4 150.1 L503.2 150.1 L566.2 166.9 L634.2 166.9 L697.2 175.2 L760.0 175.2" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -9489,6 +9758,8 @@ sync: 1.5 ms
 snapshot: 2.9 MB</title></circle>
       <text class="line-label" x="682.0" y="191.3" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -9513,8 +9784,13 @@ snapshot: 2.9 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 60000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 60000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-60000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -9561,6 +9837,8 @@ snapshot: 2.9 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-60000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M62.9 84.0 L126.2 83.9 L189.1 84.0 L252.2 84.0 L315.5 84.0 L378.6 84.0 L441.7 84.0 L504.6 84.0 L567.7 84.1 L633.5 84.0 L696.6 84.0 L760.0 83.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -9741,6 +10019,8 @@ sync: 1.6 ms
 snapshot: 3.2 MB</title></circle>
       <text class="line-label" x="682.0" y="73.6" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -9760,8 +10040,13 @@ snapshot: 3.2 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 60000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 60000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-60000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -9809,6 +10094,8 @@ snapshot: 3.2 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-60000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M62.9 112.4 L126.2 112.4 L189.1 135.1 L252.2 135.1 L315.5 142.2 L378.6 152.0 L441.7 152.0 L504.6 162.8 L567.7 162.8 L633.5 180.1 L696.6 180.1 L760.0 180.3" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -9989,6 +10276,8 @@ sync: 1.6 ms
 snapshot: 3.2 MB</title></circle>
       <text class="line-label" x="682.0" y="191.9" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -10013,8 +10302,13 @@ snapshot: 3.2 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 65000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 65000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-65000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -10061,6 +10355,8 @@ snapshot: 3.2 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-65000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.4 84.0 L126.8 84.0 L189.9 84.2 L253.0 84.1 L316.6 83.9 L380.0 83.9 L443.1 84.0 L507.0 84.0 L570.6 83.9 L633.8 84.0 L696.9 84.0 L760.0 84.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -10241,6 +10537,8 @@ sync: 1.7 ms
 snapshot: 3.5 MB</title></circle>
       <text class="line-label" x="682.0" y="77.3" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -10260,8 +10558,13 @@ snapshot: 3.5 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 65000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 65000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-65000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -10309,6 +10612,8 @@ snapshot: 3.5 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-65000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.4 117.1 L126.8 145.3 L189.9 145.3 L253.0 144.1 L316.6 144.1 L380.0 156.8 L443.1 156.8 L507.0 165.7 L570.6 165.7 L633.8 165.7 L696.9 173.5 L760.0 173.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -10489,6 +10794,8 @@ sync: 1.7 ms
 snapshot: 3.5 MB</title></circle>
       <text class="line-label" x="682.0" y="193.3" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -10513,8 +10820,13 @@ snapshot: 3.5 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 70000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 70000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-70000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -10561,6 +10873,8 @@ snapshot: 3.5 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-70000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.6 84.0 L127.3 84.0 L190.4 84.0 L253.8 84.0 L317.0 84.0 L380.4 84.0 L443.5 84.0 L506.9 84.0 L570.1 84.0 L633.5 84.1 L696.9 84.0 L760.0 83.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -10741,6 +11055,8 @@ sync: 1.8 ms
 snapshot: 3.7 MB</title></circle>
       <text class="line-label" x="682.0" y="75.1" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -10760,8 +11076,13 @@ snapshot: 3.7 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 70000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 70000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-70000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -10809,6 +11130,8 @@ snapshot: 3.7 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-70000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.6 123.1 L127.3 154.0 L190.4 154.0 L253.8 148.6 L317.0 148.6 L380.4 155.4 L443.5 155.4 L506.9 161.8 L570.1 161.8 L633.5 161.8 L696.9 172.1 L760.0 172.1" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -10989,6 +11312,8 @@ sync: 1.8 ms
 snapshot: 3.7 MB</title></circle>
       <text class="line-label" x="682.0" y="191.2" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -11013,8 +11338,13 @@ snapshot: 3.7 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 75000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 75000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-75000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -11061,6 +11391,8 @@ snapshot: 3.7 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-75000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M62.8 84.0 L125.7 84.1 L188.3 84.1 L250.8 84.2 L313.7 84.1 L376.3 83.9 L439.1 83.9 L501.9 83.9 L572.0 83.9 L634.8 84.0 L697.4 83.8 L760.0 83.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -11241,6 +11573,8 @@ sync: 2.0 ms
 snapshot: 4.0 MB</title></circle>
       <text class="line-label" x="682.0" y="78.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -11260,8 +11594,13 @@ snapshot: 4.0 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 75000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 75000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-75000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -11309,6 +11648,8 @@ snapshot: 4.0 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-75000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M62.8 134.6 L125.7 152.4 L188.3 152.4 L250.8 152.2 L313.7 152.2 L376.3 156.4 L439.1 156.4 L501.9 161.8 L572.0 161.8 L634.8 161.8 L697.4 174.5 L760.0 174.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -11489,6 +11830,8 @@ sync: 2.0 ms
 snapshot: 4.0 MB</title></circle>
       <text class="line-label" x="682.0" y="191.8" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -11513,8 +11856,13 @@ snapshot: 4.0 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 80000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 80000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-80000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -11561,6 +11909,8 @@ snapshot: 4.0 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-80000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 84.2 L126.3 84.1 L189.5 84.1 L252.5 84.0 L315.5 84.0 L378.5 84.0 L441.5 84.1 L504.5 83.9 L567.5 84.0 L630.8 84.0 L693.8 84.0 L757.0 84.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -11741,6 +12091,8 @@ sync: 2.2 ms
 snapshot: 4.3 MB</title></circle>
       <text class="line-label" x="682.0" y="78.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -11760,8 +12112,13 @@ snapshot: 4.3 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 80000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 80000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-80000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -11809,6 +12166,8 @@ snapshot: 4.3 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-80000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 35.2 L126.3 75.4 L189.5 75.4 L252.5 71.8 L315.5 71.8 L378.5 71.8 L441.5 80.8 L504.5 80.8 L567.5 97.5 L630.8 97.5 L693.8 104.4 L757.0 104.4" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -11989,6 +12348,8 @@ sync: 2.2 ms
 snapshot: 4.3 MB</title></circle>
       <text class="line-label" x="682.0" y="173.6" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -12013,8 +12374,13 @@ snapshot: 4.3 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 85000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 85000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-85000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -12061,6 +12427,8 @@ snapshot: 4.3 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-85000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.1 84.0 L126.8 84.0 L189.9 84.1 L253.1 84.0 L316.5 84.0 L380.1 84.0 L443.5 84.1 L506.9 84.0 L570.1 84.0 L633.5 84.1 L696.6 83.9 L760.0 83.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -12241,6 +12609,8 @@ sync: 2.1 ms
 snapshot: 4.5 MB</title></circle>
       <text class="line-label" x="682.0" y="78.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -12260,8 +12630,13 @@ snapshot: 4.5 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 85000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 85000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-85000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -12309,6 +12684,8 @@ snapshot: 4.5 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-85000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.1 141.3 L126.8 161.5 L189.9 161.5 L253.1 161.1 L316.5 161.1 L380.1 161.1 L443.5 161.1 L506.9 161.1 L570.1 165.5 L633.5 165.5 L696.6 168.3 L760.0 168.3" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -12489,6 +12866,8 @@ sync: 2.1 ms
 snapshot: 4.5 MB</title></circle>
       <text class="line-label" x="682.0" y="190.8" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -12513,8 +12892,13 @@ snapshot: 4.5 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 90000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 90000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-90000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -12561,6 +12945,8 @@ snapshot: 4.5 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-90000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.0 84.0 L126.4 84.0 L189.6 84.1 L252.6 84.1 L315.8 83.9 L378.7 84.0 L442.5 84.0 L505.7 84.0 L568.9 84.0 L632.1 84.0 L695.5 84.1 L758.7 84.1" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -12741,6 +13127,8 @@ sync: 2.3 ms
 snapshot: 4.8 MB</title></circle>
       <text class="line-label" x="682.0" y="78.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -12760,8 +13148,13 @@ snapshot: 4.8 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 90000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 90000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-90000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -12809,6 +13202,8 @@ snapshot: 4.8 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-90000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.0 22.8 L126.4 83.0 L189.6 83.0 L252.6 87.4 L315.8 87.4 L378.7 88.5 L442.5 88.5 L505.7 99.7 L568.9 99.7 L632.1 112.0 L695.5 112.0 L758.7 112.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -12989,6 +13384,8 @@ sync: 2.3 ms
 snapshot: 4.8 MB</title></circle>
       <text class="line-label" x="682.0" y="165.7" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -13013,8 +13410,13 @@ snapshot: 4.8 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 95000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 95000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-95000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -13061,6 +13463,8 @@ snapshot: 4.8 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-95000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.8 84.0 L126.8 84.0 L189.7 84.0 L253.2 84.0 L316.8 84.0 L380.0 84.0 L443.2 84.1 L506.5 84.0 L569.7 83.9 L633.0 84.0 L696.2 84.0 L759.5 83.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -13241,6 +13645,8 @@ sync: 2.4 ms
 snapshot: 5.1 MB</title></circle>
       <text class="line-label" x="682.0" y="71.2" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -13260,8 +13666,13 @@ snapshot: 5.1 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 95000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 95000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-95000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -13309,6 +13720,8 @@ snapshot: 5.1 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-95000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.8 46.4 L126.8 84.3 L189.7 84.3 L253.2 97.4 L316.8 97.4 L380.0 95.2 L443.2 95.2 L506.5 105.4 L569.7 105.4 L633.0 105.4 L696.2 117.7 L759.5 117.7" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -13489,6 +13902,8 @@ sync: 2.4 ms
 snapshot: 5.1 MB</title></circle>
       <text class="line-label" x="682.0" y="164.1" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -13513,8 +13928,13 @@ snapshot: 5.1 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 100000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 100000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-100000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -13561,6 +13981,8 @@ snapshot: 5.1 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-100000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 84.0 L126.5 83.9 L189.7 83.8 L253.2 84.0 L316.6 84.1 L379.9 84.1 L443.1 84.0 L506.6 84.0 L569.8 84.0 L632.8 84.1 L696.0 83.9 L759.2 84.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -13741,6 +14163,8 @@ sync: 2.5 ms
 snapshot: 5.3 MB</title></circle>
       <text class="line-label" x="682.0" y="69.7" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -13760,8 +14184,13 @@ snapshot: 5.3 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 100000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 100000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-100000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -13809,6 +14238,8 @@ snapshot: 5.3 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-100000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.2 168.1 L126.5 168.1 L189.7 168.1 L253.2 166.3 L316.6 166.3 L379.9 167.0 L443.1 167.0 L506.6 167.0 L569.8 167.1 L632.8 167.1 L696.0 171.1 L759.2 171.1" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -13989,6 +14420,8 @@ sync: 2.5 ms
 snapshot: 5.3 MB</title></circle>
       <text class="line-label" x="682.0" y="183.5" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -14013,8 +14446,13 @@ snapshot: 5.3 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 105000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 105000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-105000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -14061,6 +14499,8 @@ snapshot: 5.3 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-105000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.6 84.1 L126.8 84.0 L190.2 84.0 L253.6 84.0 L317.2 84.1 L380.4 84.0 L443.5 83.9 L506.9 84.1 L570.1 84.0 L633.2 84.1 L696.6 84.0 L760.0 84.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -14241,6 +14681,8 @@ sync: 2.7 ms
 snapshot: 5.6 MB</title></circle>
       <text class="line-label" x="682.0" y="76.7" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -14260,8 +14702,13 @@ snapshot: 5.6 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 105000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 105000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-105000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -14309,6 +14756,8 @@ snapshot: 5.6 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-105000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.6 90.1 L126.8 90.1 L190.2 107.5 L253.6 107.5 L317.2 106.8 L380.4 106.8 L443.5 106.8 L506.9 106.3 L570.1 106.3 L633.2 116.3 L696.6 116.3 L760.0 116.3" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -14489,6 +14938,8 @@ sync: 2.7 ms
 snapshot: 5.6 MB</title></circle>
       <text class="line-label" x="682.0" y="153.9" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -14513,8 +14964,13 @@ snapshot: 5.6 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 110000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 110000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-110000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -14561,6 +15017,8 @@ snapshot: 5.6 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-110000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.5 83.9 L127.0 84.0 L190.2 84.0 L253.4 84.0 L316.6 83.9 L379.9 84.0 L443.1 84.0 L506.3 84.1 L569.8 84.0 L633.0 84.0 L696.3 83.9 L760.0 84.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -14741,6 +15199,8 @@ sync: 3.2 ms
 snapshot: 5.9 MB</title></circle>
       <text class="line-label" x="682.0" y="69.5" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -14760,8 +15220,13 @@ snapshot: 5.9 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 110000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 110000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-110000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -14809,6 +15274,8 @@ snapshot: 5.9 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-110000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.5 56.3 L127.0 100.0 L190.2 100.0 L253.4 100.0 L316.6 112.3 L379.9 112.3 L443.1 112.5 L506.3 112.5 L569.8 111.8 L633.0 111.8 L696.3 119.5 L760.0 119.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -14989,6 +15456,8 @@ sync: 3.2 ms
 snapshot: 5.9 MB</title></circle>
       <text class="line-label" x="682.0" y="153.2" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -15013,8 +15482,13 @@ snapshot: 5.9 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 115000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 115000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-115000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -15061,6 +15535,8 @@ snapshot: 5.9 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-115000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.6 84.1 L126.7 84.0 L190.6 84.0 L253.7 84.0 L317.0 83.9 L380.6 84.0 L444.0 84.1 L507.1 84.1 L570.4 84.0 L633.5 84.1 L696.9 83.9 L760.0 84.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -15241,6 +15717,8 @@ sync: 3.0 ms
 snapshot: 6.1 MB</title></circle>
       <text class="line-label" x="682.0" y="64.9" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -15260,8 +15738,13 @@ snapshot: 6.1 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 115000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 115000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-115000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -15309,6 +15792,8 @@ snapshot: 6.1 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-115000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.6 105.8 L126.7 105.8 L190.6 105.8 L253.7 119.4 L317.0 119.4 L380.6 118.2 L444.0 118.2 L507.1 118.2 L570.4 115.4 L633.5 115.4 L696.9 118.7 L760.0 118.7" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -15489,6 +15974,8 @@ sync: 3.0 ms
 snapshot: 6.1 MB</title></circle>
       <text class="line-label" x="682.0" y="160.5" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -15513,8 +16000,13 @@ snapshot: 6.1 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Render FPS over time for 120000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 120000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-120000-renderFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -15561,6 +16053,8 @@ snapshot: 6.1 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
+          <g class="plot-window" clip-path="url(#metric-120000-renderFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.5 83.9 L126.8 84.1 L190.3 83.9 L253.5 84.2 L316.5 84.1 L380.0 84.0 L443.2 83.9 L506.8 84.1 L570.0 84.0 L633.2 84.0 L696.5 84.0 L760.0 83.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
@@ -15741,6 +16235,8 @@ sync: 3.1 ms
 snapshot: 6.4 MB</title></circle>
       <text class="line-label" x="682.0" y="67.0" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -15760,8 +16256,13 @@ snapshot: 6.4 MB</title></circle>
 	          <button type="button" data-zoom="reset">Reset</button>
 	        </div>
 	      </div>
-	      <svg class="zoomable-chart" viewBox="0 0 832 264" data-default-viewbox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 120000 bodies">
+	      <svg class="zoomable-chart" viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 120000 bodies">
 	        <g transform="translate(52 18)">
+          <defs>
+            <clipPath id="metric-120000-simCapacityFps-clip">
+              <rect x="0" y="0" width="760" height="210" />
+            </clipPath>
+          </defs>
           <rect width="760" height="210" rx="6" fill="#111827" />
 
         <line class="grid-line" x1="0" y1="210.0" x2="760" y2="210.0" />
@@ -15809,6 +16310,8 @@ snapshot: 6.4 MB</title></circle>
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
+          <g class="plot-window" clip-path="url(#metric-120000-simCapacityFps-clip)">
+            <g class="plot-zoom-layer" data-plot-width="760" data-plot-height="210">
 
       <path d="M63.5 83.6 L126.8 83.6 L190.3 104.0 L253.5 104.0 L316.5 121.6 L380.0 121.6 L443.2 121.2 L506.8 121.2 L570.0 121.2 L633.2 121.8 L696.5 121.8 L760.0 124.7" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
@@ -15989,6 +16492,8 @@ sync: 3.1 ms
 snapshot: 6.4 MB</title></circle>
       <text class="line-label" x="682.0" y="160.1" fill="#f59e0b">Rapier</text>
 
+            </g>
+          </g>
         </g>
       </svg>
     </div>
@@ -16093,81 +16598,82 @@ snapshot: 6.4 MB</title></circle>
 	        });
 	        applyFilters();
 
-	        function parseViewBox(value) {
-	          const parts = String(value ?? '').split(/\s+/).map(Number);
-	          return { x: parts[0] || 0, y: parts[1] || 0, width: parts[2] || 1, height: parts[3] || 1 };
-	        }
-
-	        function serializeViewBox(box) {
-	          return [box.x, box.y, box.width, box.height].map((value) => Number(value).toFixed(3)).join(' ');
-	        }
-
 	        function initZoomableChart(svg) {
-	          const defaultBox = parseViewBox(svg.dataset.defaultViewbox || svg.getAttribute('viewBox'));
-	          let viewBox = { ...defaultBox };
+	          const layer = svg.querySelector('.plot-zoom-layer');
+	          if (!layer) {
+	            return;
+	          }
+	          const plotFrame = layer.closest('.plot-window') || layer.parentNode;
+	          const plotWidth = Math.max(1, Number(layer.dataset.plotWidth || 1));
+	          const plotHeight = Math.max(1, Number(layer.dataset.plotHeight || 1));
+	          const minScale = 1;
+	          const maxScale = 16;
+	          let transform = { k: 1, x: 0, y: 0 };
 	          let drag = null;
-	          const textItems = [...svg.querySelectorAll('text')].map((element) => ({
+	          const textItems = [...layer.querySelectorAll('text')].map((element) => ({
 	            element,
 	            fontSize: parseFloat(getComputedStyle(element).fontSize) || 12,
+	            strokeWidth: parseFloat(getComputedStyle(element).strokeWidth) || 0,
 	          }));
-	          const pointItems = [...svg.querySelectorAll('.sample-point')].map((element) => ({
+	          const pointItems = [...layer.querySelectorAll('.sample-point')].map((element) => ({
 	            element,
 	            radius: Number(element.getAttribute('r') || 4),
 	          }));
 
-	          function adjustAnnotationScale() {
-	            const scale = Math.max(viewBox.width / defaultBox.width, viewBox.height / defaultBox.height);
-	            for (const item of textItems) {
-	              item.element.style.fontSize = Math.max(7, Math.min(18, item.fontSize * scale)) + 'px';
-	            }
-	            for (const item of pointItems) {
-	              item.element.setAttribute('r', Math.max(1.8, Math.min(6, item.radius * scale)).toFixed(2));
-	            }
+	          function clampTransform(next) {
+	            const k = Math.max(minScale, Math.min(maxScale, Number.isFinite(next.k) ? next.k : minScale));
+	            const minX = plotWidth - plotWidth * k;
+	            const minY = plotHeight - plotHeight * k;
+	            return {
+	              k,
+	              x: Math.min(0, Math.max(minX, Number.isFinite(next.x) ? next.x : 0)),
+	              y: Math.min(0, Math.max(minY, Number.isFinite(next.y) ? next.y : 0)),
+	            };
 	          }
 
-	          function setViewBox(nextBox) {
-	            const minWidth = defaultBox.width * 0.025;
-	            const minHeight = defaultBox.height * 0.025;
-	            viewBox = {
-	              x: nextBox.x,
-	              y: nextBox.y,
-	              width: Math.max(minWidth, Math.min(defaultBox.width * 4, nextBox.width)),
-	              height: Math.max(minHeight, Math.min(defaultBox.height * 4, nextBox.height)),
-	            };
-	            svg.setAttribute('viewBox', serializeViewBox(viewBox));
-	            adjustAnnotationScale();
+	          function applyTransform(next) {
+	            transform = clampTransform(next);
+	            layer.setAttribute('transform', 'translate(' + transform.x.toFixed(3) + ' ' + transform.y.toFixed(3) + ') scale(' + transform.k.toFixed(4) + ')');
+	            const inverse = 1 / transform.k;
+	            for (const item of textItems) {
+	              item.element.style.fontSize = Math.max(8, item.fontSize * inverse).toFixed(2) + 'px';
+	              if (item.strokeWidth > 0) {
+	                item.element.style.strokeWidth = Math.max(1, item.strokeWidth * inverse).toFixed(2) + 'px';
+	              }
+	            }
+	            for (const item of pointItems) {
+	              item.element.setAttribute('r', Math.max(1.8, item.radius * inverse).toFixed(2));
+	            }
 	          }
 
 	          function pointForEvent(event) {
-	            const rect = svg.getBoundingClientRect();
-	            const xRatio = rect.width > 0 ? (event.clientX - rect.left) / rect.width : 0.5;
-	            const yRatio = rect.height > 0 ? (event.clientY - rect.top) / rect.height : 0.5;
-	            return {
-	              x: viewBox.x + xRatio * viewBox.width,
-	              y: viewBox.y + yRatio * viewBox.height,
-	            };
+	            const matrix = plotFrame.getScreenCTM();
+	            if (!matrix) {
+	              return { x: plotWidth / 2, y: plotHeight / 2 };
+	            }
+	            const point = svg.createSVGPoint();
+	            point.x = event.clientX;
+	            point.y = event.clientY;
+	            return point.matrixTransform(matrix.inverse());
 	          }
 
 	          function zoomAt(factor, center) {
-	            const nextWidth = viewBox.width * factor;
-	            const nextHeight = viewBox.height * factor;
-	            const xRatio = viewBox.width > 0 ? (center.x - viewBox.x) / viewBox.width : 0.5;
-	            const yRatio = viewBox.height > 0 ? (center.y - viewBox.y) / viewBox.height : 0.5;
-	            setViewBox({
-	              x: center.x - nextWidth * xRatio,
-	              y: center.y - nextHeight * yRatio,
-	              width: nextWidth,
-	              height: nextHeight,
+	            const nextScale = Math.max(minScale, Math.min(maxScale, transform.k * factor));
+	            const ratio = nextScale / transform.k;
+	            applyTransform({
+	              k: nextScale,
+	              x: center.x - (center.x - transform.x) * ratio,
+	              y: center.y - (center.y - transform.y) * ratio,
 	            });
 	          }
 
 	          function reset() {
-	            setViewBox(defaultBox);
+	            applyTransform({ k: 1, x: 0, y: 0 });
 	          }
 
 	          svg.addEventListener('wheel', (event) => {
 	            event.preventDefault();
-	            zoomAt(event.deltaY > 0 ? 1.18 : 0.82, pointForEvent(event));
+	            zoomAt(event.deltaY > 0 ? 1 / 1.18 : 1.18, pointForEvent(event));
 	          }, { passive: false });
 
 	          svg.addEventListener('pointerdown', (event) => {
@@ -16176,9 +16682,8 @@ snapshot: 6.4 MB</title></circle>
 	            }
 	            drag = {
 	              pointerId: event.pointerId,
-	              startX: event.clientX,
-	              startY: event.clientY,
-	              viewBox: { ...viewBox },
+	              startPoint: pointForEvent(event),
+	              transform: { ...transform },
 	            };
 	            svg.classList.add('is-dragging');
 	            svg.setPointerCapture(event.pointerId);
@@ -16188,13 +16693,11 @@ snapshot: 6.4 MB</title></circle>
 	            if (!drag || drag.pointerId !== event.pointerId) {
 	              return;
 	            }
-	            const rect = svg.getBoundingClientRect();
-	            const dx = rect.width > 0 ? ((event.clientX - drag.startX) / rect.width) * drag.viewBox.width : 0;
-	            const dy = rect.height > 0 ? ((event.clientY - drag.startY) / rect.height) * drag.viewBox.height : 0;
-	            setViewBox({
-	              ...drag.viewBox,
-	              x: drag.viewBox.x - dx,
-	              y: drag.viewBox.y - dy,
+	            const point = pointForEvent(event);
+	            applyTransform({
+	              ...drag.transform,
+	              x: drag.transform.x + point.x - drag.startPoint.x,
+	              y: drag.transform.y + point.y - drag.startPoint.y,
 	            });
 	          });
 
@@ -16210,15 +16713,14 @@ snapshot: 6.4 MB</title></circle>
 	          svg.addEventListener('dblclick', reset);
 
 	          const chart = svg.closest('.chart');
-	          chart?.querySelector('[data-zoom="in"]')?.addEventListener('click', () => zoomAt(0.72, {
-	            x: viewBox.x + viewBox.width * 0.5,
-	            y: viewBox.y + viewBox.height * 0.5,
-	          }));
-	          chart?.querySelector('[data-zoom="out"]')?.addEventListener('click', () => zoomAt(1.28, {
-	            x: viewBox.x + viewBox.width * 0.5,
-	            y: viewBox.y + viewBox.height * 0.5,
-	          }));
+	          const center = () => ({
+	            x: (plotWidth / 2 - transform.x) / transform.k,
+	            y: (plotHeight / 2 - transform.y) / transform.k,
+	          });
+	          chart?.querySelector('[data-zoom="in"]')?.addEventListener('click', () => zoomAt(1.35, center()));
+	          chart?.querySelector('[data-zoom="out"]')?.addEventListener('click', () => zoomAt(1 / 1.35, center()));
 	          chart?.querySelector('[data-zoom="reset"]')?.addEventListener('click', reset);
+	          reset();
 	        }
 
 	        for (const svg of document.querySelectorAll('.zoomable-chart')) {
