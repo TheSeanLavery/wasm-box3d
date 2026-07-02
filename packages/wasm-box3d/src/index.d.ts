@@ -44,6 +44,7 @@ export type Box3DDemo = {
   getStepCount(): number;
   getStressDynamicCount(): number;
   getLastStressRequest(): number;
+  getStepGuarded(): boolean;
   getMaxBodies(): number;
 };
 

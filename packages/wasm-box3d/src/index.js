@@ -65,6 +65,7 @@ export async function createBox3DDemo(options = {}) {
     getStepCountRaw: module.cwrap('wb3_get_step_count', 'number', []),
     getStressDynamicCountRaw: module.cwrap('wb3_get_stress_dynamic_count', 'number', []),
     getLastStressRequestRaw: module.cwrap('wb3_get_last_stress_request', 'number', []),
+    getStepGuardedRaw: module.cwrap('wb3_get_step_guarded', 'number', []),
     getMaxBodiesRaw: module.cwrap('wb3_get_max_bodies', 'number', []),
   };
 
@@ -134,6 +135,9 @@ export async function createBox3DDemo(options = {}) {
     },
     getLastStressRequest() {
       return api.getLastStressRequestRaw();
+    },
+    getStepGuarded() {
+      return api.getStepGuardedRaw() !== 0;
     },
     getMaxBodies() {
       return api.getMaxBodiesRaw();

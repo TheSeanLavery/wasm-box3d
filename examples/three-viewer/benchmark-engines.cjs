@@ -100,10 +100,10 @@ async function runLevel(page, engine, level) {
       bodies: sample.bodies,
       awakeBodies: sample.awakeBodies,
       renderFps: sample.renderFps,
-      simFps: sample.physicsFps,
-      physicsStepMs: sample.physicsStepMs,
-      physicsCapacityFps: sample.physicsCapacityFps,
-      simCapacityFps: sample.physicsCapacityFps,
+      simFps: sample.stepGuarded ? 0 : sample.physicsFps,
+      physicsStepMs: sample.stepGuarded ? 0 : sample.physicsStepMs,
+      physicsCapacityFps: sample.stepGuarded ? 0 : sample.physicsCapacityFps,
+      simCapacityFps: sample.stepGuarded ? 0 : sample.physicsCapacityFps,
       renderSyncMs: sample.renderSyncMs,
       syncMs: sample.syncMs,
       renderMs: sample.renderMs,
@@ -111,6 +111,7 @@ async function runLevel(page, engine, level) {
       snapshotBytes: sample.snapshotBytes,
       snapshotMB: sample.snapshotBytes / (1024 * 1024),
       threadsEnabled: sample.threadsEnabled,
+      stepGuarded: sample.stepGuarded === true,
       stressStatus: sample.stressStatus,
       stepCount: sample.stepCount,
       resetWallMs,
@@ -120,8 +121,10 @@ async function runLevel(page, engine, level) {
   const renderFpsValues = positive(samples.map((sample) => sample.renderFps));
   const simFpsValues = positive(samples.map((sample) => sample.simFps));
   const simCapacityValues = positive(samples.map((sample) => sample.simCapacityFps));
-  const floorHit =
-    Math.min(...renderFpsValues) < MIN_FPS_FLOOR || simCapacityValues.length === 0 || Math.min(...simCapacityValues) < MIN_FPS_FLOOR;
+  const stepGuarded = samples.some((sample) => sample.stepGuarded);
+  const renderFloorHit = renderFpsValues.length === 0 || Math.min(...renderFpsValues) < MIN_FPS_FLOOR;
+  const simFloorHit = !stepGuarded && (simCapacityValues.length === 0 || Math.min(...simCapacityValues) < MIN_FPS_FLOOR);
+  const floorHit = renderFloorHit || simFloorHit;
   const summary = {
     ok: true,
     error: '',
@@ -129,6 +132,7 @@ async function runLevel(page, engine, level) {
     requestedBodies: level,
     bodies: samples.at(-1)?.bodies ?? 0,
     threadsEnabled: samples.some((sample) => sample.threadsEnabled),
+    stepGuarded,
     estimatedSnapshotMB: estimateSnapshotBytes(level + 5) / (1024 * 1024),
     observedSnapshotMB: (samples.at(-1)?.snapshotBytes ?? 0) / (1024 * 1024),
     resetWallMs,
@@ -161,6 +165,7 @@ function makeFailureSummary(engine, level, error) {
     requestedBodies: level,
     bodies: 0,
     threadsEnabled: false,
+    stepGuarded: false,
     estimatedSnapshotMB: estimateSnapshotBytes(level + 5) / (1024 * 1024),
     observedSnapshotMB: 0,
     resetWallMs: 0,
@@ -202,6 +207,7 @@ function writeCsv(samples, filePath) {
     'snapshotBytes',
     'snapshotMB',
     'threadsEnabled',
+    'stepGuarded',
     'resetWallMs',
     'stepCount',
   ];
@@ -238,6 +244,16 @@ function formatMetric(value, suffix = '') {
   return Number.isFinite(value) ? `${value.toFixed(1)}${suffix}` : '';
 }
 
+function statusLabel(row) {
+  if (!row.ok) {
+    return 'failed';
+  }
+  if (row.stepGuarded) {
+    return row.floorHit ? 'guarded floor' : 'guarded';
+  }
+  return row.floorHit ? 'floor' : 'ok';
+}
+
 function sortSummaryRows(summary) {
   return [...summary].sort((a, b) => a.requestedBodies - b.requestedBodies || engineRank(a.engine) - engineRank(b.engine));
 }
@@ -247,7 +263,7 @@ function makeSamplePoints(points, width, height, xMax, yMax, valueKey, color, la
     .map((point) => {
       const x = (point.tMs / xMax) * width;
       const y = height - (Math.max(0, point[valueKey]) / yMax) * height;
-      const title = `${label} ${point.requestedBodies.toLocaleString()} bodies\n${Math.round(point.tMs)}ms\n${valueKey}: ${formatMetric(point[valueKey], ' fps')}\nrender: ${formatMetric(point.renderFps, ' fps')}\nsim capacity: ${formatMetric(point.simCapacityFps, ' fps')}\nsync: ${formatMetric(point.syncMs, ' ms')}\nsnapshot: ${formatMetric(point.snapshotMB, ' MB')}`;
+      const title = `${label} ${point.requestedBodies.toLocaleString()} bodies${point.stepGuarded ? ' (guarded native step)' : ''}\n${Math.round(point.tMs)}ms\n${valueKey}: ${formatMetric(point[valueKey], ' fps')}\nrender: ${formatMetric(point.renderFps, ' fps')}\nsim capacity: ${formatMetric(point.simCapacityFps, ' fps')}\nsync: ${formatMetric(point.syncMs, ' ms')}\nsnapshot: ${formatMetric(point.snapshotMB, ' MB')}`;
       return `<circle class="sample-point" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${color}" tabindex="0"><title>${escapeHtml(title)}</title></circle>`;
     })
     .join('\n');
@@ -320,9 +336,9 @@ function makeChartHtml(result) {
     .map((row) => {
       const levelIndex = levels.indexOf(row.requestedBodies);
       return `
-        <tr class="engine-row ${row.engine} pair-${levelIndex % 2 === 0 ? 'even' : 'odd'} ${row.engine === 'box3d' ? 'pair-start' : 'pair-end'}">
+        <tr class="engine-row ${row.engine} pair-${levelIndex % 2 === 0 ? 'even' : 'odd'} ${row.engine === 'box3d' ? 'pair-start' : 'pair-end'} ${row.stepGuarded ? 'guarded' : ''}">
           <td><span class="engine-chip ${row.engine}">${engineLabel(row.engine)}</span></td>
-          <td>${row.ok ? (row.floorHit ? 'floor' : 'ok') : 'failed'}</td>
+          <td>${statusLabel(row)}</td>
           <td class="issue-cell">${escapeHtml(row.error)}</td>
           <td>${row.requestedBodies.toLocaleString()}</td>
           <td>${Math.round(row.bodies).toLocaleString()}</td>
@@ -393,7 +409,8 @@ function makeChartHtml(result) {
   <body>
     <main>
       <h1>WasmBox3D Engine Benchmark</h1>
-      <p>Generated ${new Date(result.generatedAt).toLocaleString()} from headed Playwright against ${SERVER_URL}. Benchmark mode uses a dense stacked stress layout, disables the Box3D worker's forced-sleep shortcut, and throttles large body snapshots to ${SNAPSHOT_INTERVAL_MS}ms.</p>
+      <p>Generated ${new Date(result.generatedAt).toLocaleString()} from ${result.headed ? 'headed' : 'headless'} Playwright against ${SERVER_URL}. Benchmark mode uses a dense stacked stress layout, disables the Box3D worker's forced-sleep shortcut, and throttles large body snapshots to ${SNAPSHOT_INTERVAL_MS}ms.</p>
+      <p>Box3D rows marked guarded constructed and rendered the requested bodies, but skipped the native solver step at that scale to avoid Box3D allocation aborts.</p>
       <div class="legend">
         <span class="key"><span class="swatch" style="--color:#58a6ff"></span>Box3D render</span>
         <span class="key"><span class="swatch" style="--color:#f59e0b"></span>Rapier render</span>
@@ -412,12 +429,16 @@ function makeChartHtml(result) {
 </html>`;
 }
 
+function writeChartHtml(result, filePath) {
+  fs.writeFileSync(filePath, makeChartHtml(result).replace(/[ \t]+\n/g, '\n'));
+}
+
 async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   if (process.env.WB3_BENCH_RENDER_ONLY === '1') {
     const latestPath = path.join(OUTPUT_DIR, 'latest.json');
     const result = JSON.parse(fs.readFileSync(latestPath, 'utf8'));
-    fs.writeFileSync(path.join(OUTPUT_DIR, 'latest.html'), makeChartHtml(result));
+    writeChartHtml(result, path.join(OUTPUT_DIR, 'latest.html'));
     writeCsv(result.samples ?? [], path.join(OUTPUT_DIR, 'latest.csv'));
     console.log(JSON.stringify({ outputDir: OUTPUT_DIR, renderedOnly: true, summaryRows: result.summary?.length ?? 0 }, null, 2));
     return;
@@ -504,7 +525,7 @@ async function main() {
 
   fs.writeFileSync(path.join(OUTPUT_DIR, 'latest.json'), `${JSON.stringify(result, null, 2)}\n`);
   writeCsv(samples, path.join(OUTPUT_DIR, 'latest.csv'));
-  fs.writeFileSync(path.join(OUTPUT_DIR, 'latest.html'), makeChartHtml(result));
+  writeChartHtml(result, path.join(OUTPUT_DIR, 'latest.html'));
   console.log(JSON.stringify({ outputDir: OUTPUT_DIR, summary }, null, 2));
 }
 

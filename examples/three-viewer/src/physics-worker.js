@@ -119,6 +119,7 @@ function snapshot() {
       stepCount: physics.getStepCount(),
       stressDynamicCount: physics.getStressDynamicCount(),
       lastStressRequest: physics.getLastStressRequest(),
+      stepGuarded: physics.getStepGuarded(),
       maxBodies: physics.getMaxBodies(),
       physicsHz,
       physicsStepMs,

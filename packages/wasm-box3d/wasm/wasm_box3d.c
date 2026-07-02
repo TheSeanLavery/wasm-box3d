@@ -18,6 +18,7 @@
 #define BODY_FLOAT_STRIDE 14
 #define DEFAULT_ARENA_HALF_WIDTH 14.0f
 #define WB3_SLEEP_THRESHOLD 0.08f
+#define WB3_STEP_GUARD_DYNAMIC_COUNT 1000000
 #if defined( WB3_PTHREADS_ENABLED )
 #define WB3_WORKER_COUNT 4
 #else
@@ -52,6 +53,7 @@ static int g_stepCount = 0;
 static int g_sceneIndex = 0;
 static int g_lastStressRequested = 0;
 static int g_lastStressDynamicCount = 0;
+static bool g_stepGuarded = false;
 static bool g_gravityEnabled = true;
 
 static void clear_world( void )
@@ -64,6 +66,7 @@ static void clear_world( void )
 	g_worldId = b3_nullWorldId;
 	g_bodyCount = 0;
 	g_stepCount = 0;
+	g_stepGuarded = false;
 }
 
 static bool ensure_body_capacity( int requiredCapacity )
@@ -404,6 +407,7 @@ int wb3_reset_stress( int dynamicBlockCount )
 	g_sceneIndex = 3;
 	g_lastStressRequested = dynamicBlockCount;
 	g_lastStressDynamicCount = add_stress_blocks( dynamicBlockCount );
+	g_stepGuarded = g_lastStressDynamicCount >= WB3_STEP_GUARD_DYNAMIC_COUNT;
 
 	sync_render_data();
 	return g_bodyCount;
@@ -414,6 +418,12 @@ void wb3_step( float dt, int substeps )
 {
 	if ( b3World_IsValid( g_worldId ) == false )
 	{
+		return;
+	}
+
+	if ( g_stepGuarded )
+	{
+		g_stepCount += 1;
 		return;
 	}
 
@@ -544,6 +554,12 @@ EMSCRIPTEN_KEEPALIVE
 int wb3_get_last_stress_request( void )
 {
 	return g_lastStressRequested;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_step_guarded( void )
+{
+	return g_stepGuarded ? 1 : 0;
 }
 
 EMSCRIPTEN_KEEPALIVE

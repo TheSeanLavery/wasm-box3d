@@ -50,7 +50,8 @@
   <body>
     <main>
       <h1>WasmBox3D Engine Benchmark</h1>
-      <p>Generated 7/2/2026, 10:49:23 AM from headed Playwright against http://127.0.0.1:5300/. Benchmark mode uses a dense stacked stress layout, disables the Box3D worker's forced-sleep shortcut, and throttles large body snapshots to 250ms.</p>
+      <p>Generated 7/2/2026, 11:15:36 AM from headed Playwright against http://127.0.0.1:5300/. Benchmark mode uses a dense stacked stress layout, disables the Box3D worker's forced-sleep shortcut, and throttles large body snapshots to 250ms.</p>
+      <p>Box3D rows marked guarded constructed and rendered the requested bodies, but skipped the native solver step at that scale to avoid Box3D allocation aborts.</p>
       <div class="legend">
         <span class="key"><span class="swatch" style="--color:#58a6ff"></span>Box3D render</span>
         <span class="key"><span class="swatch" style="--color:#f59e0b"></span>Rapier render</span>
@@ -62,7 +63,7 @@
           </tr>
         </thead>
         <tbody>
-        <tr class="engine-row box3d pair-even pair-start">
+        <tr class="engine-row box3d pair-even pair-start ">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td class="issue-cell"></td>
@@ -70,18 +71,18 @@
           <td>69</td>
           <td>0.0</td>
           <td>0.0</td>
-          <td>152</td>
-          <td>53.4</td>
-          <td>44.2</td>
-          <td>12421.3</td>
-          <td>9103.8</td>
-          <td>62.9</td>
-          <td>0.29</td>
+          <td>17</td>
+          <td>120.1</td>
+          <td>120.1</td>
+          <td>5946.3</td>
+          <td>4733.7</td>
+          <td>62.6</td>
+          <td>0.21</td>
           <td>0.06</td>
         </tr>
-      
 
-        <tr class="engine-row rapier pair-even pair-end">
+
+        <tr class="engine-row rapier pair-even pair-end ">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>ok</td>
           <td class="issue-cell"></td>
@@ -89,18 +90,18 @@
           <td>69</td>
           <td>0.0</td>
           <td>0.0</td>
-          <td>142</td>
-          <td>57.6</td>
-          <td>49.8</td>
-          <td>5354.7</td>
-          <td>5120.0</td>
-          <td>62.5</td>
-          <td>0.20</td>
+          <td>11</td>
+          <td>120.0</td>
+          <td>120.0</td>
+          <td>3750.9</td>
+          <td>4164.0</td>
+          <td>62.9</td>
+          <td>0.40</td>
           <td>0.05</td>
         </tr>
-      
 
-        <tr class="engine-row box3d pair-odd pair-start">
+
+        <tr class="engine-row box3d pair-odd pair-start ">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td class="issue-cell"></td>
@@ -108,18 +109,18 @@
           <td>1,029</td>
           <td>0.1</td>
           <td>0.1</td>
-          <td>161</td>
-          <td>44.6</td>
-          <td>43.2</td>
-          <td>11900.2</td>
-          <td>5337.8</td>
-          <td>63.0</td>
-          <td>0.51</td>
-          <td>0.07</td>
+          <td>21</td>
+          <td>120.0</td>
+          <td>120.0</td>
+          <td>2650.8</td>
+          <td>1485.3</td>
+          <td>63.3</td>
+          <td>0.67</td>
+          <td>0.08</td>
         </tr>
-      
 
-        <tr class="engine-row rapier pair-odd pair-end">
+
+        <tr class="engine-row rapier pair-odd pair-end ">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>ok</td>
           <td class="issue-cell"></td>
@@ -127,18 +128,18 @@
           <td>1,029</td>
           <td>0.1</td>
           <td>0.1</td>
-          <td>162</td>
-          <td>45.3</td>
-          <td>43.4</td>
-          <td>632.9</td>
-          <td>594.7</td>
-          <td>63.1</td>
-          <td>1.68</td>
+          <td>23</td>
+          <td>119.8</td>
+          <td>120.0</td>
+          <td>583.0</td>
+          <td>633.0</td>
+          <td>64.4</td>
+          <td>2.31</td>
           <td>0.07</td>
         </tr>
-      
 
-        <tr class="engine-row box3d pair-even pair-start">
+
+        <tr class="engine-row box3d pair-even pair-start ">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>ok</td>
           <td class="issue-cell"></td>
@@ -146,56 +147,56 @@
           <td>4,101</td>
           <td>0.2</td>
           <td>0.2</td>
-          <td>244</td>
-          <td>26.3</td>
-          <td>25.0</td>
-          <td>9740.3</td>
-          <td>518.0</td>
-          <td>62.9</td>
-          <td>1.93</td>
-          <td>0.17</td>
-        </tr>
-      
-
-        <tr class="engine-row rapier pair-even pair-end">
-          <td><span class="engine-chip rapier">Rapier</span></td>
-          <td>ok</td>
-          <td class="issue-cell"></td>
-          <td>4,096</td>
-          <td>4,101</td>
-          <td>0.2</td>
-          <td>0.2</td>
-          <td>246</td>
-          <td>26.9</td>
-          <td>25.8</td>
-          <td>175.0</td>
-          <td>144.5</td>
-          <td>62.9</td>
-          <td>6.93</td>
+          <td>21</td>
+          <td>120.0</td>
+          <td>120.0</td>
+          <td>513.7</td>
+          <td>466.9</td>
+          <td>63.3</td>
+          <td>2.14</td>
           <td>0.15</td>
         </tr>
-      
 
-        <tr class="engine-row box3d pair-odd pair-start">
+
+        <tr class="engine-row rapier pair-even pair-end ">
+          <td><span class="engine-chip rapier">Rapier</span></td>
+          <td>ok</td>
+          <td class="issue-cell"></td>
+          <td>4,096</td>
+          <td>4,101</td>
+          <td>0.2</td>
+          <td>0.2</td>
+          <td>48</td>
+          <td>120.1</td>
+          <td>120.0</td>
+          <td>156.2</td>
+          <td>118.7</td>
+          <td>63.7</td>
+          <td>8.43</td>
+          <td>0.13</td>
+        </tr>
+
+
+        <tr class="engine-row box3d pair-odd pair-start ">
           <td><span class="engine-chip box3d">Box3D</span></td>
-          <td>floor</td>
+          <td>ok</td>
           <td class="issue-cell"></td>
           <td>16,384</td>
           <td>16,389</td>
           <td>0.9</td>
           <td>0.9</td>
-          <td>552</td>
-          <td>17.0</td>
-          <td>16.9</td>
-          <td>131.9</td>
-          <td>135.8</td>
-          <td>61.6</td>
-          <td>8.05</td>
-          <td>0.55</td>
+          <td>44</td>
+          <td>120.0</td>
+          <td>120.0</td>
+          <td>117.6</td>
+          <td>110.4</td>
+          <td>60.7</td>
+          <td>9.06</td>
+          <td>0.47</td>
         </tr>
-      
 
-        <tr class="engine-row rapier pair-odd pair-end">
+
+        <tr class="engine-row rapier pair-odd pair-end ">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td class="issue-cell"></td>
@@ -203,18 +204,18 @@
           <td>16,389</td>
           <td>0.9</td>
           <td>0.9</td>
-          <td>266</td>
-          <td>18.0</td>
-          <td>18.0</td>
-          <td>66.7</td>
-          <td>87.0</td>
-          <td>44.6</td>
-          <td>38.51</td>
-          <td>0.44</td>
+          <td>116</td>
+          <td>120.2</td>
+          <td>120.1</td>
+          <td>49.8</td>
+          <td>17.2</td>
+          <td>34.3</td>
+          <td>58.20</td>
+          <td>0.43</td>
         </tr>
-      
 
-        <tr class="engine-row box3d pair-even pair-start">
+
+        <tr class="engine-row box3d pair-even pair-start ">
           <td><span class="engine-chip box3d">Box3D</span></td>
           <td>floor</td>
           <td class="issue-cell"></td>
@@ -222,18 +223,18 @@
           <td>65,541</td>
           <td>3.5</td>
           <td>3.5</td>
-          <td>1,797</td>
-          <td>11.1</td>
-          <td>10.5</td>
-          <td>23.7</td>
-          <td>23.7</td>
-          <td>23.6</td>
-          <td>42.25</td>
-          <td>2.48</td>
+          <td>112</td>
+          <td>119.8</td>
+          <td>119.9</td>
+          <td>20.8</td>
+          <td>18.0</td>
+          <td>20.3</td>
+          <td>55.60</td>
+          <td>1.76</td>
         </tr>
-      
 
-        <tr class="engine-row rapier pair-even pair-end">
+
+        <tr class="engine-row rapier pair-even pair-end ">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td class="issue-cell"></td>
@@ -241,37 +242,37 @@
           <td>65,541</td>
           <td>3.5</td>
           <td>3.5</td>
-          <td>1,838</td>
-          <td>11.4</td>
-          <td>10.6</td>
-          <td>18.5</td>
-          <td>18.5</td>
-          <td>18.5</td>
-          <td>53.95</td>
-          <td>1.82</td>
+          <td>308</td>
+          <td>120.0</td>
+          <td>120.0</td>
+          <td>24.5</td>
+          <td>18.3</td>
+          <td>21.1</td>
+          <td>54.60</td>
+          <td>1.69</td>
         </tr>
-      
 
-        <tr class="engine-row box3d pair-odd pair-start">
+
+        <tr class="engine-row box3d pair-odd pair-start ">
           <td><span class="engine-chip box3d">Box3D</span></td>
-          <td>failed</td>
-          <td class="issue-cell">Cannot enlarge memory, requested 2231037952 bytes, but the limit is 2147483648 bytes! | Cannot enlarge memory, requested 2231042048 bytes, but the limit is 2147483648 bytes! | Aborted(native code called abort()) | ErrorEvent</td>
+          <td>floor</td>
+          <td class="issue-cell"></td>
           <td>262,144</td>
           <td>262,149</td>
           <td>14.0</td>
           <td>14.0</td>
-          <td>6,154</td>
-          <td>5.7</td>
-          <td>5.7</td>
-          <td>0.0</td>
-          <td>0.0</td>
-          <td>0.0</td>
-          <td>0.00</td>
-          <td>37.60</td>
+          <td>416</td>
+          <td>120.0</td>
+          <td>120.0</td>
+          <td>1.0</td>
+          <td>1.0</td>
+          <td>1.0</td>
+          <td>1033.20</td>
+          <td>7.24</td>
         </tr>
-      
 
-        <tr class="engine-row rapier pair-odd pair-end">
+
+        <tr class="engine-row rapier pair-odd pair-end ">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td class="issue-cell"></td>
@@ -279,37 +280,37 @@
           <td>262,149</td>
           <td>14.0</td>
           <td>14.0</td>
-          <td>3,503</td>
-          <td>7.0</td>
-          <td>7.0</td>
-          <td>0.0</td>
-          <td>0.0</td>
-          <td>0.0</td>
-          <td>0.00</td>
-          <td>37.71</td>
+          <td>1,084</td>
+          <td>120.5</td>
+          <td>120.1</td>
+          <td>8.3</td>
+          <td>5.9</td>
+          <td>4.5</td>
+          <td>168.17</td>
+          <td>6.85</td>
         </tr>
-      
 
-        <tr class="engine-row box3d pair-even pair-start">
+
+        <tr class="engine-row box3d pair-even pair-start guarded">
           <td><span class="engine-chip box3d">Box3D</span></td>
-          <td>failed</td>
-          <td class="issue-cell">page.waitForFunction: Timeout 300000ms exceeded.</td>
+          <td>guarded</td>
+          <td class="issue-cell"></td>
           <td>1,000,000</td>
-          <td>0</td>
+          <td>1,000,005</td>
           <td>53.4</td>
-          <td>0.0</td>
-          <td>0</td>
-          <td>0.0</td>
-          <td>0.0</td>
+          <td>53.4</td>
+          <td>1,977</td>
+          <td>103.4</td>
+          <td>109.1</td>
           <td>0.0</td>
           <td>0.0</td>
           <td>0.0</td>
           <td>0.00</td>
-          <td>0.00</td>
+          <td>28.32</td>
         </tr>
-      
 
-        <tr class="engine-row rapier pair-even pair-end">
+
+        <tr class="engine-row rapier pair-even pair-end ">
           <td><span class="engine-chip rapier">Rapier</span></td>
           <td>floor</td>
           <td class="issue-cell"></td>
@@ -317,21 +318,21 @@
           <td>1,000,005</td>
           <td>53.4</td>
           <td>53.4</td>
-          <td>11,383</td>
-          <td>3.3</td>
-          <td>3.3</td>
-          <td>0.0</td>
-          <td>0.0</td>
-          <td>0.0</td>
-          <td>0.00</td>
-          <td>141.73</td>
+          <td>3,804</td>
+          <td>119.1</td>
+          <td>120.0</td>
+          <td>0.9</td>
+          <td>0.9</td>
+          <td>0.9</td>
+          <td>1131.14</td>
+          <td>107.80</td>
         </tr>
       </tbody>
       </table>
-      
+
         <section class="panel">
           <h2>64 requested bodies</h2>
-          
+
     <div class="chart">
       <h3>Render FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 64 bodies">
@@ -339,83 +340,83 @@
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">79 fps</text>
+          <text x="-8" y="8" text-anchor="end">135 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
-          
-      <path d="M188.0 100.8 L375.3 92.7 L563.4 48.1 L749.2 31.7" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M188.3 22.9 L377.4 23.0 L567.9 23.1 L756.3 22.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
       </path>
-      <circle class="sample-point" cx="188.0" cy="100.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
-262ms
-renderFps: 41.1 fps
-render: 41.1 fps
-sim capacity: 3407.3 fps
-sync: 0.0 ms
-snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="375.3" cy="92.7" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
-523ms
-renderFps: 44.2 fps
-render: 44.2 fps
-sim capacity: 9103.8 fps
-sync: 0.0 ms
-snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="563.4" cy="48.1" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
-785ms
-renderFps: 61.0 fps
-render: 61.0 fps
-sim capacity: 9103.8 fps
-sync: 0.0 ms
-snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="749.2" cy="31.7" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
-1044ms
-renderFps: 67.2 fps
-render: 67.2 fps
-sim capacity: 28070.2 fps
+      <circle class="sample-point" cx="188.3" cy="22.9" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
+252ms
+renderFps: 120.1 fps
+render: 120.1 fps
+sim capacity: 4733.7 fps
 sync: 0.1 ms
 snapshot: 0.0 MB</title></circle>
-      <text class="line-label" x="682.0" y="25.7" fill="#58a6ff">Box3D</text>
-    
+<circle class="sample-point" cx="377.4" cy="23.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
+505ms
+renderFps: 120.1 fps
+render: 120.1 fps
+sim capacity: 4733.7 fps
+sync: 0.1 ms
+snapshot: 0.0 MB</title></circle>
+<circle class="sample-point" cx="567.9" cy="23.1" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
+760ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 7158.8 fps
+sync: 0.1 ms
+snapshot: 0.0 MB</title></circle>
+<circle class="sample-point" cx="756.3" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
+1012ms
+renderFps: 120.4 fps
+render: 120.4 fps
+sim capacity: 7158.8 fps
+sync: 0.0 ms
+snapshot: 0.0 MB</title></circle>
+      <text class="line-label" x="682.0" y="16.5" fill="#58a6ff">Box3D</text>
 
-      <path d="M190.9 89.0 L378.2 77.9 L569.1 38.6 L760.0 22.5" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M193.5 23.1 L382.6 23.1 L570.9 23.1 L760.0 23.0" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Render FPS</title>
       </path>
-      <circle class="sample-point" cx="190.9" cy="89.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
-266ms
-renderFps: 45.6 fps
-render: 45.6 fps
-sim capacity: 5704.1 fps
+      <circle class="sample-point" cx="193.5" cy="23.1" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
+259ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 4164.0 fps
 sync: 0.0 ms
 snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="378.2" cy="77.9" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
-527ms
-renderFps: 49.8 fps
-render: 49.8 fps
-sim capacity: 5120.0 fps
+<circle class="sample-point" cx="382.6" cy="23.1" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
+512ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 4164.0 fps
+sync: 0.0 ms
+snapshot: 0.0 MB</title></circle>
+<circle class="sample-point" cx="570.9" cy="23.1" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
+764ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 4164.0 fps
 sync: 0.1 ms
 snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="569.1" cy="38.6" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
-793ms
-renderFps: 64.6 fps
-render: 64.6 fps
-sim capacity: 5120.0 fps
+<circle class="sample-point" cx="760.0" cy="23.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
+1017ms
+renderFps: 120.1 fps
+render: 120.1 fps
+sim capacity: 2511.8 fps
 sync: 0.1 ms
 snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="760.0" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
-1059ms
-renderFps: 70.6 fps
-render: 70.6 fps
-sim capacity: 5474.8 fps
-sync: 0.1 ms
-snapshot: 0.0 MB</title></circle>
-      <text class="line-label" x="682.0" y="16.5" fill="#f59e0b">Rapier</text>
-    
+      <text class="line-label" x="682.0" y="17.0" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
-          
+
+
     <div class="chart">
       <h3>Simulation capacity FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 64 bodies">
@@ -423,88 +424,88 @@ snapshot: 0.0 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">31439 fps</text>
+          <text x="-8" y="8" text-anchor="end">8018 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
-          
-      <path d="M188.0 187.2 L375.3 149.2 L563.4 149.2 L749.2 22.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M188.3 86.0 L377.4 86.0 L567.9 22.5 L756.3 22.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="188.0" cy="187.2" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
-262ms
-simCapacityFps: 3407.3 fps
-render: 41.1 fps
-sim capacity: 3407.3 fps
-sync: 0.0 ms
-snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="375.3" cy="149.2" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
-523ms
-simCapacityFps: 9103.8 fps
-render: 44.2 fps
-sim capacity: 9103.8 fps
-sync: 0.0 ms
-snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="563.4" cy="149.2" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
-785ms
-simCapacityFps: 9103.8 fps
-render: 61.0 fps
-sim capacity: 9103.8 fps
-sync: 0.0 ms
-snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="749.2" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
-1044ms
-simCapacityFps: 28070.2 fps
-render: 67.2 fps
-sim capacity: 28070.2 fps
+      <circle class="sample-point" cx="188.3" cy="86.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
+252ms
+simCapacityFps: 4733.7 fps
+render: 120.1 fps
+sim capacity: 4733.7 fps
 sync: 0.1 ms
+snapshot: 0.0 MB</title></circle>
+<circle class="sample-point" cx="377.4" cy="86.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
+505ms
+simCapacityFps: 4733.7 fps
+render: 120.1 fps
+sim capacity: 4733.7 fps
+sync: 0.1 ms
+snapshot: 0.0 MB</title></circle>
+<circle class="sample-point" cx="567.9" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
+760ms
+simCapacityFps: 7158.8 fps
+render: 120.0 fps
+sim capacity: 7158.8 fps
+sync: 0.1 ms
+snapshot: 0.0 MB</title></circle>
+<circle class="sample-point" cx="756.3" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 64 bodies
+1012ms
+simCapacityFps: 7158.8 fps
+render: 120.4 fps
+sim capacity: 7158.8 fps
+sync: 0.0 ms
 snapshot: 0.0 MB</title></circle>
       <text class="line-label" x="682.0" y="16.5" fill="#58a6ff">Box3D</text>
-    
 
-      <path d="M190.9 171.9 L378.2 175.8 L569.1 175.8 L760.0 173.4" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M193.5 100.9 L382.6 100.9 L570.9 100.9 L760.0 144.2" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="190.9" cy="171.9" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
-266ms
-simCapacityFps: 5704.1 fps
-render: 45.6 fps
-sim capacity: 5704.1 fps
+      <circle class="sample-point" cx="193.5" cy="100.9" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
+259ms
+simCapacityFps: 4164.0 fps
+render: 120.0 fps
+sim capacity: 4164.0 fps
 sync: 0.0 ms
 snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="378.2" cy="175.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
-527ms
-simCapacityFps: 5120.0 fps
-render: 49.8 fps
-sim capacity: 5120.0 fps
+<circle class="sample-point" cx="382.6" cy="100.9" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
+512ms
+simCapacityFps: 4164.0 fps
+render: 120.0 fps
+sim capacity: 4164.0 fps
+sync: 0.0 ms
+snapshot: 0.0 MB</title></circle>
+<circle class="sample-point" cx="570.9" cy="100.9" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
+764ms
+simCapacityFps: 4164.0 fps
+render: 120.0 fps
+sim capacity: 4164.0 fps
 sync: 0.1 ms
 snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="569.1" cy="175.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
-793ms
-simCapacityFps: 5120.0 fps
-render: 64.6 fps
-sim capacity: 5120.0 fps
+<circle class="sample-point" cx="760.0" cy="144.2" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
+1017ms
+simCapacityFps: 2511.8 fps
+render: 120.1 fps
+sim capacity: 2511.8 fps
 sync: 0.1 ms
 snapshot: 0.0 MB</title></circle>
-<circle class="sample-point" cx="760.0" cy="173.4" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 64 bodies
-1059ms
-simCapacityFps: 5474.8 fps
-render: 70.6 fps
-sim capacity: 5474.8 fps
-sync: 0.1 ms
-snapshot: 0.0 MB</title></circle>
-      <text class="line-label" x="682.0" y="167.4" fill="#f59e0b">Rapier</text>
-    
+      <text class="line-label" x="682.0" y="138.2" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
+
         </section>
-      
+
 
         <section class="panel">
           <h2>1,024 requested bodies</h2>
-          
+
     <div class="chart">
       <h3>Render FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 1024 bodies">
@@ -512,83 +513,83 @@ snapshot: 0.0 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">57 fps</text>
+          <text x="-8" y="8" text-anchor="end">134 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
-          
-      <path d="M189.5 27.7 L376.2 41.0 L560.8 49.8 L751.0 59.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M189.4 22.5 L379.6 22.5 L569.8 22.5 L759.2 22.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
       </path>
-      <circle class="sample-point" cx="189.5" cy="27.7" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
-274ms
-renderFps: 49.2 fps
-render: 49.2 fps
-sim capacity: 1952.7 fps
+      <circle class="sample-point" cx="189.4" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
+252ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 1485.3 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="376.2" cy="41.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
-544ms
-renderFps: 45.6 fps
-render: 45.6 fps
-sim capacity: 5337.8 fps
+<circle class="sample-point" cx="379.6" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
+505ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 1485.3 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="560.8" cy="49.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
-811ms
-renderFps: 43.2 fps
-render: 43.2 fps
-sim capacity: 5337.8 fps
+<circle class="sample-point" cx="569.8" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
+758ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 3816.3 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="751.0" cy="59.9" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
-1086ms
-renderFps: 40.5 fps
-render: 40.5 fps
-sim capacity: 34972.7 fps
+<circle class="sample-point" cx="759.2" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
+1010ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 3816.3 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-      <text class="line-label" x="682.0" y="53.9" fill="#58a6ff">Box3D</text>
-    
+      <text class="line-label" x="682.0" y="16.5" fill="#58a6ff">Box3D</text>
 
-      <path d="M194.3 22.5 L383.8 36.6 L571.9 49.2 L760.0 60.0" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M190.2 22.5 L379.6 23.5 L569.8 22.5 L760.0 22.5" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Render FPS</title>
       </path>
-      <circle class="sample-point" cx="194.3" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
-281ms
-renderFps: 50.6 fps
-render: 50.6 fps
-sim capacity: 740.2 fps
+      <circle class="sample-point" cx="190.2" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
+253ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 633.0 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="383.8" cy="36.6" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
-555ms
-renderFps: 46.8 fps
-render: 46.8 fps
-sim capacity: 594.7 fps
+<circle class="sample-point" cx="379.6" cy="23.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
+505ms
+renderFps: 119.4 fps
+render: 119.4 fps
+sim capacity: 633.0 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="571.9" cy="49.2" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
-827ms
-renderFps: 43.4 fps
-render: 43.4 fps
-sim capacity: 594.7 fps
+<circle class="sample-point" cx="569.8" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
+758ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 633.0 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="760.0" cy="60.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
-1099ms
-renderFps: 40.4 fps
-render: 40.4 fps
-sim capacity: 602.0 fps
+<circle class="sample-point" cx="760.0" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
+1011ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 432.8 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-      <text class="line-label" x="682.0" y="54.0" fill="#f59e0b">Rapier</text>
-    
+      <text class="line-label" x="682.0" y="16.5" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
-          
+
+
     <div class="chart">
       <h3>Simulation capacity FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 1024 bodies">
@@ -596,88 +597,88 @@ snapshot: 0.1 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">39169 fps</text>
+          <text x="-8" y="8" text-anchor="end">4274 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
-          
-      <path d="M189.5 199.5 L376.2 181.4 L560.8 181.4 L751.0 22.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M189.4 137.0 L379.6 137.0 L569.8 22.5 L759.2 22.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="189.5" cy="199.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
-274ms
-simCapacityFps: 1952.7 fps
-render: 49.2 fps
-sim capacity: 1952.7 fps
+      <circle class="sample-point" cx="189.4" cy="137.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
+252ms
+simCapacityFps: 1485.3 fps
+render: 120.0 fps
+sim capacity: 1485.3 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="376.2" cy="181.4" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
-544ms
-simCapacityFps: 5337.8 fps
-render: 45.6 fps
-sim capacity: 5337.8 fps
+<circle class="sample-point" cx="379.6" cy="137.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
+505ms
+simCapacityFps: 1485.3 fps
+render: 120.0 fps
+sim capacity: 1485.3 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="560.8" cy="181.4" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
-811ms
-simCapacityFps: 5337.8 fps
-render: 43.2 fps
-sim capacity: 5337.8 fps
+<circle class="sample-point" cx="569.8" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
+758ms
+simCapacityFps: 3816.3 fps
+render: 120.0 fps
+sim capacity: 3816.3 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="751.0" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
-1086ms
-simCapacityFps: 34972.7 fps
-render: 40.5 fps
-sim capacity: 34972.7 fps
+<circle class="sample-point" cx="759.2" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,024 bodies
+1010ms
+simCapacityFps: 3816.3 fps
+render: 120.0 fps
+sim capacity: 3816.3 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
       <text class="line-label" x="682.0" y="16.5" fill="#58a6ff">Box3D</text>
-    
 
-      <path d="M194.3 206.0 L383.8 206.8 L571.9 206.8 L760.0 206.8" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M190.2 178.9 L379.6 178.9 L569.8 178.9 L760.0 188.7" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="194.3" cy="206.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
-281ms
-simCapacityFps: 740.2 fps
-render: 50.6 fps
-sim capacity: 740.2 fps
+      <circle class="sample-point" cx="190.2" cy="178.9" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
+253ms
+simCapacityFps: 633.0 fps
+render: 120.0 fps
+sim capacity: 633.0 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="383.8" cy="206.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
-555ms
-simCapacityFps: 594.7 fps
-render: 46.8 fps
-sim capacity: 594.7 fps
+<circle class="sample-point" cx="379.6" cy="178.9" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
+505ms
+simCapacityFps: 633.0 fps
+render: 119.4 fps
+sim capacity: 633.0 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="571.9" cy="206.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
-827ms
-simCapacityFps: 594.7 fps
-render: 43.4 fps
-sim capacity: 594.7 fps
+<circle class="sample-point" cx="569.8" cy="178.9" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
+758ms
+simCapacityFps: 633.0 fps
+render: 120.0 fps
+sim capacity: 633.0 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-<circle class="sample-point" cx="760.0" cy="206.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
-1099ms
-simCapacityFps: 602.0 fps
-render: 40.4 fps
-sim capacity: 602.0 fps
+<circle class="sample-point" cx="760.0" cy="188.7" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,024 bodies
+1011ms
+simCapacityFps: 432.8 fps
+render: 120.0 fps
+sim capacity: 432.8 fps
 sync: 0.1 ms
 snapshot: 0.1 MB</title></circle>
-      <text class="line-label" x="682.0" y="200.8" fill="#f59e0b">Rapier</text>
-    
+      <text class="line-label" x="682.0" y="182.7" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
+
         </section>
-      
+
 
         <section class="panel">
           <h2>4,096 requested bodies</h2>
-          
+
     <div class="chart">
       <h3>Render FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 4096 bodies">
@@ -685,83 +686,83 @@ snapshot: 0.1 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">34 fps</text>
+          <text x="-8" y="8" text-anchor="end">135 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
-          
-      <path d="M184.9 24.8 L377.4 40.1 L570.4 53.2 L760.0 64.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M188.9 22.8 L379.2 22.8 L569.6 22.5 L759.2 22.8" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
       </path>
-      <circle class="sample-point" cx="184.9" cy="24.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
-318ms
-renderFps: 29.6 fps
-render: 29.6 fps
-sim capacity: 518.0 fps
+      <circle class="sample-point" cx="188.9" cy="22.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
+251ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 466.9 fps
 sync: 0.2 ms
 snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="377.4" cy="40.1" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
-649ms
-renderFps: 27.1 fps
-render: 27.1 fps
-sim capacity: 518.0 fps
+<circle class="sample-point" cx="379.2" cy="22.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
+504ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 466.9 fps
 sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="570.4" cy="53.2" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
-981ms
-renderFps: 25.0 fps
-render: 25.0 fps
-sim capacity: 715.9 fps
-sync: 0.2 ms
+<circle class="sample-point" cx="569.6" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
+757ms
+renderFps: 120.2 fps
+render: 120.2 fps
+sim capacity: 560.5 fps
+sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="760.0" cy="64.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
-1307ms
-renderFps: 23.3 fps
-render: 23.3 fps
-sim capacity: 37209.3 fps
-sync: 0.2 ms
+<circle class="sample-point" cx="759.2" cy="22.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
+1009ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 560.5 fps
+sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
-      <text class="line-label" x="682.0" y="58.0" fill="#58a6ff">Box3D</text>
-    
+      <text class="line-label" x="682.0" y="16.8" fill="#58a6ff">Box3D</text>
 
-      <path d="M150.0 22.5 L297.7 34.7 L494.8 48.7 L686.2 60.6" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M190.4 22.5 L380.0 22.8 L570.4 22.8 L760.0 22.8" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Render FPS</title>
       </path>
-      <circle class="sample-point" cx="150.0" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
-258ms
-renderFps: 29.9 fps
-render: 29.9 fps
-sim capacity: 205.6 fps
-sync: 0.2 ms
-snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="297.7" cy="34.7" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
-512ms
-renderFps: 28.0 fps
-render: 28.0 fps
-sim capacity: 205.6 fps
+      <circle class="sample-point" cx="190.4" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
+253ms
+renderFps: 120.2 fps
+render: 120.2 fps
+sim capacity: 193.8 fps
 sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="494.8" cy="48.7" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
-851ms
-renderFps: 25.8 fps
-render: 25.8 fps
-sim capacity: 144.5 fps
+<circle class="sample-point" cx="380.0" cy="22.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
+505ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 193.8 fps
 sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="686.2" cy="60.6" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
-1180ms
-renderFps: 23.9 fps
-render: 23.9 fps
-sim capacity: 144.3 fps
+<circle class="sample-point" cx="570.4" cy="22.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
+758ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 118.7 fps
 sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
-      <text class="line-label" x="682.0" y="54.6" fill="#f59e0b">Rapier</text>
-    
+<circle class="sample-point" cx="760.0" cy="22.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
+1010ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 118.7 fps
+sync: 0.1 ms
+snapshot: 0.2 MB</title></circle>
+      <text class="line-label" x="682.0" y="16.8" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
-          
+
+
     <div class="chart">
       <h3>Simulation capacity FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 4096 bodies">
@@ -769,88 +770,88 @@ snapshot: 0.2 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">41674 fps</text>
+          <text x="-8" y="8" text-anchor="end">628 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
-          
-      <path d="M184.9 207.4 L377.4 207.4 L570.4 206.4 L760.0 22.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M188.9 53.8 L379.2 53.8 L569.6 22.5 L759.2 22.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="184.9" cy="207.4" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
-318ms
-simCapacityFps: 518.0 fps
-render: 29.6 fps
-sim capacity: 518.0 fps
+      <circle class="sample-point" cx="188.9" cy="53.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
+251ms
+simCapacityFps: 466.9 fps
+render: 120.0 fps
+sim capacity: 466.9 fps
 sync: 0.2 ms
 snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="377.4" cy="207.4" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
-649ms
-simCapacityFps: 518.0 fps
-render: 27.1 fps
-sim capacity: 518.0 fps
+<circle class="sample-point" cx="379.2" cy="53.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
+504ms
+simCapacityFps: 466.9 fps
+render: 120.0 fps
+sim capacity: 466.9 fps
 sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="570.4" cy="206.4" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
-981ms
-simCapacityFps: 715.9 fps
-render: 25.0 fps
-sim capacity: 715.9 fps
-sync: 0.2 ms
+<circle class="sample-point" cx="569.6" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
+757ms
+simCapacityFps: 560.5 fps
+render: 120.2 fps
+sim capacity: 560.5 fps
+sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="760.0" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
-1307ms
-simCapacityFps: 37209.3 fps
-render: 23.3 fps
-sim capacity: 37209.3 fps
-sync: 0.2 ms
+<circle class="sample-point" cx="759.2" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 4,096 bodies
+1009ms
+simCapacityFps: 560.5 fps
+render: 120.0 fps
+sim capacity: 560.5 fps
+sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
       <text class="line-label" x="682.0" y="16.5" fill="#58a6ff">Box3D</text>
-    
 
-      <path d="M150.0 209.0 L297.7 209.0 L494.8 209.3 L686.2 209.3" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M190.4 145.2 L380.0 145.2 L570.4 170.3 L760.0 170.3" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="150.0" cy="209.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
-258ms
-simCapacityFps: 205.6 fps
-render: 29.9 fps
-sim capacity: 205.6 fps
-sync: 0.2 ms
-snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="297.7" cy="209.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
-512ms
-simCapacityFps: 205.6 fps
-render: 28.0 fps
-sim capacity: 205.6 fps
+      <circle class="sample-point" cx="190.4" cy="145.2" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
+253ms
+simCapacityFps: 193.8 fps
+render: 120.2 fps
+sim capacity: 193.8 fps
 sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="494.8" cy="209.3" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
-851ms
-simCapacityFps: 144.5 fps
-render: 25.8 fps
-sim capacity: 144.5 fps
+<circle class="sample-point" cx="380.0" cy="145.2" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
+505ms
+simCapacityFps: 193.8 fps
+render: 120.0 fps
+sim capacity: 193.8 fps
 sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
-<circle class="sample-point" cx="686.2" cy="209.3" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
-1180ms
-simCapacityFps: 144.3 fps
-render: 23.9 fps
-sim capacity: 144.3 fps
+<circle class="sample-point" cx="570.4" cy="170.3" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
+758ms
+simCapacityFps: 118.7 fps
+render: 120.0 fps
+sim capacity: 118.7 fps
 sync: 0.1 ms
 snapshot: 0.2 MB</title></circle>
-      <text class="line-label" x="682.0" y="203.3" fill="#f59e0b">Rapier</text>
-    
+<circle class="sample-point" cx="760.0" cy="170.3" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 4,096 bodies
+1010ms
+simCapacityFps: 118.7 fps
+render: 120.0 fps
+sim capacity: 118.7 fps
+sync: 0.1 ms
+snapshot: 0.2 MB</title></circle>
+      <text class="line-label" x="682.0" y="164.3" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
+
         </section>
-      
+
 
         <section class="panel">
           <h2>16,384 requested bodies</h2>
-          
+
     <div class="chart">
       <h3>Render FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 16384 bodies">
@@ -858,69 +859,83 @@ snapshot: 0.2 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">21 fps</text>
+          <text x="-8" y="8" text-anchor="end">135 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
-          
-      <path d="M294.9 33.3 L501.9 43.0 L712.5 51.3" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M190.2 23.1 L380.4 23.3 L569.8 23.3 L760.0 23.6" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
       </path>
-      <circle class="sample-point" cx="294.9" cy="33.3" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
-416ms
-renderFps: 17.9 fps
-render: 17.9 fps
-sim capacity: 124.2 fps
-sync: 0.6 ms
+      <circle class="sample-point" cx="190.2" cy="23.1" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
+253ms
+renderFps: 120.1 fps
+render: 120.1 fps
+sim capacity: 110.4 fps
+sync: 0.4 ms
 snapshot: 0.9 MB</title></circle>
-<circle class="sample-point" cx="501.9" cy="43.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
-708ms
-renderFps: 16.9 fps
-render: 16.9 fps
-sim capacity: 135.8 fps
+<circle class="sample-point" cx="380.4" cy="23.3" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
+506ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 110.4 fps
 sync: 0.5 ms
 snapshot: 0.9 MB</title></circle>
-<circle class="sample-point" cx="712.5" cy="51.3" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
-1005ms
-renderFps: 16.1 fps
-render: 16.1 fps
-sim capacity: 135.8 fps
+<circle class="sample-point" cx="569.8" cy="23.3" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
+758ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 124.8 fps
+sync: 0.4 ms
+snapshot: 0.9 MB</title></circle>
+<circle class="sample-point" cx="760.0" cy="23.6" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
+1011ms
+renderFps: 119.9 fps
+render: 119.9 fps
+sim capacity: 124.8 fps
 sync: 0.5 ms
 snapshot: 0.9 MB</title></circle>
-      <text class="line-label" x="682.0" y="45.3" fill="#58a6ff">Box3D</text>
-    
+      <text class="line-label" x="682.0" y="17.6" fill="#58a6ff">Box3D</text>
 
-      <path d="M342.4 22.5 L550.9 32.8 L760.0 42.3" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M190.2 22.5 L380.4 23.5 L569.8 23.2 L759.2 23.1" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Render FPS</title>
       </path>
-      <circle class="sample-point" cx="342.4" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
-483ms
-renderFps: 19.0 fps
-render: 19.0 fps
-sim capacity: 87.0 fps
-sync: 0.5 ms
-snapshot: 0.9 MB</title></circle>
-<circle class="sample-point" cx="550.9" cy="32.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
-777ms
-renderFps: 18.0 fps
-render: 18.0 fps
-sim capacity: 87.0 fps
+      <circle class="sample-point" cx="190.2" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
+253ms
+renderFps: 120.5 fps
+render: 120.5 fps
+sim capacity: 82.5 fps
 sync: 0.4 ms
 snapshot: 0.9 MB</title></circle>
-<circle class="sample-point" cx="760.0" cy="42.3" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
-1072ms
-renderFps: 17.0 fps
-render: 17.0 fps
-sim capacity: 26.0 fps
+<circle class="sample-point" cx="380.4" cy="23.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
+506ms
+renderFps: 119.9 fps
+render: 119.9 fps
+sim capacity: 82.5 fps
 sync: 0.4 ms
 snapshot: 0.9 MB</title></circle>
-      <text class="line-label" x="682.0" y="36.3" fill="#f59e0b">Rapier</text>
-    
+<circle class="sample-point" cx="569.8" cy="23.2" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
+758ms
+renderFps: 120.1 fps
+render: 120.1 fps
+sim capacity: 17.2 fps
+sync: 0.4 ms
+snapshot: 0.9 MB</title></circle>
+<circle class="sample-point" cx="759.2" cy="23.1" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
+1010ms
+renderFps: 120.1 fps
+render: 120.1 fps
+sim capacity: 17.2 fps
+sync: 0.4 ms
+snapshot: 0.9 MB</title></circle>
+      <text class="line-label" x="682.0" y="17.1" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
-          
+
+
     <div class="chart">
       <h3>Simulation capacity FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 16384 bodies">
@@ -928,74 +943,88 @@ snapshot: 0.9 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">152 fps</text>
+          <text x="-8" y="8" text-anchor="end">140 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
-          
-      <path d="M294.9 38.5 L501.9 22.5 L712.5 22.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M190.2 44.2 L380.4 44.2 L569.8 22.5 L760.0 22.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="294.9" cy="38.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
-416ms
-simCapacityFps: 124.2 fps
-render: 17.9 fps
-sim capacity: 124.2 fps
-sync: 0.6 ms
+      <circle class="sample-point" cx="190.2" cy="44.2" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
+253ms
+simCapacityFps: 110.4 fps
+render: 120.1 fps
+sim capacity: 110.4 fps
+sync: 0.4 ms
 snapshot: 0.9 MB</title></circle>
-<circle class="sample-point" cx="501.9" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
-708ms
-simCapacityFps: 135.8 fps
-render: 16.9 fps
-sim capacity: 135.8 fps
+<circle class="sample-point" cx="380.4" cy="44.2" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
+506ms
+simCapacityFps: 110.4 fps
+render: 120.0 fps
+sim capacity: 110.4 fps
 sync: 0.5 ms
 snapshot: 0.9 MB</title></circle>
-<circle class="sample-point" cx="712.5" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
-1005ms
-simCapacityFps: 135.8 fps
-render: 16.1 fps
-sim capacity: 135.8 fps
+<circle class="sample-point" cx="569.8" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
+758ms
+simCapacityFps: 124.8 fps
+render: 120.0 fps
+sim capacity: 124.8 fps
+sync: 0.4 ms
+snapshot: 0.9 MB</title></circle>
+<circle class="sample-point" cx="760.0" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 16,384 bodies
+1011ms
+simCapacityFps: 124.8 fps
+render: 119.9 fps
+sim capacity: 124.8 fps
 sync: 0.5 ms
 snapshot: 0.9 MB</title></circle>
       <text class="line-label" x="682.0" y="16.5" fill="#58a6ff">Box3D</text>
-    
 
-      <path d="M342.4 89.8 L550.9 89.8 L760.0 174.1" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M190.2 86.0 L380.4 86.0 L569.8 184.2 L759.2 184.2" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="342.4" cy="89.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
-483ms
-simCapacityFps: 87.0 fps
-render: 19.0 fps
-sim capacity: 87.0 fps
-sync: 0.5 ms
-snapshot: 0.9 MB</title></circle>
-<circle class="sample-point" cx="550.9" cy="89.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
-777ms
-simCapacityFps: 87.0 fps
-render: 18.0 fps
-sim capacity: 87.0 fps
+      <circle class="sample-point" cx="190.2" cy="86.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
+253ms
+simCapacityFps: 82.5 fps
+render: 120.5 fps
+sim capacity: 82.5 fps
 sync: 0.4 ms
 snapshot: 0.9 MB</title></circle>
-<circle class="sample-point" cx="760.0" cy="174.1" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
-1072ms
-simCapacityFps: 26.0 fps
-render: 17.0 fps
-sim capacity: 26.0 fps
+<circle class="sample-point" cx="380.4" cy="86.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
+506ms
+simCapacityFps: 82.5 fps
+render: 119.9 fps
+sim capacity: 82.5 fps
 sync: 0.4 ms
 snapshot: 0.9 MB</title></circle>
-      <text class="line-label" x="682.0" y="168.1" fill="#f59e0b">Rapier</text>
-    
+<circle class="sample-point" cx="569.8" cy="184.2" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
+758ms
+simCapacityFps: 17.2 fps
+render: 120.1 fps
+sim capacity: 17.2 fps
+sync: 0.4 ms
+snapshot: 0.9 MB</title></circle>
+<circle class="sample-point" cx="759.2" cy="184.2" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 16,384 bodies
+1010ms
+simCapacityFps: 17.2 fps
+render: 120.1 fps
+sim capacity: 17.2 fps
+sync: 0.4 ms
+snapshot: 0.9 MB</title></circle>
+      <text class="line-label" x="682.0" y="178.2" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
+
         </section>
-      
+
 
         <section class="panel">
           <h2>65,536 requested bodies</h2>
-          
+
     <div class="chart">
       <h3>Render FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 65536 bodies">
@@ -1003,55 +1032,83 @@ snapshot: 0.9 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">14 fps</text>
+          <text x="-8" y="8" text-anchor="end">135 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
-          
-      <path d="M253.5 28.9 L733.9 49.2" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M190.2 23.3 L380.4 22.8 L569.8 22.8 L759.2 22.7" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
       </path>
-      <circle class="sample-point" cx="253.5" cy="28.9" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
-592ms
-renderFps: 11.8 fps
-render: 11.8 fps
-sim capacity: 0.0 fps
-sync: 2.6 ms
-snapshot: 3.5 MB</title></circle>
-<circle class="sample-point" cx="733.9" cy="49.2" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
-1714ms
-renderFps: 10.5 fps
-render: 10.5 fps
-sim capacity: 23.7 fps
-sync: 2.4 ms
-snapshot: 3.5 MB</title></circle>
-      <text class="line-label" x="682.0" y="43.2" fill="#58a6ff">Box3D</text>
-    
-
-      <path d="M273.6 22.5 L760.0 47.4" fill="none" stroke="#f59e0b" stroke-width="2.5">
-        <title>Rapier Render FPS</title>
-      </path>
-      <circle class="sample-point" cx="273.6" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
-639ms
-renderFps: 12.2 fps
-render: 12.2 fps
-sim capacity: 0.0 fps
+      <circle class="sample-point" cx="190.2" cy="23.3" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
+253ms
+renderFps: 119.6 fps
+render: 119.6 fps
+sim capacity: 18.0 fps
 sync: 1.9 ms
 snapshot: 3.5 MB</title></circle>
-<circle class="sample-point" cx="760.0" cy="47.4" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
-1775ms
-renderFps: 10.6 fps
-render: 10.6 fps
-sim capacity: 18.5 fps
-sync: 1.8 ms
+<circle class="sample-point" cx="380.4" cy="22.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
+506ms
+renderFps: 119.9 fps
+render: 119.9 fps
+sim capacity: 18.0 fps
+sync: 1.7 ms
 snapshot: 3.5 MB</title></circle>
-      <text class="line-label" x="682.0" y="41.4" fill="#f59e0b">Rapier</text>
-    
+<circle class="sample-point" cx="569.8" cy="22.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
+758ms
+renderFps: 119.9 fps
+render: 119.9 fps
+sim capacity: 23.7 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+<circle class="sample-point" cx="759.2" cy="22.7" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
+1010ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 23.7 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+      <text class="line-label" x="682.0" y="16.7" fill="#58a6ff">Box3D</text>
+
+
+      <path d="M190.9 22.7 L380.4 22.7 L569.8 22.7 L760.0 22.5" fill="none" stroke="#f59e0b" stroke-width="2.5">
+        <title>Rapier Render FPS</title>
+      </path>
+      <circle class="sample-point" cx="190.9" cy="22.7" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
+254ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 30.8 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+<circle class="sample-point" cx="380.4" cy="22.7" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
+506ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 30.8 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+<circle class="sample-point" cx="569.8" cy="22.7" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
+758ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 18.3 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+<circle class="sample-point" cx="760.0" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
+1011ms
+renderFps: 120.1 fps
+render: 120.1 fps
+sim capacity: 18.3 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+      <text class="line-label" x="682.0" y="16.5" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
-          
+
+
     <div class="chart">
       <h3>Simulation capacity FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 65536 bodies">
@@ -1059,60 +1116,88 @@ snapshot: 3.5 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">27 fps</text>
+          <text x="-8" y="8" text-anchor="end">34 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
-          
-      <path d="M253.5 210.0 L733.9 22.5" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M190.2 100.4 L380.4 100.4 L569.8 65.8 L759.2 65.8" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="253.5" cy="210.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
-592ms
-simCapacityFps: 0.0 fps
-render: 11.8 fps
-sim capacity: 0.0 fps
-sync: 2.6 ms
-snapshot: 3.5 MB</title></circle>
-<circle class="sample-point" cx="733.9" cy="22.5" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
-1714ms
-simCapacityFps: 23.7 fps
-render: 10.5 fps
-sim capacity: 23.7 fps
-sync: 2.4 ms
-snapshot: 3.5 MB</title></circle>
-      <text class="line-label" x="682.0" y="16.5" fill="#58a6ff">Box3D</text>
-    
-
-      <path d="M273.6 210.0 L760.0 63.2" fill="none" stroke="#f59e0b" stroke-width="2.5">
-        <title>Rapier Simulation capacity FPS</title>
-      </path>
-      <circle class="sample-point" cx="273.6" cy="210.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
-639ms
-simCapacityFps: 0.0 fps
-render: 12.2 fps
-sim capacity: 0.0 fps
+      <circle class="sample-point" cx="190.2" cy="100.4" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
+253ms
+simCapacityFps: 18.0 fps
+render: 119.6 fps
+sim capacity: 18.0 fps
 sync: 1.9 ms
 snapshot: 3.5 MB</title></circle>
-<circle class="sample-point" cx="760.0" cy="63.2" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
-1775ms
-simCapacityFps: 18.5 fps
-render: 10.6 fps
-sim capacity: 18.5 fps
-sync: 1.8 ms
+<circle class="sample-point" cx="380.4" cy="100.4" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
+506ms
+simCapacityFps: 18.0 fps
+render: 119.9 fps
+sim capacity: 18.0 fps
+sync: 1.7 ms
 snapshot: 3.5 MB</title></circle>
-      <text class="line-label" x="682.0" y="57.2" fill="#f59e0b">Rapier</text>
-    
+<circle class="sample-point" cx="569.8" cy="65.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
+758ms
+simCapacityFps: 23.7 fps
+render: 119.9 fps
+sim capacity: 23.7 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+<circle class="sample-point" cx="759.2" cy="65.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 65,536 bodies
+1010ms
+simCapacityFps: 23.7 fps
+render: 120.0 fps
+sim capacity: 23.7 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+      <text class="line-label" x="682.0" y="59.8" fill="#58a6ff">Box3D</text>
+
+
+      <path d="M190.9 22.5 L380.4 22.5 L569.8 98.4 L760.0 98.4" fill="none" stroke="#f59e0b" stroke-width="2.5">
+        <title>Rapier Simulation capacity FPS</title>
+      </path>
+      <circle class="sample-point" cx="190.9" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
+254ms
+simCapacityFps: 30.8 fps
+render: 120.0 fps
+sim capacity: 30.8 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+<circle class="sample-point" cx="380.4" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
+506ms
+simCapacityFps: 30.8 fps
+render: 120.0 fps
+sim capacity: 30.8 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+<circle class="sample-point" cx="569.8" cy="98.4" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
+758ms
+simCapacityFps: 18.3 fps
+render: 120.0 fps
+sim capacity: 18.3 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+<circle class="sample-point" cx="760.0" cy="98.4" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 65,536 bodies
+1011ms
+simCapacityFps: 18.3 fps
+render: 120.1 fps
+sim capacity: 18.3 fps
+sync: 1.7 ms
+snapshot: 3.5 MB</title></circle>
+      <text class="line-label" x="682.0" y="92.4" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
+
         </section>
-      
+
 
         <section class="panel">
           <h2>262,144 requested bodies</h2>
-          
+
     <div class="chart">
       <h3>Render FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 262144 bodies">
@@ -1120,41 +1205,83 @@ snapshot: 3.5 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">8 fps</text>
+          <text x="-8" y="8" text-anchor="end">136 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
-          
-      <path d="M760.0 56.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M182.2 25.0 L364.5 24.8 L547.4 24.8 L730.4 24.8" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Render FPS</title>
       </path>
-      <circle class="sample-point" cx="760.0" cy="56.9" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 262,144 bodies
-3215ms
-renderFps: 5.7 fps
-render: 5.7 fps
+      <circle class="sample-point" cx="182.2" cy="25.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 262,144 bodies
+252ms
+renderFps: 119.9 fps
+render: 119.9 fps
 sim capacity: 0.0 fps
-sync: 37.6 ms
+sync: 7.2 ms
 snapshot: 14.0 MB</title></circle>
-      <text class="line-label" x="682.0" y="50.9" fill="#58a6ff">Box3D</text>
-    
+<circle class="sample-point" cx="364.5" cy="24.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 262,144 bodies
+504ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 1.0 fps
+sync: 7.3 ms
+snapshot: 14.0 MB</title></circle>
+<circle class="sample-point" cx="547.4" cy="24.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 262,144 bodies
+757ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 1.0 fps
+sync: 7.3 ms
+snapshot: 14.0 MB</title></circle>
+<circle class="sample-point" cx="730.4" cy="24.8" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 262,144 bodies
+1010ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 1.0 fps
+sync: 7.2 ms
+snapshot: 14.0 MB</title></circle>
+      <text class="line-label" x="682.0" y="18.8" fill="#58a6ff">Box3D</text>
 
-      <path d="M748.2 22.5" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M182.9 24.2 L365.2 24.8 L547.4 24.6 L760.0 22.5" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Render FPS</title>
       </path>
-      <circle class="sample-point" cx="748.2" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 262,144 bodies
-3165ms
-renderFps: 7.0 fps
-render: 7.0 fps
-sim capacity: 0.0 fps
-sync: 37.7 ms
+      <circle class="sample-point" cx="182.9" cy="24.2" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 262,144 bodies
+253ms
+renderFps: 120.4 fps
+render: 120.4 fps
+sim capacity: 5.9 fps
+sync: 6.6 ms
+snapshot: 14.0 MB</title></circle>
+<circle class="sample-point" cx="365.2" cy="24.8" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 262,144 bodies
+505ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 5.9 fps
+sync: 6.8 ms
+snapshot: 14.0 MB</title></circle>
+<circle class="sample-point" cx="547.4" cy="24.6" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 262,144 bodies
+757ms
+renderFps: 120.1 fps
+render: 120.1 fps
+sim capacity: 10.6 fps
+sync: 7.0 ms
+snapshot: 14.0 MB</title></circle>
+<circle class="sample-point" cx="760.0" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 262,144 bodies
+1051ms
+renderFps: 121.5 fps
+render: 121.5 fps
+sim capacity: 10.6 fps
+sync: 7.0 ms
 snapshot: 14.0 MB</title></circle>
       <text class="line-label" x="682.0" y="16.5" fill="#f59e0b">Rapier</text>
-    
+
         </g>
       </svg>
     </div>
-  
-          
+
+
     <div class="chart">
       <h3>Simulation capacity FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 262144 bodies">
@@ -1162,46 +1289,88 @@ snapshot: 14.0 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">1 fps</text>
+          <text x="-8" y="8" text-anchor="end">12 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
-          
-      <path d="M760.0 210.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
+
+      <path d="M182.2 210.0 L364.5 192.9 L547.4 192.9 L730.4 192.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
         <title>Box3D Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="760.0" cy="210.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 262,144 bodies
-3215ms
+      <circle class="sample-point" cx="182.2" cy="210.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 262,144 bodies
+252ms
 simCapacityFps: 0.0 fps
-render: 5.7 fps
+render: 119.9 fps
 sim capacity: 0.0 fps
-sync: 37.6 ms
+sync: 7.2 ms
 snapshot: 14.0 MB</title></circle>
-      <text class="line-label" x="682.0" y="204.0" fill="#58a6ff">Box3D</text>
-    
+<circle class="sample-point" cx="364.5" cy="192.9" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 262,144 bodies
+504ms
+simCapacityFps: 1.0 fps
+render: 120.0 fps
+sim capacity: 1.0 fps
+sync: 7.3 ms
+snapshot: 14.0 MB</title></circle>
+<circle class="sample-point" cx="547.4" cy="192.9" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 262,144 bodies
+757ms
+simCapacityFps: 1.0 fps
+render: 120.0 fps
+sim capacity: 1.0 fps
+sync: 7.3 ms
+snapshot: 14.0 MB</title></circle>
+<circle class="sample-point" cx="730.4" cy="192.9" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 262,144 bodies
+1010ms
+simCapacityFps: 1.0 fps
+render: 120.0 fps
+sim capacity: 1.0 fps
+sync: 7.2 ms
+snapshot: 14.0 MB</title></circle>
+      <text class="line-label" x="682.0" y="186.9" fill="#58a6ff">Box3D</text>
 
-      <path d="M748.2 210.0" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M182.9 104.9 L365.2 104.9 L547.4 22.5 L760.0 22.5" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="748.2" cy="210.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 262,144 bodies
-3165ms
-simCapacityFps: 0.0 fps
-render: 7.0 fps
-sim capacity: 0.0 fps
-sync: 37.7 ms
+      <circle class="sample-point" cx="182.9" cy="104.9" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 262,144 bodies
+253ms
+simCapacityFps: 5.9 fps
+render: 120.4 fps
+sim capacity: 5.9 fps
+sync: 6.6 ms
 snapshot: 14.0 MB</title></circle>
-      <text class="line-label" x="682.0" y="204.0" fill="#f59e0b">Rapier</text>
-    
+<circle class="sample-point" cx="365.2" cy="104.9" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 262,144 bodies
+505ms
+simCapacityFps: 5.9 fps
+render: 120.0 fps
+sim capacity: 5.9 fps
+sync: 6.8 ms
+snapshot: 14.0 MB</title></circle>
+<circle class="sample-point" cx="547.4" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 262,144 bodies
+757ms
+simCapacityFps: 10.6 fps
+render: 120.1 fps
+sim capacity: 10.6 fps
+sync: 7.0 ms
+snapshot: 14.0 MB</title></circle>
+<circle class="sample-point" cx="760.0" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 262,144 bodies
+1051ms
+simCapacityFps: 10.6 fps
+render: 121.5 fps
+sim capacity: 10.6 fps
+sync: 7.0 ms
+snapshot: 14.0 MB</title></circle>
+      <text class="line-label" x="682.0" y="16.5" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
+
         </section>
-      
+
 
         <section class="panel">
           <h2>1,000,000 requested bodies</h2>
-          
+
     <div class="chart">
       <h3>Render FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Render FPS over time for 1000000 bodies">
@@ -1209,28 +1378,83 @@ snapshot: 14.0 MB</title></circle>
           <rect width="760" height="210" rx="6" fill="#111827" />
           <line x1="0" y1="210" x2="760" y2="210" stroke="#334155" />
           <line x1="0" y1="0" x2="0" y2="210" stroke="#334155" />
-          <text x="-8" y="8" text-anchor="end">4 fps</text>
+          <text x="-8" y="8" text-anchor="end">134 fps</text>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Render FPS</text>
-          
-      <path d="M760.0 22.5" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M190.2 77.2 L380.4 39.6 L569.8 39.6 L760.0 37.9" fill="none" stroke="#58a6ff" stroke-width="2.5">
+        <title>Box3D Render FPS</title>
+      </path>
+      <circle class="sample-point" cx="190.2" cy="77.2" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,000,000 bodies (guarded native step)
+253ms
+renderFps: 85.0 fps
+render: 85.0 fps
+sim capacity: 0.0 fps
+sync: 28.6 ms
+snapshot: 53.4 MB</title></circle>
+<circle class="sample-point" cx="380.4" cy="39.6" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,000,000 bodies (guarded native step)
+506ms
+renderFps: 109.1 fps
+render: 109.1 fps
+sim capacity: 0.0 fps
+sync: 28.0 ms
+snapshot: 53.4 MB</title></circle>
+<circle class="sample-point" cx="569.8" cy="39.6" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,000,000 bodies (guarded native step)
+758ms
+renderFps: 109.1 fps
+render: 109.1 fps
+sim capacity: 0.0 fps
+sync: 28.4 ms
+snapshot: 53.4 MB</title></circle>
+<circle class="sample-point" cx="760.0" cy="37.9" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,000,000 bodies (guarded native step)
+1011ms
+renderFps: 110.2 fps
+render: 110.2 fps
+sim capacity: 0.0 fps
+sync: 28.3 ms
+snapshot: 53.4 MB</title></circle>
+      <text class="line-label" x="682.0" y="31.9" fill="#58a6ff">Box3D</text>
+
+
+      <path d="M189.4 22.6 L379.6 22.6 L569.8 22.5 L760.0 28.5" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Render FPS</title>
       </path>
-      <circle class="sample-point" cx="760.0" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,000,000 bodies
-8258ms
-renderFps: 3.3 fps
-render: 3.3 fps
+      <circle class="sample-point" cx="189.4" cy="22.6" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,000,000 bodies
+252ms
+renderFps: 120.0 fps
+render: 120.0 fps
 sim capacity: 0.0 fps
-sync: 141.7 ms
+sync: 134.5 ms
 snapshot: 53.4 MB</title></circle>
-      <text class="line-label" x="682.0" y="16.5" fill="#f59e0b">Rapier</text>
-    
+<circle class="sample-point" cx="379.6" cy="22.6" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,000,000 bodies
+505ms
+renderFps: 120.0 fps
+render: 120.0 fps
+sim capacity: 0.0 fps
+sync: 134.5 ms
+snapshot: 53.4 MB</title></circle>
+<circle class="sample-point" cx="569.8" cy="22.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,000,000 bodies
+758ms
+renderFps: 120.1 fps
+render: 120.1 fps
+sim capacity: 0.0 fps
+sync: 134.5 ms
+snapshot: 53.4 MB</title></circle>
+<circle class="sample-point" cx="760.0" cy="28.5" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,000,000 bodies
+1011ms
+renderFps: 116.2 fps
+render: 116.2 fps
+sim capacity: 0.9 fps
+sync: 27.6 ms
+snapshot: 53.4 MB</title></circle>
+      <text class="line-label" x="682.0" y="22.5" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
-          
+
+
     <div class="chart">
       <h3>Simulation capacity FPS</h3>
       <svg viewBox="0 0 832 264" role="img" aria-label="Simulation capacity FPS over time for 1000000 bodies">
@@ -1242,25 +1466,80 @@ snapshot: 53.4 MB</title></circle>
           <text x="-8" y="210" text-anchor="end">0</text>
           <text class="axis-label" x="380" y="244" text-anchor="middle">time in sample window</text>
           <text class="axis-label" x="-105" y="-38" transform="rotate(-90)" text-anchor="middle">Simulation capacity FPS</text>
-          
-      <path d="M760.0 210.0" fill="none" stroke="#f59e0b" stroke-width="2.5">
+
+      <path d="M190.2 210.0 L380.4 210.0 L569.8 210.0 L760.0 210.0" fill="none" stroke="#58a6ff" stroke-width="2.5">
+        <title>Box3D Simulation capacity FPS</title>
+      </path>
+      <circle class="sample-point" cx="190.2" cy="210.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,000,000 bodies (guarded native step)
+253ms
+simCapacityFps: 0.0 fps
+render: 85.0 fps
+sim capacity: 0.0 fps
+sync: 28.6 ms
+snapshot: 53.4 MB</title></circle>
+<circle class="sample-point" cx="380.4" cy="210.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,000,000 bodies (guarded native step)
+506ms
+simCapacityFps: 0.0 fps
+render: 109.1 fps
+sim capacity: 0.0 fps
+sync: 28.0 ms
+snapshot: 53.4 MB</title></circle>
+<circle class="sample-point" cx="569.8" cy="210.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,000,000 bodies (guarded native step)
+758ms
+simCapacityFps: 0.0 fps
+render: 109.1 fps
+sim capacity: 0.0 fps
+sync: 28.4 ms
+snapshot: 53.4 MB</title></circle>
+<circle class="sample-point" cx="760.0" cy="210.0" r="4.5" fill="#58a6ff" tabindex="0"><title>Box3D 1,000,000 bodies (guarded native step)
+1011ms
+simCapacityFps: 0.0 fps
+render: 110.2 fps
+sim capacity: 0.0 fps
+sync: 28.3 ms
+snapshot: 53.4 MB</title></circle>
+      <text class="line-label" x="682.0" y="204.0" fill="#58a6ff">Box3D</text>
+
+
+      <path d="M189.4 210.0 L379.6 210.0 L569.8 210.0 L760.0 44.2" fill="none" stroke="#f59e0b" stroke-width="2.5">
         <title>Rapier Simulation capacity FPS</title>
       </path>
-      <circle class="sample-point" cx="760.0" cy="210.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,000,000 bodies
-8258ms
+      <circle class="sample-point" cx="189.4" cy="210.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,000,000 bodies
+252ms
 simCapacityFps: 0.0 fps
-render: 3.3 fps
+render: 120.0 fps
 sim capacity: 0.0 fps
-sync: 141.7 ms
+sync: 134.5 ms
 snapshot: 53.4 MB</title></circle>
-      <text class="line-label" x="682.0" y="204.0" fill="#f59e0b">Rapier</text>
-    
+<circle class="sample-point" cx="379.6" cy="210.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,000,000 bodies
+505ms
+simCapacityFps: 0.0 fps
+render: 120.0 fps
+sim capacity: 0.0 fps
+sync: 134.5 ms
+snapshot: 53.4 MB</title></circle>
+<circle class="sample-point" cx="569.8" cy="210.0" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,000,000 bodies
+758ms
+simCapacityFps: 0.0 fps
+render: 120.1 fps
+sim capacity: 0.0 fps
+sync: 134.5 ms
+snapshot: 53.4 MB</title></circle>
+<circle class="sample-point" cx="760.0" cy="44.2" r="4.5" fill="#f59e0b" tabindex="0"><title>Rapier 1,000,000 bodies
+1011ms
+simCapacityFps: 0.9 fps
+render: 116.2 fps
+sim capacity: 0.9 fps
+sync: 27.6 ms
+snapshot: 53.4 MB</title></circle>
+      <text class="line-label" x="682.0" y="38.2" fill="#f59e0b">Rapier</text>
+
         </g>
       </svg>
     </div>
-  
+
         </section>
-      
+
     </main>
   </body>
 </html>
