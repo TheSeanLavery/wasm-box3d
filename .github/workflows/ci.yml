@@ -21,5 +21,6 @@ jobs:
         with:
           version: 6.0.1
       - run: npm install --include=optional
+      - run: npm install --no-save @rollup/rollup-linux-x64-gnu@4.62.2
       - run: npm run build
       - run: npm run pack:dry

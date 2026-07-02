@@ -30,6 +30,7 @@ jobs:
         with:
           version: 6.0.1
       - run: npm install --include=optional
+      - run: npm install --no-save @rollup/rollup-linux-x64-gnu@4.62.2
       - run: VITE_BASE_PATH=/wasm-box3d/ npm run build
       - uses: actions/upload-pages-artifact@v4
         with:
