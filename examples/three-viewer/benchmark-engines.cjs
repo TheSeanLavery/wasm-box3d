@@ -222,6 +222,37 @@ function makeSeriesPath(points, width, height, xMax, yMax, valueKey) {
     .join(' ');
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[<>&"]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[char]);
+}
+
+function engineLabel(engine) {
+  return engine === 'box3d' ? 'Box3D' : engine === 'rapier' ? 'Rapier' : engine;
+}
+
+function engineRank(engine) {
+  return engine === 'box3d' ? 0 : engine === 'rapier' ? 1 : 2;
+}
+
+function formatMetric(value, suffix = '') {
+  return Number.isFinite(value) ? `${value.toFixed(1)}${suffix}` : '';
+}
+
+function sortSummaryRows(summary) {
+  return [...summary].sort((a, b) => a.requestedBodies - b.requestedBodies || engineRank(a.engine) - engineRank(b.engine));
+}
+
+function makeSamplePoints(points, width, height, xMax, yMax, valueKey, color, label) {
+  return points
+    .map((point) => {
+      const x = (point.tMs / xMax) * width;
+      const y = height - (Math.max(0, point[valueKey]) / yMax) * height;
+      const title = `${label} ${point.requestedBodies.toLocaleString()} bodies\n${Math.round(point.tMs)}ms\n${valueKey}: ${formatMetric(point[valueKey], ' fps')}\nrender: ${formatMetric(point.renderFps, ' fps')}\nsim capacity: ${formatMetric(point.simCapacityFps, ' fps')}\nsync: ${formatMetric(point.syncMs, ' ms')}\nsnapshot: ${formatMetric(point.snapshotMB, ' MB')}`;
+      return `<circle class="sample-point" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${color}" tabindex="0"><title>${escapeHtml(title)}</title></circle>`;
+    })
+    .join('\n');
+}
+
 function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 210 }) {
   const colors = {
     box3d: '#58a6ff',
@@ -236,7 +267,17 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
       return [];
     }
     const color = colors[engine] ?? '#94a3b8';
-    return `<path d="${makeSeriesPath(points, chartWidth, chartHeight, xMax, yMax, metricKey)}" fill="none" stroke="${color}" stroke-width="2.5" />`;
+    const sortedPoints = [...points].sort((a, b) => a.tMs - b.tMs);
+    const last = sortedPoints.at(-1);
+    const lastX = last ? (last.tMs / xMax) * chartWidth : 0;
+    const lastY = last ? chartHeight - (Math.max(0, last[metricKey]) / yMax) * chartHeight : 0;
+    return `
+      <path d="${makeSeriesPath(sortedPoints, chartWidth, chartHeight, xMax, yMax, metricKey)}" fill="none" stroke="${color}" stroke-width="2.5">
+        <title>${escapeHtml(`${engineLabel(engine)} ${label}`)}</title>
+      </path>
+      ${makeSamplePoints(sortedPoints, chartWidth, chartHeight, xMax, yMax, metricKey, color, engineLabel(engine))}
+      ${last ? `<text class="line-label" x="${Math.min(chartWidth - 78, lastX + 8).toFixed(1)}" y="${Math.max(12, Math.min(chartHeight - 6, lastY - 6)).toFixed(1)}" fill="${color}">${engineLabel(engine)}</text>` : ''}
+    `;
   }).join('\n');
 
   return `
@@ -249,6 +290,8 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
           <line x1="0" y1="0" x2="0" y2="${chartHeight}" stroke="#334155" />
           <text x="-8" y="8" text-anchor="end">${Math.round(yMax)} fps</text>
           <text x="-8" y="${chartHeight}" text-anchor="end">0</text>
+          <text class="axis-label" x="${chartWidth / 2}" y="${chartHeight + 34}" text-anchor="middle">time in sample window</text>
+          <text class="axis-label" x="-${chartHeight / 2}" y="-38" transform="rotate(-90)" text-anchor="middle">${label}</text>
           ${paths}
         </g>
       </svg>
@@ -273,13 +316,14 @@ function makeChartHtml(result) {
     })
     .join('\n');
 
-  const rows = result.summary
-    .map(
-      (row) => `
-        <tr>
-          <td>${row.engine}${row.threadsEnabled ? ' pthreads' : ''}</td>
+  const rows = sortSummaryRows(result.summary)
+    .map((row) => {
+      const levelIndex = levels.indexOf(row.requestedBodies);
+      return `
+        <tr class="engine-row ${row.engine} ${levelIndex % 2 === 0 ? 'pair-even' : 'pair-odd'}">
+          <td><span class="engine-chip ${row.engine}">${engineLabel(row.engine)}</span></td>
           <td>${row.ok ? (row.floorHit ? 'floor' : 'ok') : 'failed'}</td>
-          <td>${row.error ? row.error.replace(/[<>&]/g, (char) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[char]) : ''}</td>
+          <td class="issue-cell">${escapeHtml(row.error)}</td>
           <td>${row.requestedBodies.toLocaleString()}</td>
           <td>${Math.round(row.bodies).toLocaleString()}</td>
           <td>${row.estimatedSnapshotMB.toFixed(1)}</td>
@@ -293,8 +337,8 @@ function makeChartHtml(result) {
           <td>${row.p95PhysicsStepMs.toFixed(2)}</td>
           <td>${row.avgSyncMs.toFixed(2)}</td>
         </tr>
-      `
-    )
+      `;
+    })
     .join('\n');
 
   return `<!doctype html>
@@ -315,6 +359,15 @@ function makeChartHtml(result) {
       th, td { padding: 10px 12px; border-bottom: 1px solid #263244; text-align: right; }
       th:first-child, td:first-child { text-align: left; }
       th { color: #bfcede; font-weight: 700; }
+      tbody tr.pair-even.box3d { background: rgba(88, 166, 255, 0.12); }
+      tbody tr.pair-even.rapier { background: rgba(245, 158, 11, 0.12); }
+      tbody tr.pair-odd.box3d { background: rgba(88, 166, 255, 0.06); }
+      tbody tr.pair-odd.rapier { background: rgba(245, 158, 11, 0.06); }
+      tbody tr.rapier td { border-bottom-color: #3a4658; }
+      .engine-chip { display: inline-flex; align-items: center; min-width: 58px; font-weight: 800; }
+      .engine-chip.box3d { color: #8ec5ff; }
+      .engine-chip.rapier { color: #f9c46f; }
+      .issue-cell { max-width: 290px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #f3b0a8; text-align: left; }
       .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 12px 0 20px; color: #cbd5e1; font-size: 13px; }
       .key { display: inline-flex; align-items: center; gap: 7px; }
       .swatch { width: 22px; height: 3px; border-radius: 999px; background: var(--color); }
@@ -323,6 +376,10 @@ function makeChartHtml(result) {
       .chart + .chart { margin-top: 16px; }
       svg { width: 100%; height: auto; display: block; }
       text { fill: #8ea0b8; font-size: 12px; }
+      .axis-label { fill: #728199; font-size: 11px; }
+      .line-label { font-size: 12px; font-weight: 800; paint-order: stroke; stroke: #111827; stroke-width: 4px; stroke-linejoin: round; }
+      .sample-point { cursor: crosshair; stroke: #0f172a; stroke-width: 1.5px; opacity: 0.86; }
+      .sample-point:hover, .sample-point:focus { opacity: 1; stroke: #f8fafc; stroke-width: 2.5px; outline: none; }
     </style>
   </head>
   <body>
@@ -349,6 +406,15 @@ function makeChartHtml(result) {
 
 async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  if (process.env.WB3_BENCH_RENDER_ONLY === '1') {
+    const latestPath = path.join(OUTPUT_DIR, 'latest.json');
+    const result = JSON.parse(fs.readFileSync(latestPath, 'utf8'));
+    fs.writeFileSync(path.join(OUTPUT_DIR, 'latest.html'), makeChartHtml(result));
+    writeCsv(result.samples ?? [], path.join(OUTPUT_DIR, 'latest.csv'));
+    console.log(JSON.stringify({ outputDir: OUTPUT_DIR, renderedOnly: true, summaryRows: result.summary?.length ?? 0 }, null, 2));
+    return;
+  }
+
   const browser = await chromium.launch({ headless: HEADLESS });
   const consoleErrors = [];
   const attachPageChecks = (checkedPage) => {

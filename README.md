@@ -65,6 +65,7 @@ Useful overrides:
 ```sh
 WB3_BENCH_LEVELS=64,1024,4096,16384,65536,262144,1000000 npm run benchmark:engines
 WB3_BENCH_HEADLESS=1 npm run benchmark:engines
+WB3_BENCH_RENDER_ONLY=1 npm run benchmark:engines
 WB3_BENCH_STOP_ON_FLOOR=1 npm run benchmark:engines
 WB3_BENCH_RESET_TIMEOUT_MS=300000 WB3_BENCH_LEVEL_TIMEOUT_MS=420000 npm run benchmark:engines
 WB3_VERIFY_ENGINE=rapier npm run verify:browser
