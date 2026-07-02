@@ -1,5 +1,3 @@
-import Box3DModule from './wasm/box3d-wasm.js';
-
 export const BODY_FLOAT_STRIDE = 14;
 
 export const RenderShapeType = Object.freeze({
@@ -7,7 +5,33 @@ export const RenderShapeType = Object.freeze({
   sphere: 1,
 });
 
+function canUsePthreads() {
+  return typeof crossOriginIsolated === 'boolean' && crossOriginIsolated && typeof SharedArrayBuffer === 'function';
+}
+
+function resolveThreadsEnabled(threads = 'auto') {
+  if (threads === false || threads === 'single') {
+    return false;
+  }
+
+  const supported = canUsePthreads();
+  if (threads === true || threads === 'pthreads') {
+    if (!supported) {
+      throw new Error(
+        'Threaded wasm-box3d requires SharedArrayBuffer and cross-origin isolation. Serve COOP/COEP headers or pass { threads: false }.'
+      );
+    }
+    return true;
+  }
+
+  return supported;
+}
+
 export async function loadBox3D(options = {}) {
+  const threadsEnabled = resolveThreadsEnabled(options.threads);
+  const { default: Box3DModule } = threadsEnabled
+    ? await import('./wasm/box3d-wasm-pthreads.js')
+    : await import('./wasm/box3d-wasm.js');
   const moduleOptions = {
     ...options.module,
     locateFile(path, prefix) {
@@ -18,7 +42,9 @@ export async function loadBox3D(options = {}) {
     },
   };
 
-  return Box3DModule(moduleOptions);
+  const module = await Box3DModule(moduleOptions);
+  module.__wasmBox3DThreads = threadsEnabled;
+  return module;
 }
 
 export async function createBox3DDemo(options = {}) {
@@ -31,7 +57,9 @@ export async function createBox3DDemo(options = {}) {
     spawnBoxRaw: module.cwrap('wb3_spawn_box', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
     spawnSphereRaw: module.cwrap('wb3_spawn_sphere', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
     setGravityEnabledRaw: module.cwrap('wb3_set_gravity_enabled', null, ['number']),
+    forceSleepAwakeBodiesRaw: module.cwrap('wb3_force_sleep_awake_bodies', 'number', []),
     getBodyCountRaw: module.cwrap('wb3_get_body_count', 'number', []),
+    getAwakeBodyCountRaw: module.cwrap('wb3_get_awake_body_count', 'number', []),
     getBodyStrideRaw: module.cwrap('wb3_get_body_stride', 'number', []),
     getBodyDataRaw: module.cwrap('wb3_get_body_data', 'number', []),
     getStepCountRaw: module.cwrap('wb3_get_step_count', 'number', []),
@@ -44,6 +72,7 @@ export async function createBox3DDemo(options = {}) {
 
   return {
     module,
+    threadsEnabled: module.__wasmBox3DThreads === true,
     reset(sceneIndex = 0) {
       return api.reset(sceneIndex);
     },
@@ -79,8 +108,14 @@ export async function createBox3DDemo(options = {}) {
     setGravityEnabled(enabled) {
       api.setGravityEnabledRaw(enabled ? 1 : 0);
     },
+    forceSleepAwakeBodies() {
+      return api.forceSleepAwakeBodiesRaw();
+    },
     getBodyCount() {
       return api.getBodyCountRaw();
+    },
+    getAwakeBodyCount() {
+      return api.getAwakeBodyCountRaw();
     },
     getBodyStride() {
       return api.getBodyStrideRaw();

@@ -18,7 +18,8 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./wasm": "./dist/wasm/box3d-wasm.wasm"
+    "./wasm": "./dist/wasm/box3d-wasm.wasm",
+    "./wasm-pthreads": "./dist/wasm/box3d-wasm-pthreads.wasm"
   },
   "files": [
     "dist",
@@ -26,7 +27,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "build:wasm": "if [ -z \"${EMSDK_PYTHON:-}\" ] && [ -x /opt/homebrew/opt/python@3.14/bin/python3.14 ]; then export EMSDK_PYTHON=/opt/homebrew/opt/python@3.14/bin/python3.14; fi; emcmake cmake -S . -B ../../build/wasm-box3d -DCMAKE_BUILD_TYPE=Release && cmake --build ../../build/wasm-box3d --config Release",
+    "build:wasm:single": "if [ -z \"${EMSDK_PYTHON:-}\" ] && [ -x /opt/homebrew/opt/python@3.14/bin/python3.14 ]; then export EMSDK_PYTHON=/opt/homebrew/opt/python@3.14/bin/python3.14; fi; emcmake cmake -S . -B ../../build/wasm-box3d -DCMAKE_BUILD_TYPE=Release -DWB3_ENABLE_PTHREADS=OFF && cmake --build ../../build/wasm-box3d --config Release",
+    "build:wasm:pthreads": "if [ -z \"${EMSDK_PYTHON:-}\" ] && [ -x /opt/homebrew/opt/python@3.14/bin/python3.14 ]; then export EMSDK_PYTHON=/opt/homebrew/opt/python@3.14/bin/python3.14; fi; emcmake cmake -S . -B ../../build/wasm-box3d-pthreads -DCMAKE_BUILD_TYPE=Release -DWB3_ENABLE_PTHREADS=ON && cmake --build ../../build/wasm-box3d-pthreads --config Release",
+    "build:wasm": "npm run build:wasm:single && npm run build:wasm:pthreads",
     "build": "node ../../scripts/copy-package.mjs src dist",
     "prepack": "npm run build:wasm && npm run build"
   },

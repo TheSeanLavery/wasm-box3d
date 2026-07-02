@@ -15,9 +15,11 @@ async function verifyViewport(viewport, label) {
   });
   page.on('pageerror', (error) => errors.push(error.message));
 
-  await page.goto('http://127.0.0.1:5300/', { waitUntil: 'networkidle' });
+  const forcedThreads = process.env.WB3_VERIFY_THREADS;
+  const url = forcedThreads ? `http://127.0.0.1:5300/?threads=${forcedThreads}` : 'http://127.0.0.1:5300/';
+  await page.goto(url, { waitUntil: 'networkidle' });
   await page.waitForFunction(
-    () => document.querySelector('#wasm-status')?.textContent === 'wasm active',
+    () => /^wasm (pthreads|single-thread) active$/.test(document.querySelector('#wasm-status')?.textContent ?? ''),
     null,
     { timeout: 10000 }
   );
@@ -101,7 +103,7 @@ async function verifyViewport(viewport, label) {
   if (errors.length > 0) {
     throw new Error(`${label} console errors:\n${errors.join('\n')}`);
   }
-  if (state.status !== 'wasm active') {
+  if (!/^wasm (pthreads|single-thread) active$/.test(state.status ?? '')) {
     throw new Error(`${label} did not activate WASM`);
   }
   if (!(afterStep > beforeStep)) {
@@ -116,7 +118,7 @@ async function verifyViewport(viewport, label) {
   if (!/^render \d+(\.\d+)? fps$/.test(state.fps ?? '')) {
     throw new Error(`${label} fps readout invalid: ${state.fps}`);
   }
-  if (!/^phys \d+(\.\d+)? fps$/.test(state.physicsFps ?? '')) {
+  if (!/^phys \d+(\.\d+)? fps awake \d+$/.test(state.physicsFps ?? '')) {
     throw new Error(`${label} physics fps readout invalid: ${state.physicsFps}`);
   }
   if (!/^step \d+(\.\d+)?ms wasm \d+(\.\d+)?ms sync \d+(\.\d+)?ms render \d+(\.\d+)?ms snap \d+(\.\d+)?ms$/.test(state.profile ?? '')) {

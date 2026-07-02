@@ -15,6 +15,7 @@ export type Box3DLoaderOptions = {
   locateFile?: (path: string, prefix: string) => string;
   module?: Record<string, unknown>;
   sceneIndex?: number;
+  threads?: 'auto' | 'single' | 'pthreads' | boolean;
 };
 
 export type BodyRecord = {
@@ -27,6 +28,7 @@ export type BodyRecord = {
 
 export type Box3DDemo = {
   module: unknown;
+  threadsEnabled: boolean;
   reset(sceneIndex?: number): number;
   resetStress(dynamicBlockCount?: number): number;
   step(dt?: number, substeps?: number): void;
@@ -34,7 +36,9 @@ export type Box3DDemo = {
   spawnBox(position?: Vec3Like, velocity?: Vec3Like): number;
   spawnSphere(position?: Vec3Like, velocity?: Vec3Like): number;
   setGravityEnabled(enabled: boolean): void;
+  forceSleepAwakeBodies(): number;
   getBodyCount(): number;
+  getAwakeBodyCount(): number;
   getBodyStride(): number;
   getBodyData(): Float32Array;
   getStepCount(): number;

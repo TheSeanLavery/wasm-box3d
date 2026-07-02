@@ -17,7 +17,12 @@
 #define MAX_RENDER_BODIES 10000000
 #define BODY_FLOAT_STRIDE 14
 #define DEFAULT_ARENA_HALF_WIDTH 14.0f
+#define WB3_SLEEP_THRESHOLD 0.08f
+#if defined( WB3_PTHREADS_ENABLED )
 #define WB3_WORKER_COUNT 4
+#else
+#define WB3_WORKER_COUNT 1
+#endif
 
 enum
 {
@@ -116,6 +121,10 @@ static int add_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float 
 	bodyDef.type = type;
 	bodyDef.position = (b3Pos){ position.x, position.y, position.z };
 	bodyDef.linearVelocity = velocity;
+	if ( type == b3_dynamicBody )
+	{
+		bodyDef.sleepThreshold = WB3_SLEEP_THRESHOLD;
+	}
 
 	b3BodyId bodyId = b3CreateBody( g_worldId, &bodyDef );
 	b3ShapeDef shapeDef = b3DefaultShapeDef();
@@ -151,6 +160,10 @@ static int add_sphere( b3BodyType type, b3Vec3 position, float radius, float den
 	bodyDef.type = type;
 	bodyDef.position = (b3Pos){ position.x, position.y, position.z };
 	bodyDef.linearVelocity = velocity;
+	if ( type == b3_dynamicBody )
+	{
+		bodyDef.sleepThreshold = WB3_SLEEP_THRESHOLD;
+	}
 
 	b3BodyId bodyId = b3CreateBody( g_worldId, &bodyDef );
 	b3ShapeDef shapeDef = b3DefaultShapeDef();
@@ -220,7 +233,7 @@ static int add_stress_blocks( int requestedDynamicCount )
 		requestedDynamicCount = maxDynamicCount;
 	}
 
-	const float horizontalSpacing = 3.12f;
+	const float horizontalSpacing = 31.2f;
 	const float verticalSpacing = 0.78f;
 	int footprint = ceil_sqrt_int( requestedDynamicCount );
 	if ( footprint > 32 )
@@ -465,9 +478,42 @@ void wb3_set_gravity_enabled( int enabled )
 }
 
 EMSCRIPTEN_KEEPALIVE
+int wb3_force_sleep_awake_bodies( void )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return 0;
+	}
+
+	int sleptCount = 0;
+	for ( int i = 0; i < g_bodyCount; ++i )
+	{
+		b3BodyId bodyId = g_bodies[i].bodyId;
+		if ( b3Body_IsAwake( bodyId ) )
+		{
+			b3Body_SetAwake( bodyId, false );
+			sleptCount += 1;
+		}
+	}
+
+	return sleptCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
 int wb3_get_body_count( void )
 {
 	return g_bodyCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_awake_body_count( void )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return 0;
+	}
+
+	return b3World_GetAwakeBodyCount( g_worldId );
 }
 
 EMSCRIPTEN_KEEPALIVE

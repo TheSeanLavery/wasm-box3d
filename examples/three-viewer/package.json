@@ -7,7 +7,8 @@
     "dev": "vite --host 127.0.0.1 --port 5300",
     "build": "vite build",
     "preview": "vite preview --host 127.0.0.1 --port 5300",
-    "verify:browser": "node verify-browser.cjs"
+    "verify:browser": "node verify-browser.cjs",
+    "verify:sleep": "node verify-sleep.cjs"
   },
   "dependencies": {
     "@threecyborgs/wasm-box3d": "0.1.2",

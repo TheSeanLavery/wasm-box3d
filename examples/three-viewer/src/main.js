@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { createThreeBodyMeshManager } from '@threecyborgs/wasm-box3d-three';
 import './styles.css';
 
@@ -20,6 +21,8 @@ const STRESS_TARGET_FPS = 20;
 const STRESS_WARMUP_MS = 1000;
 const STRESS_SAMPLE_MS = 2400;
 const FPS_WINDOW_SIZE = 90;
+const threadParam = new URLSearchParams(window.location.search).get('threads');
+const physicsThreadMode = threadParam === 'single' ? false : threadParam === 'pthreads' ? true : 'auto';
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -28,9 +31,17 @@ renderer.shadowMap.enabled = false;
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x111419);
 
-const camera = new THREE.PerspectiveCamera(56, 1, 0.1, 160);
-camera.position.set(24, 18, 30);
-camera.lookAt(0, 3.0, 0);
+const camera = new THREE.PerspectiveCamera(56, 1, 0.1, 2400);
+camera.position.set(170, 96, 170);
+
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 3.0, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.minDistance = 8;
+controls.maxDistance = 900;
+controls.maxPolarAngle = Math.PI * 0.49;
+controls.update();
 
 const worldGroup = new THREE.Group();
 scene.add(worldGroup);
@@ -52,6 +63,8 @@ const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 const spawnPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -7.5);
 const spawnPoint = new THREE.Vector3();
+const dragStart = new THREE.Vector2();
+let pointerWasDragged = false;
 
 let physics;
 let meshManager;
@@ -62,6 +75,8 @@ let fpsSamples = [];
 let fpsAverage = 0;
 let syncMs = 0;
 let renderMs = 0;
+let lastSnapshotRequestedAt = 0;
+let lastSleepTestSample = null;
 let stressRun = {
   active: false,
   target: 0,
@@ -82,6 +97,7 @@ function createWorkerPhysics(sceneIndex) {
   let snapshotPending = false;
   let state = {
     bodyCount: 0,
+    awakeBodyCount: 0,
     bodyStride: 14,
     bodyData: new Float32Array(),
     stepCount: 0,
@@ -95,6 +111,9 @@ function createWorkerPhysics(sceneIndex) {
     snapshotCopyMs: 0,
     snapshotBytes: 0,
     resetStressMs: 0,
+    lastForceSleepMs: 0,
+    forcedSleepBodies: 0,
+    threadsEnabled: false,
   };
   const ready = new Promise((resolve) => {
     readyResolve = resolve;
@@ -116,7 +135,7 @@ function createWorkerPhysics(sceneIndex) {
     console.error(error);
   });
 
-  worker.postMessage({ type: 'init', sceneIndex });
+  worker.postMessage({ type: 'init', sceneIndex, threads: physicsThreadMode });
 
   return {
     ready,
@@ -154,6 +173,9 @@ function createWorkerPhysics(sceneIndex) {
     },
     getBodyCount() {
       return state.bodyCount;
+    },
+    getAwakeBodyCount() {
+      return state.awakeBodyCount;
     },
     getBodyStride() {
       return state.bodyStride;
@@ -194,6 +216,15 @@ function createWorkerPhysics(sceneIndex) {
     getResetStressMs() {
       return state.resetStressMs;
     },
+    getLastForceSleepMs() {
+      return state.lastForceSleepMs;
+    },
+    getForcedSleepBodies() {
+      return state.forcedSleepBodies;
+    },
+    getThreadsEnabled() {
+      return state.threadsEnabled === true;
+    },
   };
 }
 
@@ -214,7 +245,7 @@ function updateReadout() {
   bodyCountEl.textContent = `${physics.getBodyCount()} bodies`;
   stepCountEl.textContent = `step ${physics.getStepCount()}`;
   fpsReadoutEl.textContent = `render ${fpsAverage.toFixed(1)} fps`;
-  physicsFpsReadoutEl.textContent = `phys ${physics.getPhysicsHz().toFixed(1)} fps`;
+  physicsFpsReadoutEl.textContent = `phys ${physics.getPhysicsHz().toFixed(1)} fps awake ${physics.getAwakeBodyCount()}`;
   profileReadoutEl.textContent =
     `step ${physics.getPhysicsStepMs().toFixed(1)}ms wasm ${physics.getRenderSyncMs().toFixed(1)}ms sync ${syncMs.toFixed(1)}ms render ${renderMs.toFixed(1)}ms snap ${physics.getSnapshotCopyMs().toFixed(1)}ms`;
   stressStatusEl.textContent = getStressLabel();
@@ -222,6 +253,7 @@ function updateReadout() {
     bodies: physics.getBodyCount(),
     renderFps: fpsAverage,
     physicsFps: physics.getPhysicsHz(),
+    awakeBodies: physics.getAwakeBodyCount(),
     physicsStepMs: physics.getPhysicsStepMs(),
     physicsCapacityFps: physics.getPhysicsCapacityFps(),
     renderSyncMs: physics.getRenderSyncMs(),
@@ -230,8 +262,60 @@ function updateReadout() {
     snapshotCopyMs: physics.getSnapshotCopyMs(),
     snapshotBytes: physics.getSnapshotBytes(),
     resetStressMs: physics.getResetStressMs(),
+    lastForceSleepMs: physics.getLastForceSleepMs(),
+    forcedSleepBodies: physics.getForcedSleepBodies(),
+    threadsEnabled: physics.getThreadsEnabled(),
     stressStatus: stressStatusEl.textContent,
     stepCount: physics.getStepCount(),
+  };
+}
+
+function sampleMotionForTest() {
+  if (!physics) {
+    return null;
+  }
+
+  const bodyData = physics.getBodyData();
+  const stride = physics.getBodyStride();
+  const bodyCount = physics.getBodyCount();
+  const snapshot = new Float32Array(bodyData);
+  let maxPositionDelta = 0;
+  let meanPositionDelta = 0;
+  let movingBodies = 0;
+  let comparedBodies = 0;
+
+  if (lastSleepTestSample && lastSleepTestSample.length === snapshot.length) {
+    for (let i = 5; i < bodyCount; ++i) {
+      const offset = i * stride;
+      const dx = snapshot[offset] - lastSleepTestSample[offset];
+      const dy = snapshot[offset + 1] - lastSleepTestSample[offset + 1];
+      const dz = snapshot[offset + 2] - lastSleepTestSample[offset + 2];
+      const delta = Math.hypot(dx, dy, dz);
+      maxPositionDelta = Math.max(maxPositionDelta, delta);
+      meanPositionDelta += delta;
+      comparedBodies += 1;
+      if (delta > 0.001) {
+        movingBodies += 1;
+      }
+    }
+
+    if (comparedBodies > 0) {
+      meanPositionDelta /= comparedBodies;
+    }
+  }
+
+  lastSleepTestSample = snapshot;
+  return {
+    bodyCount,
+    awakeBodies: physics.getAwakeBodyCount(),
+    comparedBodies,
+    maxPositionDelta,
+    meanPositionDelta,
+    movingBodies,
+    physicsFps: physics.getPhysicsHz(),
+    physicsStepMs: physics.getPhysicsStepMs(),
+    stepCount: physics.getStepCount(),
+    stressStatus: stressStatusEl.textContent,
   };
 }
 
@@ -287,6 +371,7 @@ function startStressRound(target) {
   const requested = Math.min(target, maxDynamicBlocks);
 
   physics.resetStress(requested);
+  lastSleepTestSample = null;
 
   currentScene = 3;
   paused = false;
@@ -411,9 +496,14 @@ function animate() {
   const actualDt = clock.getDelta();
   const now = performance.now();
   recordFps(actualDt);
+  controls.update();
 
   if (physics) {
-    physics.requestSnapshot();
+    const snapshotIntervalMs = physics.getAwakeBodyCount() > 0 ? 0 : 500;
+    if (snapshotIntervalMs === 0 || now - lastSnapshotRequestedAt >= snapshotIntervalMs) {
+      physics.requestSnapshot();
+      lastSnapshotRequestedAt = now;
+    }
     syncLatestPhysicsState();
     evaluateStressRound(now, actualDt);
     updateReadout();
@@ -439,10 +529,45 @@ function bindControls() {
   });
   gravityInput.addEventListener('change', () => physics.setGravityEnabled(gravityInput.checked));
   canvas.addEventListener('pointerdown', (event) => {
+    dragStart.set(event.clientX, event.clientY);
+    pointerWasDragged = false;
+  });
+  canvas.addEventListener('pointermove', (event) => {
+    if (dragStart.distanceTo(new THREE.Vector2(event.clientX, event.clientY)) > 6) {
+      pointerWasDragged = true;
+    }
+  });
+  canvas.addEventListener('pointerup', (event) => {
+    if (pointerWasDragged) {
+      return;
+    }
+
     const point = screenSpawnPoint(event);
     spawn(event.shiftKey ? 'sphere' : 'box', point);
   });
 }
+
+window.__wasmBox3DTest = {
+  startStress(dynamicBlockCount = STRESS_START_BLOCKS) {
+    startStressRound(dynamicBlockCount);
+  },
+  resetStress(dynamicBlockCount = STRESS_START_BLOCKS) {
+    stopStress(`fixed stress ${dynamicBlockCount}`);
+    currentScene = 3;
+    paused = false;
+    pauseButton.textContent = 'Pause';
+    physics.resetStress(dynamicBlockCount);
+    physics.setPaused(false);
+    lastSleepTestSample = null;
+    lastSnapshotRequestedAt = 0;
+  },
+  stopStress() {
+    stopStress('stress stopped');
+  },
+  sampleMotion() {
+    return sampleMotionForTest();
+  },
+};
 
 async function boot() {
   resize();
@@ -455,7 +580,7 @@ async function boot() {
   syncedStateVersion = physics.getStateVersion();
   bindControls();
   updateReadout();
-  wasmStatusEl.textContent = 'wasm active';
+  wasmStatusEl.textContent = physics.getThreadsEnabled() ? 'wasm pthreads active' : 'wasm single-thread active';
   animate();
 }
 
