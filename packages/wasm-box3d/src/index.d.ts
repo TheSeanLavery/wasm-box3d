@@ -16,6 +16,8 @@ export type Box3DLoaderOptions = {
   module?: Record<string, unknown>;
   sceneIndex?: number;
   threads?: 'auto' | 'single' | 'pthreads' | boolean;
+  performance?: Box3DPerformanceOptions;
+  performanceOptions?: Box3DPerformanceOptions;
 };
 
 export type BodyRecord = {
@@ -46,6 +48,16 @@ export type AddBodiesResult = {
   syncMs: number;
 };
 
+export type Box3DPerformanceOptions = {
+  stressLayout?: 'dense' | 'wide' | 'islands';
+  sleepPolicy?: 'normal' | 'aggressive' | 'disabled';
+  continuous?: boolean;
+  contactHertz?: number;
+  contactDampingRatio?: number;
+  contactSpeed?: number;
+  workerCount?: number;
+};
+
 export type Box3DDemo = {
   module: unknown;
   threadsEnabled: boolean;
@@ -59,9 +71,19 @@ export type Box3DDemo = {
   addBodies(bodies?: BoxBodyOptions[], options?: AddBodiesOptions): AddBodiesResult;
   spawnSphere(position?: Vec3Like, velocity?: Vec3Like): number;
   setGravityEnabled(enabled: boolean): void;
+  setPerformanceOptions(options?: Box3DPerformanceOptions): void;
   forceSleepAwakeBodies(): number;
   getBodyCount(): number;
   getAwakeBodyCount(): number;
+  getContactCount(): number;
+  getAwakeContactCount(): number;
+  getIslandCount(): number;
+  getTaskCount(): number;
+  getStackUsed(): number;
+  getActualWorkerCount(): number;
+  getStressLayoutCode(): number;
+  getSleepPolicyCode(): number;
+  getContinuousEnabled(): boolean;
   getBodyStride(): number;
   getBodyData(): Float32Array;
   getStepCount(): number;

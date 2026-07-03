@@ -18,6 +18,7 @@
 #define BODY_FLOAT_STRIDE 14
 #define DEFAULT_ARENA_HALF_WIDTH 14.0f
 #define WB3_SLEEP_THRESHOLD 0.08f
+#define WB3_AGGRESSIVE_SLEEP_THRESHOLD 0.35f
 #if defined( WB3_PTHREADS_ENABLED )
 #define WB3_WORKER_COUNT 4
 #else
@@ -28,6 +29,20 @@ enum
 {
 	RENDER_BOX = 0,
 	RENDER_SPHERE = 1,
+};
+
+enum
+{
+	STRESS_LAYOUT_DENSE = 0,
+	STRESS_LAYOUT_WIDE = 1,
+	STRESS_LAYOUT_ISLANDS = 2,
+};
+
+enum
+{
+	SLEEP_POLICY_NORMAL = 0,
+	SLEEP_POLICY_AGGRESSIVE = 1,
+	SLEEP_POLICY_DISABLED = 2,
 };
 
 typedef struct RenderBody
@@ -53,6 +68,13 @@ static int g_sceneIndex = 0;
 static int g_lastStressRequested = 0;
 static int g_lastStressDynamicCount = 0;
 static bool g_gravityEnabled = true;
+static int g_stressLayout = STRESS_LAYOUT_DENSE;
+static int g_sleepPolicy = SLEEP_POLICY_NORMAL;
+static int g_requestedWorkerCount = WB3_WORKER_COUNT;
+static bool g_continuousEnabled = true;
+static float g_contactHertz = 30.0f;
+static float g_contactDampingRatio = 10.0f;
+static float g_contactSpeed = 3.0f;
 
 static int clamp_stress_dynamic_count( int requestedDynamicCount )
 {
@@ -124,6 +146,32 @@ static bool ensure_body_capacity( int requiredCapacity )
 	return true;
 }
 
+static bool sleep_enabled_for_new_body( void )
+{
+	return g_sleepPolicy != SLEEP_POLICY_DISABLED;
+}
+
+static float sleep_threshold_for_new_body( void )
+{
+	return g_sleepPolicy == SLEEP_POLICY_AGGRESSIVE ? WB3_AGGRESSIVE_SLEEP_THRESHOLD : WB3_SLEEP_THRESHOLD;
+}
+
+static int worker_count_for_world( void )
+{
+	int count = g_requestedWorkerCount <= 0 ? WB3_WORKER_COUNT : g_requestedWorkerCount;
+	return count < 1 ? 1 : count;
+}
+
+static void apply_world_options( b3WorldDef* worldDef )
+{
+	worldDef->enableSleep = g_sleepPolicy != SLEEP_POLICY_DISABLED;
+	worldDef->enableContinuous = g_continuousEnabled;
+	worldDef->contactHertz = g_contactHertz;
+	worldDef->contactDampingRatio = g_contactDampingRatio;
+	worldDef->contactSpeed = g_contactSpeed;
+	worldDef->workerCount = worker_count_for_world();
+}
+
 static int add_oriented_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float density, b3Vec3 color,
 							 b3Vec3 velocity, b3Quat rotation )
 {
@@ -139,7 +187,8 @@ static int add_oriented_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtent
 	bodyDef.linearVelocity = velocity;
 	if ( type == b3_dynamicBody )
 	{
-		bodyDef.sleepThreshold = WB3_SLEEP_THRESHOLD;
+		bodyDef.enableSleep = sleep_enabled_for_new_body();
+		bodyDef.sleepThreshold = sleep_threshold_for_new_body();
 	}
 
 	b3BodyId bodyId = b3CreateBody( g_worldId, &bodyDef );
@@ -183,7 +232,8 @@ static int add_sphere( b3BodyType type, b3Vec3 position, float radius, float den
 	bodyDef.linearVelocity = velocity;
 	if ( type == b3_dynamicBody )
 	{
-		bodyDef.sleepThreshold = WB3_SLEEP_THRESHOLD;
+		bodyDef.enableSleep = sleep_enabled_for_new_body();
+		bodyDef.sleepThreshold = sleep_threshold_for_new_body();
 	}
 
 	b3BodyId bodyId = b3CreateBody( g_worldId, &bodyDef );
@@ -242,26 +292,15 @@ static int ceil_sqrt_int( int value )
 	return result;
 }
 
-static int add_stress_blocks( int requestedDynamicCount )
+static int ceil_div_int( int numerator, int denominator )
 {
-	requestedDynamicCount = clamp_stress_dynamic_count( requestedDynamicCount );
+	return ( numerator + denominator - 1 ) / denominator;
+}
 
+static int add_stress_cluster( int requestedDynamicCount, int footprint, float centerX, float centerZ )
+{
 	const float horizontalSpacing = 0.76f;
 	const float verticalSpacing = 0.74f;
-	int footprint = ceil_sqrt_int( requestedDynamicCount );
-	if ( footprint > 32 )
-	{
-		footprint = 32;
-	}
-
-	float halfWidth = ( (float)footprint * horizontalSpacing * 0.5f ) + 5.5f;
-	if ( halfWidth < DEFAULT_ARENA_HALF_WIDTH )
-	{
-		halfWidth = DEFAULT_ARENA_HALF_WIDTH;
-	}
-
-	add_sized_bounds( halfWidth, 8.0f, 8.5f );
-
 	int created = 0;
 	for ( int y = 0; created < requestedDynamicCount; ++y )
 	{
@@ -269,10 +308,10 @@ static int add_stress_blocks( int requestedDynamicCount )
 		{
 			for ( int x = 0; x < footprint && created < requestedDynamicCount; ++x )
 			{
-				float fx = ( (float)x - (float)( footprint - 1 ) * 0.5f ) * horizontalSpacing;
-				float fz = ( (float)z - (float)( footprint - 1 ) * 0.5f ) * horizontalSpacing;
+				float fx = centerX + ( (float)x - (float)( footprint - 1 ) * 0.5f ) * horizontalSpacing;
+				float fz = centerZ + ( (float)z - (float)( footprint - 1 ) * 0.5f ) * horizontalSpacing;
 				float fy = 0.42f + (float)y * verticalSpacing;
-				float tint = (float)( ( x * 17 + z * 31 + y * 13 ) % 100 ) / 100.0f;
+				float tint = (float)( ( x * 17 + z * 31 + y * 13 + created * 7 ) % 100 ) / 100.0f;
 				b3Vec3 color = { 0.18f + tint * 0.54f, 0.46f + tint * 0.28f, 0.72f - tint * 0.38f };
 
 				if ( add_box( b3_dynamicBody, (b3Vec3){ fx, fy, fz }, (b3Vec3){ 0.34f, 0.34f, 0.34f }, 1.0f, color,
@@ -286,6 +325,55 @@ static int add_stress_blocks( int requestedDynamicCount )
 	}
 
 	return created;
+}
+
+static int add_stress_blocks( int requestedDynamicCount )
+{
+	requestedDynamicCount = clamp_stress_dynamic_count( requestedDynamicCount );
+
+	const float horizontalSpacing = 0.76f;
+	int footprint = ceil_sqrt_int( requestedDynamicCount );
+	if ( g_stressLayout != STRESS_LAYOUT_WIDE && footprint > 32 )
+	{
+		footprint = 32;
+	}
+
+	float halfWidth = ( (float)footprint * horizontalSpacing * 0.5f ) + 5.5f;
+	if ( g_stressLayout == STRESS_LAYOUT_ISLANDS )
+	{
+		const int targetPerIsland = 4096;
+		int islandCount = ceil_div_int( requestedDynamicCount, targetPerIsland );
+		int islandGrid = ceil_sqrt_int( islandCount );
+		float islandSpacing = (float)footprint * horizontalSpacing + 8.0f;
+		halfWidth = ( (float)( islandGrid - 1 ) * islandSpacing * 0.5f ) + ( (float)footprint * horizontalSpacing * 0.5f ) + 8.0f;
+	}
+	if ( halfWidth < DEFAULT_ARENA_HALF_WIDTH )
+	{
+		halfWidth = DEFAULT_ARENA_HALF_WIDTH;
+	}
+
+	add_sized_bounds( halfWidth, 8.0f, 8.5f );
+
+	if ( g_stressLayout == STRESS_LAYOUT_ISLANDS )
+	{
+		const int targetPerIsland = 4096;
+		int islandCount = ceil_div_int( requestedDynamicCount, targetPerIsland );
+		int islandGrid = ceil_sqrt_int( islandCount );
+		float islandSpacing = (float)footprint * horizontalSpacing + 8.0f;
+		int created = 0;
+		for ( int island = 0; island < islandCount && created < requestedDynamicCount; ++island )
+		{
+			int ix = island % islandGrid;
+			int iz = island / islandGrid;
+			float centerX = ( (float)ix - (float)( islandGrid - 1 ) * 0.5f ) * islandSpacing;
+			float centerZ = ( (float)iz - (float)( islandGrid - 1 ) * 0.5f ) * islandSpacing;
+			int remaining = requestedDynamicCount - created;
+			created += add_stress_cluster( remaining < targetPerIsland ? remaining : targetPerIsland, footprint, centerX, centerZ );
+		}
+		return created;
+	}
+
+	return add_stress_cluster( requestedDynamicCount, footprint, 0.0f, 0.0f );
 }
 
 static void add_stack_scene( void )
@@ -384,7 +472,7 @@ int wb3_reset( int sceneIndex )
 
 	b3WorldDef worldDef = b3DefaultWorldDef();
 	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
-	worldDef.workerCount = WB3_WORKER_COUNT;
+	apply_world_options( &worldDef );
 	g_worldId = b3CreateWorld( &worldDef );
 	g_sceneIndex = sceneIndex % 3;
 
@@ -412,7 +500,7 @@ int wb3_reset_stress( int dynamicBlockCount )
 
 	b3WorldDef worldDef = b3DefaultWorldDef();
 	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
-	worldDef.workerCount = WB3_WORKER_COUNT;
+	apply_world_options( &worldDef );
 	g_worldId = b3CreateWorld( &worldDef );
 	g_sceneIndex = 3;
 	g_lastStressRequested = dynamicBlockCount;
@@ -431,7 +519,7 @@ int wb3_reset_arena( float halfWidth )
 
 	b3WorldDef worldDef = b3DefaultWorldDef();
 	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
-	worldDef.workerCount = WB3_WORKER_COUNT;
+	apply_world_options( &worldDef );
 	g_worldId = b3CreateWorld( &worldDef );
 	g_sceneIndex = 4;
 
@@ -549,6 +637,27 @@ void wb3_set_gravity_enabled( int enabled )
 }
 
 EMSCRIPTEN_KEEPALIVE
+void wb3_set_performance_options( int stressLayout, int sleepPolicy, int continuousEnabled, float contactHertz,
+								  float contactDampingRatio, float contactSpeed, int workerCount )
+{
+	g_stressLayout = stressLayout < STRESS_LAYOUT_DENSE || stressLayout > STRESS_LAYOUT_ISLANDS ? STRESS_LAYOUT_DENSE : stressLayout;
+	g_sleepPolicy = sleepPolicy < SLEEP_POLICY_NORMAL || sleepPolicy > SLEEP_POLICY_DISABLED ? SLEEP_POLICY_NORMAL : sleepPolicy;
+	g_continuousEnabled = continuousEnabled != 0;
+	g_contactHertz = contactHertz > 0.0f ? contactHertz : 30.0f;
+	g_contactDampingRatio = contactDampingRatio > 0.0f ? contactDampingRatio : 10.0f;
+	g_contactSpeed = contactSpeed > 0.0f ? contactSpeed : 3.0f;
+	g_requestedWorkerCount = workerCount <= 0 ? WB3_WORKER_COUNT : workerCount;
+
+	if ( b3World_IsValid( g_worldId ) )
+	{
+		b3World_EnableSleeping( g_worldId, g_sleepPolicy != SLEEP_POLICY_DISABLED );
+		b3World_EnableContinuous( g_worldId, g_continuousEnabled );
+		b3World_SetContactTuning( g_worldId, g_contactHertz, g_contactDampingRatio, g_contactSpeed );
+		b3World_SetWorkerCount( g_worldId, worker_count_for_world() );
+	}
+}
+
+EMSCRIPTEN_KEEPALIVE
 int wb3_force_sleep_awake_bodies( void )
 {
 	if ( b3World_IsValid( g_worldId ) == false )
@@ -585,6 +694,75 @@ int wb3_get_awake_body_count( void )
 	}
 
 	return b3World_GetAwakeBodyCount( g_worldId );
+}
+
+static b3Counters get_counters( void )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return (b3Counters){ 0 };
+	}
+
+	return b3World_GetCounters( g_worldId );
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_contact_count( void )
+{
+	return get_counters().contactCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_awake_contact_count( void )
+{
+	return get_counters().awakeContactCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_island_count( void )
+{
+	return get_counters().islandCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_task_count( void )
+{
+	return get_counters().taskCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_stack_used( void )
+{
+	return get_counters().stackUsed;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_actual_worker_count( void )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return 0;
+	}
+
+	return b3World_GetWorkerCount( g_worldId );
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_stress_layout( void )
+{
+	return g_stressLayout;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_sleep_policy( void )
+{
+	return g_sleepPolicy;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_continuous_enabled( void )
+{
+	return g_continuousEnabled ? 1 : 0;
 }
 
 EMSCRIPTEN_KEEPALIVE

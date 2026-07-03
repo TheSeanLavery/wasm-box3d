@@ -4,6 +4,17 @@ let physics;
 let sceneIndex = 0;
 let paused = false;
 let benchmarkMode = false;
+let performanceOptions = {
+  substeps: 4,
+  stressLayout: 'dense',
+  sleepPolicy: 'normal',
+  continuous: true,
+  contactHertz: 30,
+  contactDampingRatio: 10,
+  contactSpeed: 3,
+  workerCount: 0,
+};
+let forceSleepEnabled = true;
 let lastStepAt = 0;
 let intervalId = 0;
 const METRIC_INTERVAL_MS = 500;
@@ -58,7 +69,7 @@ function maybeForceSleepQuietStressBodies(bodyData, now = performance.now()) {
   const awakeBodyCount = physics.getAwakeBodyCount();
   const comparedBodies = Math.max(0, bodyCount - 5);
 
-  if (physics.getLastStressRequest() <= 0 || comparedBodies === 0 || awakeBodyCount === 0) {
+  if (!forceSleepEnabled || physics.getLastStressRequest() <= 0 || comparedBodies === 0 || awakeBodyCount === 0) {
     quietStartedAt = 0;
     lastSleepSample = new Float32Array(bodyData);
     return;
@@ -113,7 +124,7 @@ function snapshot() {
 
   const snapshotStartedAt = performance.now();
   const bodyData = new Float32Array(physics.getBodyData());
-  if (!benchmarkMode) {
+  if (forceSleepEnabled) {
     maybeForceSleepQuietStressBodies(bodyData, snapshotStartedAt);
   }
   snapshotCopyMs = performance.now() - snapshotStartedAt;
@@ -129,6 +140,18 @@ function snapshot() {
       stressDynamicCount: physics.getStressDynamicCount(),
       lastStressRequest: physics.getLastStressRequest(),
       maxBodies: physics.getMaxBodies(),
+      contactCount: physics.getContactCount(),
+      awakeContactCount: physics.getAwakeContactCount(),
+      islandCount: physics.getIslandCount(),
+      taskCount: physics.getTaskCount(),
+      stackUsed: physics.getStackUsed(),
+      actualWorkers: physics.getActualWorkerCount(),
+      stressLayout: performanceOptions.stressLayout,
+      sleepPolicy: performanceOptions.sleepPolicy,
+      continuous: physics.getContinuousEnabled(),
+      substeps: performanceOptions.substeps,
+      requestedWorkers: performanceOptions.workerCount,
+      forceSleepEnabled,
       physicsHz,
       physicsStepMs,
       physicsCapacityFps,
@@ -157,7 +180,7 @@ function tick() {
   const dt = Math.min((now - lastStepAt) / 1000 || 1 / 60, 1 / 30);
   lastStepAt = now;
   const stepStartedAt = performance.now();
-  physics.step(dt, 4);
+  physics.step(dt, performanceOptions.substeps ?? 4);
   const stepEndedAt = performance.now();
   metricStepCount += 1;
   metricStepMs += stepEndedAt - stepStartedAt;
@@ -183,7 +206,11 @@ function startLoop() {
 }
 
 async function init() {
-  physics = await createBox3DDemo({ sceneIndex, threads: self.__wasmBox3DThreadMode ?? 'auto' });
+  physics = await createBox3DDemo({
+    sceneIndex,
+    threads: self.__wasmBox3DThreadMode ?? 'auto',
+    performanceOptions,
+  });
   resetSleepMonitor();
   resetSpawnMetrics();
   startLoop();
@@ -197,6 +224,8 @@ self.onmessage = async (event) => {
     sceneIndex = message.sceneIndex ?? 0;
     self.__wasmBox3DThreadMode = message.threads ?? 'auto';
     benchmarkMode = Boolean(message.benchmarkMode);
+    performanceOptions = { ...performanceOptions, ...(message.performanceOptions ?? {}) };
+    forceSleepEnabled = message.forceSleepEnabled ?? !benchmarkMode;
     await init();
     return;
   }
@@ -207,6 +236,10 @@ self.onmessage = async (event) => {
 
   if (message.type === 'reset') {
     sceneIndex = message.sceneIndex ?? 0;
+    if (message.performanceOptions) {
+      performanceOptions = { ...performanceOptions, ...message.performanceOptions };
+      physics.setPerformanceOptions(performanceOptions);
+    }
     physics.reset(sceneIndex);
     resetSleepMonitor();
     resetSpawnMetrics();
@@ -218,6 +251,10 @@ self.onmessage = async (event) => {
   }
 
   if (message.type === 'resetStress') {
+    if (message.performanceOptions) {
+      performanceOptions = { ...performanceOptions, ...message.performanceOptions };
+      physics.setPerformanceOptions(performanceOptions);
+    }
     const resetStartedAt = performance.now();
     physics.resetStress(message.dynamicBlockCount ?? 64);
     resetSleepMonitor();
@@ -231,6 +268,10 @@ self.onmessage = async (event) => {
   }
 
   if (message.type === 'resetArena') {
+    if (message.performanceOptions) {
+      performanceOptions = { ...performanceOptions, ...message.performanceOptions };
+      physics.setPerformanceOptions(performanceOptions);
+    }
     physics.resetArena(message.halfWidth ?? 64);
     resetSleepMonitor();
     resetSpawnMetrics();

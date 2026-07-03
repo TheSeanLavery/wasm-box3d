@@ -31,6 +31,27 @@ const SNAPSHOT_INTERVAL_MS = Number(process.env.WB3_BENCH_SNAPSHOT_MS ?? 250);
 const HEADLESS = process.env.WB3_BENCH_HEADLESS === '1';
 const THREADS = process.env.WB3_BENCH_THREADS ?? 'auto';
 const REQUIRE_FIRST_STEP = process.env.WB3_BENCH_REQUIRE_FIRST_STEP !== '0';
+const BOX3D_VARIANT_DEFS = [
+  { key: 'baseline', label: 'baseline', query: { substeps: 4, stressLayout: 'dense', sleepPolicy: 'normal', continuous: 1, forceSleep: 0 } },
+  { key: 'substeps-2', label: '2 substeps', query: { substeps: 2, stressLayout: 'dense', sleepPolicy: 'normal', continuous: 1, forceSleep: 0 } },
+  { key: 'substeps-1', label: '1 substep', query: { substeps: 1, stressLayout: 'dense', sleepPolicy: 'normal', continuous: 1, forceSleep: 0 } },
+  { key: 'aggressive-sleep', label: 'aggressive sleep', query: { substeps: 4, stressLayout: 'dense', sleepPolicy: 'aggressive', continuous: 1, forceSleep: 1 } },
+  { key: 'wide-layout', label: 'wide layout', query: { substeps: 4, stressLayout: 'wide', sleepPolicy: 'normal', continuous: 1, forceSleep: 0 } },
+  { key: 'island-layout', label: 'island layout', query: { substeps: 4, stressLayout: 'islands', sleepPolicy: 'normal', continuous: 1, forceSleep: 0 } },
+  { key: 'continuous-off', label: 'continuous off', query: { substeps: 4, stressLayout: 'dense', sleepPolicy: 'normal', continuous: 0, forceSleep: 0 } },
+  { key: 'workers-1', label: '1 worker', query: { substeps: 4, stressLayout: 'dense', sleepPolicy: 'normal', continuous: 1, forceSleep: 0, workerCount: 1 } },
+  { key: 'workers-2', label: '2 workers', query: { substeps: 4, stressLayout: 'dense', sleepPolicy: 'normal', continuous: 1, forceSleep: 0, workerCount: 2 } },
+  { key: 'workers-4', label: '4 workers', query: { substeps: 4, stressLayout: 'dense', sleepPolicy: 'normal', continuous: 1, forceSleep: 0, workerCount: 4 } },
+];
+const DEFAULT_BENCH_VARIANTS = ['baseline'];
+const REQUESTED_BOX3D_VARIANTS = (process.env.WB3_BENCH_VARIANTS
+  ? process.env.WB3_BENCH_VARIANTS.split(',').map((variant) => variant.trim()).filter(Boolean)
+  : DEFAULT_BENCH_VARIANTS
+)
+  .map((key) => BOX3D_VARIANT_DEFS.find((variant) => variant.key === key))
+  .filter(Boolean);
+const BASELINE_VARIANT = BOX3D_VARIANT_DEFS[0];
+const BOX3D_VARIANTS = REQUESTED_BOX3D_VARIANTS.length > 0 ? REQUESTED_BOX3D_VARIANTS : [BASELINE_VARIANT];
 
 function percentile(values, p) {
   const sorted = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b);
@@ -54,11 +75,19 @@ function median(values) {
   return percentile(values, 50);
 }
 
-function makeUrl(engine) {
+function variantForEngine(engine, variant) {
+  return engine === 'box3d' ? variant ?? BASELINE_VARIANT : BASELINE_VARIANT;
+}
+
+function makeUrl(engine, variant) {
+  const runVariant = variantForEngine(engine, variant);
   const url = new URL(SERVER_URL);
   url.searchParams.set('engine', engine);
   url.searchParams.set('benchmark', '1');
   url.searchParams.set('snapshotMs', String(SNAPSHOT_INTERVAL_MS));
+  for (const [key, value] of Object.entries(runVariant.query ?? {})) {
+    url.searchParams.set(key, String(value));
+  }
   if (engine === 'box3d' && THREADS !== 'auto') {
     url.searchParams.set('threads', THREADS);
   }
@@ -88,7 +117,8 @@ async function waitForReady(page) {
   );
 }
 
-async function runLevel(page, engine, level) {
+async function runLevel(page, engine, level, variant = BASELINE_VARIANT) {
+  const runVariant = variantForEngine(engine, variant);
   const resetStartedAt = Date.now();
   await page.evaluate((count) => window.__wasmBox3DTest.resetStress(count), level);
   await page.waitForFunction(
@@ -110,9 +140,11 @@ async function runLevel(page, engine, level) {
   while (Date.now() - startedAt < SAMPLE_MS) {
     await page.waitForTimeout(SAMPLE_INTERVAL_MS);
     const sample = await page.evaluate(() => ({ ...window.__wasmBox3DProfile, now: performance.now() }));
-    samples.push({
+    samples.push(copyOptionalFields(sample, {
       tMs: Date.now() - startedAt,
       engine,
+      variantKey: runVariant.key,
+      variantLabel: runVariant.label,
       requestedBodies: level,
       bodies: sample.bodies,
       awakeBodies: sample.awakeBodies,
@@ -132,7 +164,7 @@ async function runLevel(page, engine, level) {
       stepCount: sample.stepCount,
       resetWallMs,
       firstStepWallMs,
-    });
+    }));
   }
 
   const renderFpsValues = positive(samples.map((sample) => sample.renderFps));
@@ -140,10 +172,12 @@ async function runLevel(page, engine, level) {
   const simCapacityValues = positive(samples.map((sample) => sample.simCapacityFps));
   const floorHit =
     Math.min(...renderFpsValues) < MIN_FPS_FLOOR || simCapacityValues.length === 0 || Math.min(...simCapacityValues) < MIN_FPS_FLOOR;
-  const summary = {
+  const summary = copyOptionalFields(samples.at(-1), {
     ok: true,
     error: '',
     engine,
+    variantKey: runVariant.key,
+    variantLabel: runVariant.label,
     requestedBodies: level,
     bodies: samples.at(-1)?.bodies ?? 0,
     threadsEnabled: samples.some((sample) => sample.threadsEnabled),
@@ -167,16 +201,19 @@ async function runLevel(page, engine, level) {
     minRenderFps: renderFpsValues.length > 0 ? Math.min(...renderFpsValues) : 0,
     minSimFps: simFpsValues.length > 0 ? Math.min(...simFpsValues) : 0,
     minSimCapacityFps: simCapacityValues.length > 0 ? Math.min(...simCapacityValues) : 0,
-  };
+  });
 
   return { summary, samples };
 }
 
-function makeFailureSummary(engine, level, error) {
+function makeFailureSummary(engine, level, error, variant = BASELINE_VARIANT) {
+  const runVariant = variantForEngine(engine, variant);
   return {
     ok: false,
     error: error?.message ?? String(error),
     engine,
+    variantKey: runVariant.key,
+    variantLabel: runVariant.label,
     requestedBodies: level,
     bodies: 0,
     threadsEnabled: false,
@@ -204,7 +241,7 @@ function makeFailureSummary(engine, level, error) {
 }
 
 function writeCsv(samples, filePath) {
-  const columns = [
+  const baseColumns = [
     'engine',
     'requestedBodies',
     'tMs',
@@ -225,6 +262,11 @@ function writeCsv(samples, filePath) {
     'resetWallMs',
     'firstStepWallMs',
     'stepCount',
+  ];
+  const columns = [
+    ...optionalColumnsForRows(samples, ['variantKey', 'variantLabel']),
+    ...baseColumns,
+    ...optionalColumnsForRows(samples, OPTIONAL_BENCHMARK_FIELDS.filter((field) => field !== 'variantKey' && field !== 'variantLabel')),
   ];
   const rows = [columns.join(',')];
   for (const sample of samples) {
@@ -257,6 +299,241 @@ function engineLabel(engine) {
 
 function engineRank(engine) {
   return engine === 'box3d' ? 0 : engine === 'rapier' ? 1 : 2;
+}
+
+const OPTIONAL_BENCHMARK_FIELDS = [
+  'variantKey',
+  'variantLabel',
+  'substeps',
+  'sleepPolicy',
+  'stressLayout',
+  'continuous',
+  'requestedWorkers',
+  'actualWorkers',
+  'contactCount',
+  'awakeContactCount',
+  'islandCount',
+  'taskCount',
+  'stackUsed',
+];
+const VARIANT_CONFIG_FIELDS = ['variantKey', 'variantLabel', 'substeps', 'sleepPolicy', 'stressLayout', 'continuous', 'requestedWorkers', 'actualWorkers'];
+const SERIES_PALETTE = ['#58a6ff', '#22d3ee', '#a78bfa', '#34d399', '#f59e0b', '#fb7185', '#facc15', '#c084fc'];
+const SERIES_DASHES = ['', '7 4', '2 4', '10 5 2 5', '4 3'];
+
+function hasValue(value) {
+  return value !== undefined && value !== null && value !== '';
+}
+
+function copyOptionalFields(source, target, fields = OPTIONAL_BENCHMARK_FIELDS) {
+  for (const field of fields) {
+    if (hasValue(source?.[field])) {
+      target[field] = source[field];
+    }
+  }
+  return target;
+}
+
+function optionalColumnsForRows(rows, candidateColumns = OPTIONAL_BENCHMARK_FIELDS) {
+  return candidateColumns.filter((column) => rows.some((row) => hasValue(row?.[column])));
+}
+
+function rowHasVariantConfig(row) {
+  return VARIANT_CONFIG_FIELDS.some((field) => hasValue(row?.[field]));
+}
+
+function variantIdentity(row) {
+  if (!rowHasVariantConfig(row)) {
+    return '';
+  }
+  if (hasValue(row.variantKey)) {
+    return `key:${row.variantKey}`;
+  }
+  if (hasValue(row.variantLabel)) {
+    return `label:${row.variantLabel}`;
+  }
+  return VARIANT_CONFIG_FIELDS
+    .filter((field) => field !== 'variantKey' && field !== 'variantLabel' && hasValue(row[field]))
+    .map((field) => `${field}:${String(row[field])}`)
+    .join('|');
+}
+
+function variantDisplayLabel(row) {
+  if (!rowHasVariantConfig(row)) {
+    return '';
+  }
+  if (hasValue(row.variantLabel)) {
+    return String(row.variantLabel);
+  }
+  if (hasValue(row.variantKey)) {
+    return String(row.variantKey);
+  }
+
+  const parts = [];
+  if (hasValue(row.stressLayout)) {
+    parts.push(String(row.stressLayout));
+  }
+  if (hasValue(row.substeps)) {
+    parts.push(`${row.substeps} substeps`);
+  }
+  if (hasValue(row.sleepPolicy)) {
+    parts.push(String(row.sleepPolicy));
+  }
+  if (hasValue(row.continuous)) {
+    parts.push(formatOptionalBoolean(row.continuous) === 'yes' ? 'continuous' : 'stepped');
+  }
+  if (hasValue(row.requestedWorkers) || hasValue(row.actualWorkers)) {
+    parts.push(`workers ${formatWorkers(row)}`);
+  }
+  return parts.join(' / ') || 'Variant';
+}
+
+function groupKeyForRow(row) {
+  return `${row.requestedBodies ?? 0}\u0000${variantIdentity(row)}`;
+}
+
+function seriesKeyForRow(row) {
+  return `${row.engine ?? ''}\u0000${variantIdentity(row)}`;
+}
+
+function seriesLabelForRow(row) {
+  const variant = variantDisplayLabel(row);
+  return variant ? `${engineLabel(row.engine)} - ${variant}` : engineLabel(row.engine);
+}
+
+function compareVariantRows(a, b) {
+  return variantDisplayLabel(a).localeCompare(variantDisplayLabel(b)) || variantIdentity(a).localeCompare(variantIdentity(b));
+}
+
+function formatOptionalNumber(value, decimals = 0) {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numeric)) {
+    return hasValue(value) ? escapeHtml(value) : '';
+  }
+  return decimals > 0 ? numeric.toFixed(decimals) : Math.round(numeric).toLocaleString();
+}
+
+function formatOptionalBoolean(value) {
+  if (!hasValue(value)) {
+    return '';
+  }
+  if (typeof value === 'string') {
+    const normalized = value.trim().toLowerCase();
+    if (['false', '0', 'no', 'off'].includes(normalized)) {
+      return 'no';
+    }
+    if (['true', '1', 'yes', 'on'].includes(normalized)) {
+      return 'yes';
+    }
+  }
+  return value ? 'yes' : 'no';
+}
+
+function formatWorkers(row) {
+  const requested = hasValue(row.requestedWorkers) ? formatOptionalNumber(row.requestedWorkers) : '';
+  const actual = hasValue(row.actualWorkers) ? formatOptionalNumber(row.actualWorkers) : '';
+  if (requested && actual) {
+    return `${actual}/${requested}`;
+  }
+  return actual || requested;
+}
+
+function formatContacts(row) {
+  const awake = hasValue(row.awakeContactCount) ? formatOptionalNumber(row.awakeContactCount) : '';
+  const total = hasValue(row.contactCount) ? formatOptionalNumber(row.contactCount) : '';
+  if (awake && total) {
+    return `${awake}/${total}`;
+  }
+  return total || awake;
+}
+
+function optionalTitleLines(row, { includeVariant = true } = {}) {
+  const lines = [];
+  if (includeVariant) {
+    const variant = variantDisplayLabel(row);
+    if (variant) {
+      lines.push(`variant: ${variant}`);
+    }
+  }
+  if (hasValue(row.substeps)) {
+    lines.push(`substeps: ${row.substeps}`);
+  }
+  if (hasValue(row.sleepPolicy)) {
+    lines.push(`sleep policy: ${row.sleepPolicy}`);
+  }
+  if (hasValue(row.stressLayout)) {
+    lines.push(`layout: ${row.stressLayout}`);
+  }
+  if (hasValue(row.continuous)) {
+    lines.push(`continuous: ${formatOptionalBoolean(row.continuous)}`);
+  }
+  if (hasValue(row.requestedWorkers) || hasValue(row.actualWorkers)) {
+    lines.push(`workers actual/requested: ${formatWorkers(row)}`);
+  }
+  if (hasValue(row.contactCount) || hasValue(row.awakeContactCount)) {
+    lines.push(`contacts awake/total: ${formatContacts(row)}`);
+  }
+  if (hasValue(row.islandCount)) {
+    lines.push(`islands: ${formatOptionalNumber(row.islandCount)}`);
+  }
+  if (hasValue(row.taskCount)) {
+    lines.push(`tasks: ${formatOptionalNumber(row.taskCount)}`);
+  }
+  if (hasValue(row.stackUsed)) {
+    lines.push(`stack used: ${formatOptionalNumber(row.stackUsed)}`);
+  }
+  return lines;
+}
+
+function makeSeriesDefinitions(points) {
+  const hasVariants = points.some((point) => rowHasVariantConfig(point));
+  const byKey = new Map();
+  for (const point of points) {
+    const key = seriesKeyForRow(point);
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        key,
+        id: `series-${byKey.size}`,
+        engine: point.engine,
+        variantIdentity: variantIdentity(point),
+        label: seriesLabelForRow(point),
+        row: point,
+      });
+    }
+  }
+  return [...byKey.values()]
+    .sort(
+      (a, b) =>
+        engineRank(a.engine) - engineRank(b.engine) ||
+        compareVariantRows(a.row, b.row) ||
+        String(a.engine).localeCompare(String(b.engine))
+    )
+    .map((series, index) => ({
+      ...series,
+      color: hasVariants ? SERIES_PALETTE[index % SERIES_PALETTE.length] : { box3d: '#58a6ff', rapier: '#f59e0b' }[series.engine] ?? '#94a3b8',
+      dash: hasVariants ? SERIES_DASHES[index % SERIES_DASHES.length] : '',
+    }));
+}
+
+function makeSeriesLegend(seriesDefs, { showFloor = false, scale = 'linear' } = {}) {
+  const hasVariantSeries = seriesDefs.some((series) => hasValue(series.variantIdentity));
+  const seriesItems = hasVariantSeries
+    ? seriesDefs
+        .map(
+          (series) =>
+            `<span><span class="swatch${series.dash ? ' dash' : ''}" style="--color:${series.color}"></span>${escapeHtml(series.label)}</span>`
+        )
+        .join('\n')
+    : `
+      <span><span class="swatch" style="--color:#58a6ff"></span>Box3D</span>
+      <span><span class="swatch" style="--color:#f59e0b"></span>Rapier</span>
+    `;
+  return `
+    <div class="mini-legend">
+      ${seriesItems}
+      ${showFloor ? '<span><span class="floor-swatch"></span>20 FPS floor</span>' : ''}
+      ${scale === 'log' ? '<span class="scale-note">log scale</span>' : ''}
+    </div>
+  `;
 }
 
 function formatMetric(value, suffix = '') {
@@ -321,7 +598,13 @@ function makeGridLines({ width, height, xTicks = [], yTicks = [], xMax, yMax, yS
 }
 
 function sortSummaryRows(summary) {
-  return [...summary].sort((a, b) => a.requestedBodies - b.requestedBodies || engineRank(a.engine) - engineRank(b.engine));
+  return [...summary].sort(
+    (a, b) =>
+      a.requestedBodies - b.requestedBodies ||
+      compareVariantRows(a, b) ||
+      engineRank(a.engine) - engineRank(b.engine) ||
+      String(a.engine).localeCompare(String(b.engine))
+  );
 }
 
 function compareMetric(box3d, rapier, key, { higherIsBetter = true, suffix = '', decimals = 1 } = {}) {
@@ -363,16 +646,69 @@ function compareDelta(box3d, rapier, key, suffix = '') {
   return `<span class="compare-chip neutral"><span>Δ Box3D</span><strong>${delta > 0 ? '+' : ''}${formatMetric(delta, suffix)}</strong></span>`;
 }
 
-function makeCompareRow(level, pairIndex, box3d, rapier) {
+function getOptionalSummaryColumns(summary) {
+  const columns = [];
+  if (summary.some((row) => rowHasVariantConfig(row))) {
+    columns.push({
+      key: 'variant',
+      header: 'Variant',
+      className: 'meta-cell variant-cell',
+      render: (row) => escapeHtml(variantDisplayLabel(row)),
+      compare: (row) => escapeHtml(variantDisplayLabel(row)),
+    });
+  }
+  if (summary.some((row) => hasValue(row.substeps))) {
+    columns.push({ key: 'substeps', header: 'Substeps', className: 'meta-cell', render: (row) => formatOptionalNumber(row.substeps) });
+  }
+  if (summary.some((row) => hasValue(row.sleepPolicy))) {
+    columns.push({ key: 'sleepPolicy', header: 'Sleep', className: 'meta-cell', render: (row) => escapeHtml(row.sleepPolicy) });
+  }
+  if (summary.some((row) => hasValue(row.stressLayout))) {
+    columns.push({ key: 'stressLayout', header: 'Layout', className: 'meta-cell', render: (row) => escapeHtml(row.stressLayout) });
+  }
+  if (summary.some((row) => hasValue(row.continuous))) {
+    columns.push({ key: 'continuous', header: 'Continuous', className: 'meta-cell', render: (row) => formatOptionalBoolean(row.continuous) });
+  }
+  if (summary.some((row) => hasValue(row.requestedWorkers) || hasValue(row.actualWorkers))) {
+    columns.push({ key: 'workers', header: 'Workers', className: 'meta-cell', render: (row) => escapeHtml(formatWorkers(row)) });
+  }
+  if (summary.some((row) => hasValue(row.contactCount) || hasValue(row.awakeContactCount))) {
+    columns.push({ key: 'contacts', header: 'Contacts', className: 'meta-cell', render: (row) => escapeHtml(formatContacts(row)) });
+  }
+  if (summary.some((row) => hasValue(row.islandCount))) {
+    columns.push({ key: 'islandCount', header: 'Islands', className: 'meta-cell', render: (row) => formatOptionalNumber(row.islandCount) });
+  }
+  if (summary.some((row) => hasValue(row.taskCount))) {
+    columns.push({ key: 'taskCount', header: 'Tasks', className: 'meta-cell', render: (row) => formatOptionalNumber(row.taskCount) });
+  }
+  if (summary.some((row) => hasValue(row.stackUsed))) {
+    columns.push({ key: 'stackUsed', header: 'Stack Used', className: 'meta-cell', render: (row) => formatOptionalNumber(row.stackUsed) });
+  }
+  return columns;
+}
+
+function renderOptionalCells(row, optionalColumns) {
+  return optionalColumns.map((column) => `<td class="${column.className}">${column.render(row)}</td>`).join('\n');
+}
+
+function renderOptionalCompareCells(row, optionalColumns) {
+  return optionalColumns
+    .map((column) => `<td class="${column.className}">${column.compare ? column.compare(row) : ''}</td>`)
+    .join('\n');
+}
+
+function makeCompareRow(group, pairIndex, box3d, rapier, optionalColumns = []) {
   if (!box3d || !rapier) {
     return '';
   }
 
+  const level = group.requestedBodies;
   return `
-        <tr class="compare-row pair-${pairIndex % 2 === 0 ? 'even' : 'odd'} pair-end" data-row-type="compare" data-level="${level}">
+        <tr class="compare-row pair-${pairIndex % 2 === 0 ? 'even' : 'odd'} pair-end" data-row-type="compare" data-level="${level}" data-variant="${escapeAttr(group.variantIdentity)}">
           <td><span class="engine-chip compare">Compare</span></td>
           <td>ratio</td>
           <td>${level.toLocaleString()}</td>
+          ${renderOptionalCompareCells(group.row, optionalColumns)}
           <td>${compareMetric(box3d, rapier, 'avgSimFps')}</td>
           <td>${compareMetric(box3d, rapier, 'p95PhysicsStepMs', { higherIsBetter: false, suffix: ' ms', decimals: 1 })}</td>
           <td>${compareMetric(box3d, rapier, 'avgSyncMs', { higherIsBetter: false, suffix: ' ms', decimals: 1 })}</td>
@@ -394,31 +730,38 @@ function makeSamplePoints(points, width, height, xMax, yMax, valueKey, color, la
     .map((point) => {
       const x = (point.tMs / xMax) * width;
       const y = height - (Math.max(0, point[valueKey]) / yMax) * height;
-      const title = `${label} ${point.requestedBodies.toLocaleString()} bodies\n${Math.round(point.tMs)}ms\n${valueKey}: ${formatMetric(point[valueKey], ' fps')}\nrender: ${formatMetric(point.renderFps, ' fps')}\nsim capacity: ${formatMetric(point.simCapacityFps, ' fps')}\nsync: ${formatMetric(point.syncMs, ' ms')}\nsnapshot: ${formatMetric(point.snapshotMB, ' MB')}`;
+      const title = [
+        `${label} ${point.requestedBodies.toLocaleString()} bodies`,
+        ...optionalTitleLines(point, { includeVariant: false }),
+        `${Math.round(point.tMs)}ms`,
+        `${valueKey}: ${formatMetric(point[valueKey], ' fps')}`,
+        `render: ${formatMetric(point.renderFps, ' fps')}`,
+        `sim capacity: ${formatMetric(point.simCapacityFps, ' fps')}`,
+        `sync: ${formatMetric(point.syncMs, ' ms')}`,
+        `snapshot: ${formatMetric(point.snapshotMB, ' MB')}`,
+      ].join('\n');
       return `<circle class="sample-point" data-x="${point.tMs.toFixed(3)}" data-y="${Number(point[valueKey] ?? 0).toFixed(6)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="${color}" tabindex="0"><title>${escapeHtml(title)}</title></circle>`;
     })
     .join('\n');
 }
 
-function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 210 }) {
-  const colors = {
-    box3d: '#58a6ff',
-    rapier: '#f59e0b',
-  };
+function makeMetricChart({ group, levelSamples, metricKey, label, chartHeight = 210 }) {
   const chartWidth = 760;
-  const chartId = `metric-${level}-${metricKey}`.replace(/[^a-z0-9_-]/gi, '-');
+  const level = group.requestedBodies;
+  const chartTitle = `${level.toLocaleString()} Bodies${group.variantLabel ? ` - ${group.variantLabel}` : ''} - ${label}`;
+  const chartId = `metric-${level}-${group.variantIdentity}-${metricKey}`.replace(/[^a-z0-9_-]/gi, '-');
   const xMax = Math.max(1, ...levelSamples.map((sample) => sample.tMs));
   const yMax = niceCeil(Math.max(1, ...levelSamples.map((sample) => sample[metricKey] ?? 0)) * 1.12);
   const yTicks = makeTicks(yMax, 5);
   const xTicks = Array.from({ length: 5 }, (_, index) => (xMax * index) / 4);
   const showFloor = metricKey === 'simCapacityFps' && yMax >= MIN_FPS_FLOOR;
   const floorY = chartHeight - (MIN_FPS_FLOOR / yMax) * chartHeight;
-  const paths = ENGINES.flatMap((engine) => {
-    const points = levelSamples.filter((sample) => sample.engine === engine);
+  const seriesDefs = makeSeriesDefinitions(levelSamples);
+  const paths = seriesDefs.flatMap((series) => {
+    const points = levelSamples.filter((sample) => seriesKeyForRow(sample) === series.key);
     if (points.length === 0) {
       return [];
     }
-    const color = colors[engine] ?? '#94a3b8';
     const sortedPoints = [...points].sort((a, b) => a.tMs - b.tMs);
     const seriesPoints = sortedPoints.map((point) => ({
       x: point.tMs,
@@ -428,23 +771,19 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
     const lastX = last ? (last.tMs / xMax) * chartWidth : 0;
     const lastY = last ? chartHeight - (Math.max(0, last[metricKey]) / yMax) * chartHeight : 0;
     return `
-      <path class="series-line" data-engine="${engine}" data-points='${escapeAttr(JSON.stringify(seriesPoints))}' d="${makeSeriesPath(sortedPoints, chartWidth, chartHeight, xMax, yMax, metricKey)}" fill="none" stroke="${color}" stroke-width="2.5">
-        <title>${escapeHtml(`${engineLabel(engine)} ${label}`)}</title>
+      <path class="series-line" data-series-id="${series.id}" data-engine="${escapeAttr(series.engine)}" data-points='${escapeAttr(JSON.stringify(seriesPoints))}' d="${makeSeriesPath(sortedPoints, chartWidth, chartHeight, xMax, yMax, metricKey)}" fill="none" stroke="${series.color}" stroke-width="2.5"${series.dash ? ` stroke-dasharray="${series.dash}"` : ''}>
+        <title>${escapeHtml(`${series.label} ${label}`)}</title>
       </path>
-      ${makeSamplePoints(sortedPoints, chartWidth, chartHeight, xMax, yMax, metricKey, color, engineLabel(engine))}
-      ${last ? `<text class="line-label" data-engine="${engine}" x="${Math.min(chartWidth - 78, lastX + 8).toFixed(1)}" y="${Math.max(12, Math.min(chartHeight - 6, lastY - 6)).toFixed(1)}" fill="${color}">${engineLabel(engine)}</text>` : ''}
+      ${makeSamplePoints(sortedPoints, chartWidth, chartHeight, xMax, yMax, metricKey, series.color, series.label)}
+      ${last ? `<text class="line-label" data-series-id="${series.id}" x="${Math.min(chartWidth - 120, lastX + 8).toFixed(1)}" y="${Math.max(12, Math.min(chartHeight - 6, lastY - 6)).toFixed(1)}" fill="${series.color}">${escapeHtml(series.label)}</text>` : ''}
     `;
   }).join('\n');
 
   return `
     <div class="chart">
       <div class="chart-heading">
-        <h3>${level.toLocaleString()} Bodies - ${label}</h3>
-	        <div class="mini-legend">
-	          <span><span class="swatch" style="--color:#58a6ff"></span>Box3D</span>
-	          <span><span class="swatch" style="--color:#f59e0b"></span>Rapier</span>
-	          ${showFloor ? '<span><span class="floor-swatch"></span>20 FPS floor</span>' : ''}
-	        </div>
+        <h3>${escapeHtml(chartTitle)}</h3>
+	        ${makeSeriesLegend(seriesDefs, { showFloor })}
 	        <div class="zoom-controls" aria-label="Chart zoom controls">
 	          <button type="button" data-zoom="in">Zoom in</button>
 	          <button type="button" data-zoom="out">Zoom out</button>
@@ -491,10 +830,6 @@ function makeMetricChart({ level, levelSamples, metricKey, label, chartHeight = 
 }
 
 function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear', chartHeight = 260 }) {
-  const colors = {
-    box3d: '#58a6ff',
-    rapier: '#f59e0b',
-  };
   const chartWidth = 860;
   const chartId = `overview-${metricKey}`.replace(/[^a-z0-9_-]/gi, '-');
   const points = sortSummaryRows(summary).filter((row) => Number.isFinite(row[metricKey]));
@@ -533,40 +868,50 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
   const floorY = chartHeight - yTransform(MIN_FPS_FLOOR) * chartHeight;
   const showFloor = metricKey.includes('Fps') && MIN_FPS_FLOOR <= yMax;
 
-  const paths = ENGINES.flatMap((engine) => {
-    const enginePoints = points.filter((point) => point.engine === engine).sort((a, b) => a.requestedBodies - b.requestedBodies);
-    if (enginePoints.length === 0) {
+  const seriesDefs = makeSeriesDefinitions(points);
+  const paths = seriesDefs.flatMap((series) => {
+    const seriesPointsForChart = points
+      .filter((point) => seriesKeyForRow(point) === series.key)
+      .sort((a, b) => a.requestedBodies - b.requestedBodies);
+    if (seriesPointsForChart.length === 0) {
       return [];
     }
-    const color = colors[engine] ?? '#94a3b8';
-    const seriesPoints = enginePoints.map((point) => ({
+    const seriesPoints = seriesPointsForChart.map((point) => ({
       x: point.requestedBodies,
       y: Number(point[metricKey] ?? 0),
     }));
-    const path = enginePoints
+    const path = seriesPointsForChart
       .map((point, index) => {
         const x = (point.requestedBodies / xMax) * chartWidth;
         const y = chartHeight - yTransform(point[metricKey]) * chartHeight;
         return `${index === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`;
       })
       .join(' ');
-    const dots = enginePoints
+    const dots = seriesPointsForChart
       .map((point) => {
         const x = (point.requestedBodies / xMax) * chartWidth;
         const y = chartHeight - yTransform(point[metricKey]) * chartHeight;
-        const title = `${engineLabel(engine)}\n${point.requestedBodies.toLocaleString()} requested bodies\n${Math.round(point.bodies).toLocaleString()} bodies\n${label}: ${formatMetric(point[metricKey])}\nP95 step: ${formatMetric(point.p95PhysicsStepMs, ' ms')}\nAvg sync: ${formatMetric(point.avgSyncMs, ' ms')}`;
-        return `<circle class="sample-point overview-point" data-x="${point.requestedBodies}" data-y="${Number(point[metricKey] ?? 0).toFixed(6)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.8" fill="${color}" tabindex="0"><title>${escapeHtml(title)}</title></circle>`;
+        const title = [
+          series.label,
+          `${point.requestedBodies.toLocaleString()} requested bodies`,
+          ...optionalTitleLines(point, { includeVariant: false }),
+          `${Math.round(point.bodies).toLocaleString()} bodies`,
+          `${label}: ${formatMetric(point[metricKey])}`,
+          `P95 step: ${formatMetric(point.p95PhysicsStepMs, ' ms')}`,
+          `Avg sync: ${formatMetric(point.avgSyncMs, ' ms')}`,
+        ].join('\n');
+        return `<circle class="sample-point overview-point" data-x="${point.requestedBodies}" data-y="${Number(point[metricKey] ?? 0).toFixed(6)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.8" fill="${series.color}" tabindex="0"><title>${escapeHtml(title)}</title></circle>`;
       })
       .join('\n');
-    const last = enginePoints.at(-1);
+    const last = seriesPointsForChart.at(-1);
     const lastX = last ? (last.requestedBodies / xMax) * chartWidth : 0;
     const lastY = last ? chartHeight - yTransform(last[metricKey]) * chartHeight : 0;
     return `
-      <path class="series-line" data-engine="${engine}" data-points='${escapeAttr(JSON.stringify(seriesPoints))}' d="${path}" fill="none" stroke="${color}" stroke-width="2.8">
-        <title>${escapeHtml(`${engineLabel(engine)} ${label}`)}</title>
+      <path class="series-line" data-series-id="${series.id}" data-engine="${escapeAttr(series.engine)}" data-points='${escapeAttr(JSON.stringify(seriesPoints))}' d="${path}" fill="none" stroke="${series.color}" stroke-width="2.8"${series.dash ? ` stroke-dasharray="${series.dash}"` : ''}>
+        <title>${escapeHtml(`${series.label} ${label}`)}</title>
       </path>
       ${dots}
-      ${last ? `<text class="line-label" data-engine="${engine}" x="${Math.min(chartWidth - 78, lastX + 8).toFixed(1)}" y="${Math.max(12, Math.min(chartHeight - 6, lastY - 6)).toFixed(1)}" fill="${color}">${engineLabel(engine)}</text>` : ''}
+      ${last ? `<text class="line-label" data-series-id="${series.id}" x="${Math.min(chartWidth - 120, lastX + 8).toFixed(1)}" y="${Math.max(12, Math.min(chartHeight - 6, lastY - 6)).toFixed(1)}" fill="${series.color}">${escapeHtml(series.label)}</text>` : ''}
     `;
   }).join('\n');
 
@@ -574,12 +919,7 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
     <div class="chart overview-chart">
       <div class="chart-heading">
         <h3>${label} by Body Count</h3>
-	        <div class="mini-legend">
-	          <span><span class="swatch" style="--color:#58a6ff"></span>Box3D</span>
-	          <span><span class="swatch" style="--color:#f59e0b"></span>Rapier</span>
-	          ${showFloor ? '<span><span class="floor-swatch"></span>20 FPS floor</span>' : ''}
-	          ${scale === 'log' ? '<span class="scale-note">log scale</span>' : ''}
-	        </div>
+	        ${makeSeriesLegend(seriesDefs, { showFloor, scale })}
 	        <div class="zoom-controls" aria-label="Chart zoom controls">
 	          <button type="button" data-zoom="in">Zoom in</button>
 	          <button type="button" data-zoom="out">Zoom out</button>
@@ -618,19 +958,38 @@ function makeOverviewChart({ summary, metricKey, label, yLabel, scale = 'linear'
 }
 
 function makeChartHtml(result) {
-  const levels = [...new Set(result.summary.map((row) => row.requestedBodies))];
+  const summaryRows = sortSummaryRows(result.summary ?? []);
+  const samples = result.samples ?? [];
+  const optionalColumns = getOptionalSummaryColumns(summaryRows);
+  const optionalHeaders = optionalColumns.map((column) => `<th>${escapeHtml(column.header)}</th>`).join('');
+  const groupsByKey = new Map();
+  for (const row of summaryRows) {
+    const key = groupKeyForRow(row);
+    if (!groupsByKey.has(key)) {
+      groupsByKey.set(key, {
+        key,
+        requestedBodies: row.requestedBodies,
+        variantIdentity: variantIdentity(row),
+        variantLabel: variantDisplayLabel(row),
+        row,
+      });
+    }
+  }
+  const groups = [...groupsByKey.values()].sort(
+    (a, b) => a.requestedBodies - b.requestedBodies || compareVariantRows(a.row, b.row)
+  );
   const overview = `
     <section class="panel overview-panel">
       <h2>Overview</h2>
       ${makeOverviewChart({
-        summary: result.summary,
+        summary: summaryRows,
         metricKey: 'avgSimCapacityFps',
         label: 'Average Sim Capacity FPS',
         yLabel: 'sim capacity FPS',
         scale: 'log',
       })}
       ${makeOverviewChart({
-        summary: result.summary,
+        summary: summaryRows,
         metricKey: 'p95PhysicsStepMs',
         label: 'P95 Physics Step',
         yLabel: 'milliseconds',
@@ -638,32 +997,34 @@ function makeChartHtml(result) {
     </section>
   `;
 
-  const panels = levels
-    .map((level) => {
-      const levelSamples = result.samples.filter((sample) => sample.requestedBodies === level);
+  const panels = groups
+    .map((group) => {
+      const levelSamples = samples.filter((sample) => sample.requestedBodies === group.requestedBodies && variantIdentity(sample) === group.variantIdentity);
+      const heading = `${group.requestedBodies.toLocaleString()} requested bodies${group.variantLabel ? ` - ${group.variantLabel}` : ''}`;
 
       return `
-        <section class="panel body-panel" data-level="${level}">
-          <h2>${level.toLocaleString()} requested bodies</h2>
-          ${makeMetricChart({ level, levelSamples, metricKey: 'renderFps', label: 'Render FPS' })}
-          ${makeMetricChart({ level, levelSamples, metricKey: 'simCapacityFps', label: 'Simulation capacity FPS' })}
+        <section class="panel body-panel" data-level="${group.requestedBodies}" data-variant="${escapeAttr(group.variantIdentity)}">
+          <h2>${escapeHtml(heading)}</h2>
+          ${makeMetricChart({ group, levelSamples, metricKey: 'renderFps', label: 'Render FPS' })}
+          ${makeMetricChart({ group, levelSamples, metricKey: 'simCapacityFps', label: 'Simulation capacity FPS' })}
         </section>
       `;
     })
     .join('\n');
 
-  const rows = levels
-    .map((level, levelIndex) => {
-      const levelRows = sortSummaryRows(result.summary).filter((row) => row.requestedBodies === level);
+  const rows = groups
+    .map((group, groupIndex) => {
+      const levelRows = summaryRows.filter((row) => groupKeyForRow(row) === group.key);
       const engineRows = levelRows
         .map((row, rowIndex) => {
           const status = row.ok ? (row.floorHit ? 'floor' : 'ok') : 'failed';
           const rowPosition = rowIndex === 0 ? 'pair-start' : 'pair-middle';
           return `
-        <tr class="engine-row ${row.engine} pair-${levelIndex % 2 === 0 ? 'even' : 'odd'} ${rowPosition}" data-row-type="engine" data-engine="${row.engine}" data-status="${status}" data-level="${level}">
+        <tr class="engine-row ${row.engine} pair-${groupIndex % 2 === 0 ? 'even' : 'odd'} ${rowPosition}" data-row-type="engine" data-engine="${row.engine}" data-status="${status}" data-level="${group.requestedBodies}" data-variant="${escapeAttr(group.variantIdentity)}">
           <td><span class="engine-chip ${row.engine}">${engineLabel(row.engine)}</span></td>
           <td>${status}</td>
           <td>${Math.round(row.bodies).toLocaleString()}</td>
+          ${renderOptionalCells(row, optionalColumns)}
           <td>${row.avgSimFps.toFixed(1)}</td>
           <td>${row.p95PhysicsStepMs.toFixed(2)}</td>
           <td>${row.avgSyncMs.toFixed(2)}</td>
@@ -681,10 +1042,11 @@ function makeChartHtml(result) {
         })
         .join('\n');
       return `${engineRows}\n${makeCompareRow(
-        level,
-        levelIndex,
+        group,
+        groupIndex,
         levelRows.find((row) => row.engine === 'box3d'),
-        levelRows.find((row) => row.engine === 'rapier')
+        levelRows.find((row) => row.engine === 'rapier'),
+        optionalColumns
       )}`;
     })
     .join('\n');
@@ -725,6 +1087,8 @@ function makeChartHtml(result) {
       .engine-chip.box3d { color: #8ec5ff; }
       .engine-chip.rapier { color: #f9c46f; }
       .engine-chip.compare { color: #cbd5e1; }
+      .meta-cell { color: #d6e1ee; white-space: nowrap; }
+      .variant-cell { text-align: left; max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
       .compare-chip { display: inline-flex; align-items: baseline; justify-content: flex-end; gap: 6px; min-width: 92px; font-weight: 800; }
       .compare-chip small { color: #8ea0b8; font-weight: 600; }
       .compare-chip.box3d { color: #8ec5ff; }
@@ -845,7 +1209,7 @@ function makeChartHtml(result) {
       <table id="summary-table">
         <thead>
           <tr>
-            <th>Engine</th><th>Status</th><th>Bodies</th><th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Reset ms</th><th>First Step ms</th><th>Est Snapshot MB</th><th>Seen Snapshot MB</th><th>Issue</th>
+            <th>Engine</th><th>Status</th><th>Bodies</th>${optionalHeaders}<th>Scheduled Sim Hz</th><th>P95 Step ms</th><th>Avg Sync ms</th><th>Avg Sim Capacity FPS</th><th>P50 Sim Capacity FPS</th><th>Avg Render FPS</th><th>P50 Render FPS</th><th>Reset ms</th><th>First Step ms</th><th>Est Snapshot MB</th><th>Seen Snapshot MB</th><th>Issue</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -1137,14 +1501,14 @@ function makeChartHtml(result) {
               );
             }
 
-            const label = svg.querySelector('.line-label[data-engine="' + line.dataset.engine + '"]');
+            const label = svg.querySelector('.line-label[data-series-id="' + line.dataset.seriesId + '"]');
             if (!label) {
               continue;
             }
             label.hidden = visible.length === 0;
             if (visible.length > 0) {
               const last = visible[visible.length - 1];
-              const labelX = Math.max(8, Math.min(width - 78, xToPlot(last.x) + 8));
+              const labelX = Math.max(8, Math.min(width - 120, xToPlot(last.x) + 8));
               const labelY = Math.max(12, Math.min(height - 6, yToPlot(last.y) - 6));
               label.setAttribute('x', labelX.toFixed(1));
               label.setAttribute('y', labelY.toFixed(1));
@@ -1418,12 +1782,14 @@ async function main() {
   const summary = [];
 
   for (const engine of ENGINES) {
-    await page.goto(makeUrl(engine), { waitUntil: 'networkidle' });
+    const variants = engine === 'box3d' ? BOX3D_VARIANTS : [BASELINE_VARIANT];
+    for (const variant of variants) {
+    await page.goto(makeUrl(engine, variant), { waitUntil: 'networkidle' });
     await waitForReady(page);
     for (const level of LEVELS) {
       try {
         const consoleErrorStart = consoleErrors.length;
-        const result = await withTimeout(runLevel(page, engine, level), LEVEL_TIMEOUT_MS, `${engine} ${level}`);
+        const result = await withTimeout(runLevel(page, engine, level, variant), LEVEL_TIMEOUT_MS, `${engine} ${variant.label} ${level}`);
         const levelConsoleErrors = consoleErrors.slice(consoleErrorStart);
         if (levelConsoleErrors.length > 0) {
           result.summary.ok = false;
@@ -1432,7 +1798,7 @@ async function main() {
         samples.push(...result.samples);
         summary.push(result.summary);
         console.log(
-          `${engine} ${level} bodies: render ${result.summary.avgRenderFps.toFixed(1)} fps, sim capacity ${result.summary.avgSimCapacityFps.toFixed(1)} fps, reset ${Math.round(result.summary.resetWallMs)}ms, first step ${Math.round(result.summary.firstStepWallMs)}ms`
+          `${engine} ${variant.label} ${level} bodies: render ${result.summary.avgRenderFps.toFixed(1)} fps, sim capacity ${result.summary.avgSimCapacityFps.toFixed(1)} fps, p95 step ${result.summary.p95PhysicsStepMs.toFixed(1)}ms, reset ${Math.round(result.summary.resetWallMs)}ms, first step ${Math.round(result.summary.firstStepWallMs)}ms`
         );
         if (result.summary.floorHit) {
           console.log(`${engine} ${level} hit minimum FPS floor ${MIN_FPS_FLOOR}`);
@@ -1441,12 +1807,12 @@ async function main() {
           }
         }
       } catch (error) {
-        console.error(`${engine} ${level} failed: ${error.message}`);
-        summary.push(makeFailureSummary(engine, level, error));
+        console.error(`${engine} ${variant.label} ${level} failed: ${error.message}`);
+        summary.push(makeFailureSummary(engine, level, error, variant));
         await page.close({ runBeforeUnload: false }).catch(() => {});
         page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
         attachPageChecks(page);
-        await page.goto(makeUrl(engine), { waitUntil: 'networkidle' });
+        await page.goto(makeUrl(engine, variant), { waitUntil: 'networkidle' });
         await waitForReady(page);
         if (STOP_ON_FLOOR) {
           break;
@@ -1455,6 +1821,7 @@ async function main() {
       if (level >= 1000000) {
         break;
       }
+    }
     }
   }
 
@@ -1465,6 +1832,10 @@ async function main() {
     serverUrl: SERVER_URL,
     headed: !HEADLESS,
     engines: ENGINES,
+    variants: {
+      box3d: BOX3D_VARIANTS.map((variant) => ({ key: variant.key, label: variant.label, query: variant.query })),
+      other: { key: BASELINE_VARIANT.key, label: BASELINE_VARIANT.label },
+    },
     levels: LEVELS,
     warmupMs: WARMUP_MS,
     sampleMs: SAMPLE_MS,

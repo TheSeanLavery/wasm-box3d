@@ -5,6 +5,39 @@ export const RenderShapeType = Object.freeze({
   sphere: 1,
 });
 
+const StressLayoutCode = Object.freeze({
+  dense: 0,
+  wide: 1,
+  islands: 2,
+});
+
+const SleepPolicyCode = Object.freeze({
+  normal: 0,
+  aggressive: 1,
+  disabled: 2,
+});
+
+function resolveStressLayout(value = 'dense') {
+  return StressLayoutCode[value] ?? StressLayoutCode.dense;
+}
+
+function resolveSleepPolicy(value = 'normal') {
+  return SleepPolicyCode[value] ?? SleepPolicyCode.normal;
+}
+
+function normalizePerformanceOptions(options = {}) {
+  return {
+    stressLayout: options.stressLayout ?? 'dense',
+    sleepPolicy: options.sleepPolicy ?? 'normal',
+    continuous: options.continuous !== false,
+    contactHertz: Number.isFinite(options.contactHertz) && options.contactHertz > 0 ? options.contactHertz : 30,
+    contactDampingRatio:
+      Number.isFinite(options.contactDampingRatio) && options.contactDampingRatio > 0 ? options.contactDampingRatio : 10,
+    contactSpeed: Number.isFinite(options.contactSpeed) && options.contactSpeed > 0 ? options.contactSpeed : 3,
+    workerCount: Number.isFinite(options.workerCount) && options.workerCount > 0 ? Math.round(options.workerCount) : 0,
+  };
+}
+
 function canUsePthreads() {
   return typeof crossOriginIsolated === 'boolean' && crossOriginIsolated && typeof SharedArrayBuffer === 'function';
 }
@@ -92,9 +125,27 @@ export async function createBox3DDemo(options = {}) {
     ]),
     spawnSphereRaw: module.cwrap('wb3_spawn_sphere', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
     setGravityEnabledRaw: module.cwrap('wb3_set_gravity_enabled', null, ['number']),
+    setPerformanceOptionsRaw: module.cwrap('wb3_set_performance_options', null, [
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+    ]),
     forceSleepAwakeBodiesRaw: module.cwrap('wb3_force_sleep_awake_bodies', 'number', []),
     getBodyCountRaw: module.cwrap('wb3_get_body_count', 'number', []),
     getAwakeBodyCountRaw: module.cwrap('wb3_get_awake_body_count', 'number', []),
+    getContactCountRaw: module.cwrap('wb3_get_contact_count', 'number', []),
+    getAwakeContactCountRaw: module.cwrap('wb3_get_awake_contact_count', 'number', []),
+    getIslandCountRaw: module.cwrap('wb3_get_island_count', 'number', []),
+    getTaskCountRaw: module.cwrap('wb3_get_task_count', 'number', []),
+    getStackUsedRaw: module.cwrap('wb3_get_stack_used', 'number', []),
+    getActualWorkerCountRaw: module.cwrap('wb3_get_actual_worker_count', 'number', []),
+    getStressLayoutRaw: module.cwrap('wb3_get_stress_layout', 'number', []),
+    getSleepPolicyRaw: module.cwrap('wb3_get_sleep_policy', 'number', []),
+    getContinuousEnabledRaw: module.cwrap('wb3_get_continuous_enabled', 'number', []),
     getBodyStrideRaw: module.cwrap('wb3_get_body_stride', 'number', []),
     getBodyDataRaw: module.cwrap('wb3_get_body_data', 'pointer', []),
     getStepCountRaw: module.cwrap('wb3_get_step_count', 'number', []),
@@ -103,6 +154,20 @@ export async function createBox3DDemo(options = {}) {
     getMaxBodiesRaw: module.cwrap('wb3_get_max_bodies', 'number', []),
   };
 
+  const applyPerformanceOptions = (performanceOptions = {}) => {
+    const normalized = normalizePerformanceOptions(performanceOptions);
+    api.setPerformanceOptionsRaw(
+      resolveStressLayout(normalized.stressLayout),
+      resolveSleepPolicy(normalized.sleepPolicy),
+      normalized.continuous ? 1 : 0,
+      normalized.contactHertz,
+      normalized.contactDampingRatio,
+      normalized.contactSpeed,
+      normalized.workerCount
+    );
+  };
+
+  applyPerformanceOptions(options.performance ?? options.performanceOptions ?? {});
   api.reset(options.sceneIndex ?? 0);
 
   return {
@@ -187,6 +252,9 @@ export async function createBox3DDemo(options = {}) {
     setGravityEnabled(enabled) {
       api.setGravityEnabledRaw(enabled ? 1 : 0);
     },
+    setPerformanceOptions(options = {}) {
+      applyPerformanceOptions(options);
+    },
     forceSleepAwakeBodies() {
       return api.forceSleepAwakeBodiesRaw();
     },
@@ -195,6 +263,33 @@ export async function createBox3DDemo(options = {}) {
     },
     getAwakeBodyCount() {
       return api.getAwakeBodyCountRaw();
+    },
+    getContactCount() {
+      return api.getContactCountRaw();
+    },
+    getAwakeContactCount() {
+      return api.getAwakeContactCountRaw();
+    },
+    getIslandCount() {
+      return api.getIslandCountRaw();
+    },
+    getTaskCount() {
+      return api.getTaskCountRaw();
+    },
+    getStackUsed() {
+      return api.getStackUsedRaw();
+    },
+    getActualWorkerCount() {
+      return api.getActualWorkerCountRaw();
+    },
+    getStressLayoutCode() {
+      return api.getStressLayoutRaw();
+    },
+    getSleepPolicyCode() {
+      return api.getSleepPolicyRaw();
+    },
+    getContinuousEnabled() {
+      return api.getContinuousEnabledRaw() !== 0;
     },
     getBodyStride() {
       return api.getBodyStrideRaw();

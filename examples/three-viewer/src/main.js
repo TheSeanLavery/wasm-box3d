@@ -104,6 +104,33 @@ const threadParam = urlParams.get('threads');
 const benchmarkMode = urlParams.get('benchmark') === '1' || urlParams.get('benchmark') === 'true';
 const benchmarkSnapshotMs = Number(urlParams.get('snapshotMs') ?? 250);
 const physicsThreadMode = threadParam === 'single' ? false : threadParam === 'pthreads' ? true : 'auto';
+const parsePositiveNumberParam = (name, fallback) => {
+  const value = Number(urlParams.get(name));
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+};
+const resolveChoiceParam = (name, choices, fallback) => {
+  const value = urlParams.get(name);
+  return choices.includes(value) ? value : fallback;
+};
+const parseBooleanParam = (name, fallback) => {
+  const value = urlParams.get(name);
+  if (value == null) {
+    return fallback;
+  }
+  return !['0', 'false', 'off', 'no'].includes(value.toLowerCase());
+};
+const benchmarkSubsteps = Math.max(1, Math.min(16, Math.round(parsePositiveNumberParam('substeps', 4))));
+const box3dPerformanceOptions = {
+  substeps: benchmarkSubsteps,
+  stressLayout: resolveChoiceParam('stressLayout', ['dense', 'wide', 'islands'], 'dense'),
+  sleepPolicy: resolveChoiceParam('sleepPolicy', ['normal', 'aggressive', 'disabled'], 'normal'),
+  continuous: parseBooleanParam('continuous', true),
+  contactHertz: parsePositiveNumberParam('contactHertz', 30),
+  contactDampingRatio: parsePositiveNumberParam('contactDampingRatio', 10),
+  contactSpeed: parsePositiveNumberParam('contactSpeed', 3),
+  workerCount: Math.round(parsePositiveNumberParam('workerCount', 0)),
+};
+const forceSleepEnabled = parseBooleanParam('forceSleep', !benchmarkMode);
 
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -204,6 +231,18 @@ function createWorkerPhysics(sceneIndex) {
     stressDynamicCount: 0,
     lastStressRequest: 0,
     maxBodies: 0,
+    contactCount: 0,
+    awakeContactCount: 0,
+    islandCount: 0,
+    taskCount: 0,
+    stackUsed: 0,
+    actualWorkers: 0,
+    stressLayout: box3dPerformanceOptions.stressLayout,
+    sleepPolicy: box3dPerformanceOptions.sleepPolicy,
+    continuous: box3dPerformanceOptions.continuous,
+    substeps: box3dPerformanceOptions.substeps,
+    requestedWorkers: box3dPerformanceOptions.workerCount,
+    forceSleepEnabled,
     physicsHz: 0,
     physicsStepMs: 0,
     physicsCapacityFps: 0,
@@ -227,7 +266,7 @@ function createWorkerPhysics(sceneIndex) {
       return;
     }
 
-    state = event.data;
+    state = { ...state, ...event.data };
     stateVersion += 1;
     snapshotPending = false;
     readyResolve();
@@ -238,7 +277,14 @@ function createWorkerPhysics(sceneIndex) {
     console.error(error);
   });
 
-  worker.postMessage({ type: 'init', sceneIndex, threads: physicsThreadMode, benchmarkMode });
+  worker.postMessage({
+    type: 'init',
+    sceneIndex,
+    threads: physicsThreadMode,
+    benchmarkMode,
+    performanceOptions: box3dPerformanceOptions,
+    forceSleepEnabled,
+  });
 
   return {
     ready,
@@ -303,6 +349,42 @@ function createWorkerPhysics(sceneIndex) {
     },
     getMaxBodies() {
       return state.maxBodies;
+    },
+    getContactCount() {
+      return state.contactCount;
+    },
+    getAwakeContactCount() {
+      return state.awakeContactCount;
+    },
+    getIslandCount() {
+      return state.islandCount;
+    },
+    getTaskCount() {
+      return state.taskCount;
+    },
+    getStackUsed() {
+      return state.stackUsed;
+    },
+    getActualWorkers() {
+      return state.actualWorkers;
+    },
+    getStressLayout() {
+      return state.stressLayout;
+    },
+    getSleepPolicy() {
+      return state.sleepPolicy;
+    },
+    getContinuous() {
+      return state.continuous;
+    },
+    getSubsteps() {
+      return state.substeps;
+    },
+    getRequestedWorkers() {
+      return state.requestedWorkers;
+    },
+    getForceSleepEnabled() {
+      return state.forceSleepEnabled;
     },
     getPhysicsHz() {
       return state.physicsHz;
@@ -809,7 +891,7 @@ function updateReadout() {
   fpsReadoutEl.textContent = `render ${fpsAverage.toFixed(1)} fps`;
   physicsFpsReadoutEl.textContent = `phys ${physics.getPhysicsHz().toFixed(1)} fps awake ${physics.getAwakeBodyCount()}`;
   profileReadoutEl.textContent =
-    `step ${physics.getPhysicsStepMs().toFixed(1)}ms spawn ${physics.getSpawnBodiesMs().toFixed(1)}ms/${physics.getSpawnBodiesCount()} wasm ${physics.getRenderSyncMs().toFixed(1)}ms sync ${syncMs.toFixed(1)}ms render ${renderMs.toFixed(1)}ms snap ${physics.getSnapshotCopyMs().toFixed(1)}ms`;
+    `step ${physics.getPhysicsStepMs().toFixed(1)}ms contacts ${physics.getContactCount().toLocaleString()} awake ${physics.getAwakeContactCount().toLocaleString()} islands ${physics.getIslandCount().toLocaleString()} workers ${physics.getActualWorkers()} sub ${physics.getSubsteps()} spawn ${physics.getSpawnBodiesMs().toFixed(1)}ms/${physics.getSpawnBodiesCount()} wasm ${physics.getRenderSyncMs().toFixed(1)}ms sync ${syncMs.toFixed(1)}ms render ${renderMs.toFixed(1)}ms snap ${physics.getSnapshotCopyMs().toFixed(1)}ms`;
   stressStatusEl.textContent = getStressLabel();
   window.__wasmBox3DProfile = {
     bodies: physics.getBodyCount(),
@@ -818,6 +900,18 @@ function updateReadout() {
     awakeBodies: physics.getAwakeBodyCount(),
     physicsStepMs: physics.getPhysicsStepMs(),
     physicsCapacityFps: physics.getPhysicsCapacityFps(),
+    contactCount: physics.getContactCount(),
+    awakeContactCount: physics.getAwakeContactCount(),
+    islandCount: physics.getIslandCount(),
+    taskCount: physics.getTaskCount(),
+    stackUsed: physics.getStackUsed(),
+    actualWorkers: physics.getActualWorkers(),
+    stressLayout: physics.getStressLayout(),
+    sleepPolicy: physics.getSleepPolicy(),
+    continuous: physics.getContinuous(),
+    substeps: physics.getSubsteps(),
+    requestedWorkers: physics.getRequestedWorkers(),
+    forceSleepEnabled: physics.getForceSleepEnabled(),
     renderSyncMs: physics.getRenderSyncMs(),
     syncMs,
     renderMs,
