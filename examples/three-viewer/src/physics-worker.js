@@ -13,6 +13,11 @@ let performanceOptions = {
   contactDampingRatio: 10,
   contactSpeed: 3,
   workerCount: 0,
+  contactBudgetPerBody: 0,
+  regionSleep: false,
+  regionSleepTileSize: 8,
+  regionSleepSpeed: 0.08,
+  regionSleepMinBodies: 16,
 };
 let forceSleepEnabled = true;
 let lastStepAt = 0;
@@ -22,7 +27,8 @@ const QUIET_MOVING_RATIO = 0.01;
 const QUIET_MAX_DELTA = 0.002;
 const QUIET_VISIBLE_MAX_DELTA = 0.04;
 const QUIET_MEAN_DELTA = 0.001;
-const QUIET_FORCE_SLEEP_MS = 1000;
+const QUIET_FORCE_SLEEP_MS = 300;
+const BULK_TREE_REBUILD_BODY_COUNT = 1024;
 
 let metricStartedAt = 0;
 let metricStepCount = 0;
@@ -37,6 +43,8 @@ let resetStressMs = 0;
 let spawnBodiesMs = 0;
 let spawnBodiesCount = 0;
 let spawnBatchCount = 0;
+let dynamicTreeRebuildMs = 0;
+let dynamicTreeRebuildLeaves = 0;
 let lastForceSleepMs = 0;
 let forcedSleepBodies = 0;
 let lastSleepSample = null;
@@ -55,6 +63,8 @@ function resetSpawnMetrics() {
   spawnBodiesMs = 0;
   spawnBodiesCount = 0;
   spawnBatchCount = 0;
+  dynamicTreeRebuildMs = 0;
+  dynamicTreeRebuildLeaves = 0;
 }
 
 function resetSleepMonitor() {
@@ -127,6 +137,16 @@ function snapshot() {
   if (forceSleepEnabled) {
     maybeForceSleepQuietStressBodies(bodyData, snapshotStartedAt);
   }
+  if (performanceOptions.regionSleep === true && physics.getBodyCount() > 5 && physics.getAwakeBodyCount() > 0) {
+    const forceStartedAt = performance.now();
+    forcedSleepBodies += physics.sleepQuietRegions({
+      tileSize: performanceOptions.regionSleepTileSize,
+      speedThreshold: performanceOptions.regionSleepSpeed,
+      minBodies: performanceOptions.regionSleepMinBodies,
+      startBodyIndex: 5,
+    });
+    lastForceSleepMs = performance.now() - forceStartedAt;
+  }
   snapshotCopyMs = performance.now() - snapshotStartedAt;
   snapshotBytes = bodyData.byteLength;
   postMessage(
@@ -162,10 +182,13 @@ function snapshot() {
       spawnBodiesMs,
       spawnBodiesCount,
       spawnBatchCount,
+      dynamicTreeRebuildMs,
+      dynamicTreeRebuildLeaves,
       lastForceSleepMs,
       forcedSleepBodies,
       threadsEnabled: physics.threadsEnabled,
       benchmarkMode,
+      profile: physics.getProfile?.() ?? {},
     },
     [bodyData.buffer]
   );
@@ -240,6 +263,9 @@ self.onmessage = async (event) => {
       performanceOptions = { ...performanceOptions, ...message.performanceOptions };
       physics.setPerformanceOptions(performanceOptions);
     }
+    if (message.forceSleepEnabled != null) {
+      forceSleepEnabled = Boolean(message.forceSleepEnabled);
+    }
     physics.reset(sceneIndex);
     resetSleepMonitor();
     resetSpawnMetrics();
@@ -254,6 +280,9 @@ self.onmessage = async (event) => {
     if (message.performanceOptions) {
       performanceOptions = { ...performanceOptions, ...message.performanceOptions };
       physics.setPerformanceOptions(performanceOptions);
+    }
+    if (message.forceSleepEnabled != null) {
+      forceSleepEnabled = Boolean(message.forceSleepEnabled);
     }
     const resetStartedAt = performance.now();
     physics.resetStress(message.dynamicBlockCount ?? 64);
@@ -272,10 +301,28 @@ self.onmessage = async (event) => {
       performanceOptions = { ...performanceOptions, ...message.performanceOptions };
       physics.setPerformanceOptions(performanceOptions);
     }
+    if (message.forceSleepEnabled != null) {
+      forceSleepEnabled = Boolean(message.forceSleepEnabled);
+    }
     physics.resetArena(message.halfWidth ?? 64);
     resetSleepMonitor();
     resetSpawnMetrics();
     paused = false;
+    lastStepAt = performance.now();
+    resetMetrics(lastStepAt);
+    snapshot();
+    return;
+  }
+
+  if (message.type === 'setPerformanceOptions') {
+    if (message.performanceOptions) {
+      performanceOptions = { ...performanceOptions, ...message.performanceOptions };
+      physics.setPerformanceOptions(performanceOptions);
+    }
+    if (message.forceSleepEnabled != null) {
+      forceSleepEnabled = Boolean(message.forceSleepEnabled);
+    }
+    resetSleepMonitor();
     lastStepAt = performance.now();
     resetMetrics(lastStepAt);
     snapshot();
@@ -294,6 +341,13 @@ self.onmessage = async (event) => {
     spawnBodiesMs = result.spawnMs;
     spawnBodiesCount = result.created;
     spawnBatchCount += 1;
+    dynamicTreeRebuildMs = 0;
+    dynamicTreeRebuildLeaves = 0;
+    if (result.created >= BULK_TREE_REBUILD_BODY_COUNT && typeof physics.rebuildDynamicTree === 'function') {
+      const rebuildStartedAt = performance.now();
+      dynamicTreeRebuildLeaves = physics.rebuildDynamicTree();
+      dynamicTreeRebuildMs = performance.now() - rebuildStartedAt;
+    }
     resetSleepMonitor();
     snapshot();
     return;

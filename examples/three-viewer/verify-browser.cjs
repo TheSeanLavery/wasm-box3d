@@ -130,7 +130,7 @@ async function verifyViewport(viewport, label) {
     throw new Error(`${label} physics fps readout invalid: ${state.physicsFps}`);
   }
   if (
-    !/^step \d+(\.\d+)?ms spawn \d+(\.\d+)?ms\/\d+ wasm \d+(\.\d+)?ms sync \d+(\.\d+)?ms render \d+(\.\d+)?ms snap \d+(\.\d+)?ms$/.test(
+    !/^step \d+(\.\d+)?ms c \d+(\.\d+)? p\/c\/s\/x\/sl \d+(\.\d+)?\/\d+(\.\d+)?\/\d+(\.\d+)?\/\d+(\.\d+)?\/\d+(\.\d+)? moves [\d,]+ nodes [\d,]+ leaves [\d,]+ dup [\d,]+ exist [\d,]+ cand [\d,]+ over [\d,]+ new [\d,]+ set [\d,]+ tree \d+\/\d+(\.\d+)? contacts [\d,]+ awake [\d,]+ islands [\d,]+ workers \d+ sub \d+ spawn \d+(\.\d+)?ms\/\d+ wasm \d+(\.\d+)?ms sync \d+(\.\d+)?ms render \d+(\.\d+)?ms snap \d+(\.\d+)?ms$/.test(
       state.profile ?? ''
     )
   ) {

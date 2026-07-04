@@ -1,4 +1,5 @@
 export const BODY_FLOAT_STRIDE = 14;
+export const PROFILE_FLOAT_STRIDE = 73;
 
 export const RenderShapeType = Object.freeze({
   box: 0,
@@ -16,6 +17,82 @@ const SleepPolicyCode = Object.freeze({
   aggressive: 1,
   disabled: 2,
 });
+
+const ProfileKeys = Object.freeze([
+  'step',
+  'pairs',
+  'broadphaseMoves',
+  'broadphaseTreeNodeVisits',
+  'broadphaseTreeLeafVisits',
+  'broadphaseDuplicatePairs',
+  'broadphaseExistingPairs',
+  'broadphaseCandidatePairs',
+  'broadphaseOverflowPairs',
+  'broadphaseCreatedContacts',
+  'broadphasePairSetCount',
+  'dynamicTreeHeight',
+  'dynamicTreeAreaRatio',
+  'collide',
+  'collideGather',
+  'collideTask',
+  'collideContactState',
+  'collideTouchingContacts',
+  'collideNonTouchingContacts',
+  'collideTotalContacts',
+  'collideRecycledContacts',
+  'collideUpdatedContacts',
+  'collideDisjointContacts',
+  'collideStartedTouching',
+  'collideStoppedTouching',
+  'collideManifoldContacts',
+  'collideSatCalls',
+  'collideSatCacheHits',
+  'collideSatSameHullCalls',
+  'collideSatBoxHullCalls',
+  'collideSatCacheSeparationHits',
+  'collideSatCacheFaceHits',
+  'collideSatCacheEdgeHits',
+  'collideSatFullSearches',
+  'collideRecycleCandidates',
+  'collideRecycleMissingCache',
+  'collideRecycleFastMesh',
+  'collideRecycleTested',
+  'collideRecycleRejectedAngular',
+  'collideRecycleRejectedLinear',
+  'collideRecycleRejectedArc',
+  'solve',
+  'solverSetup',
+  'solverAwakeBodies',
+  'solverActiveColors',
+  'solverWideContacts',
+  'solverMeshContacts',
+  'solverManifolds',
+  'solverOverflowContacts',
+  'solverOverflowManifolds',
+  'solverGraphBlocks',
+  'constraints',
+  'prepareConstraints',
+  'prepareJoints',
+  'prepareWideContacts',
+  'prepareMeshContacts',
+  'prepareOverflow',
+  'integrateVelocities',
+  'warmStart',
+  'solveImpulses',
+  'integratePositions',
+  'relaxImpulses',
+  'applyRestitution',
+  'storeImpulses',
+  'splitIslands',
+  'transforms',
+  'sensorHits',
+  'jointEvents',
+  'hitEvents',
+  'refit',
+  'bullets',
+  'sleepIslands',
+  'sensors',
+]);
 
 function resolveStressLayout(value = 'dense') {
   return StressLayoutCode[value] ?? StressLayoutCode.dense;
@@ -35,6 +112,14 @@ function normalizePerformanceOptions(options = {}) {
       Number.isFinite(options.contactDampingRatio) && options.contactDampingRatio > 0 ? options.contactDampingRatio : 10,
     contactSpeed: Number.isFinite(options.contactSpeed) && options.contactSpeed > 0 ? options.contactSpeed : 3,
     workerCount: Number.isFinite(options.workerCount) && options.workerCount > 0 ? Math.round(options.workerCount) : 0,
+    contactRecycleDistance:
+      Number.isFinite(options.contactRecycleDistance) && options.contactRecycleDistance >= 0
+        ? options.contactRecycleDistance
+        : 0.05,
+    contactBudgetPerBody:
+      Number.isFinite(options.contactBudgetPerBody) && options.contactBudgetPerBody > 0
+        ? Math.round(options.contactBudgetPerBody)
+        : 0,
   };
 }
 
@@ -88,8 +173,10 @@ export async function createBox3DDemo(options = {}) {
     resetArenaRaw: module.cwrap('wb3_reset_arena', 'number', ['number']),
     stepWorld: module.cwrap('wb3_step', null, ['number', 'number']),
     syncRenderDataRaw: module.cwrap('wb3_sync_render_data', null, []),
+    rebuildDynamicTreeRaw: module.cwrap('wb3_rebuild_dynamic_tree', 'number', []),
     spawnBoxRaw: module.cwrap('wb3_spawn_box', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
     spawnBoxExRaw: module.cwrap('wb3_spawn_box_ex', 'number', [
+      'number',
       'number',
       'number',
       'number',
@@ -124,6 +211,34 @@ export async function createBox3DDemo(options = {}) {
       'number',
     ]),
     spawnSphereRaw: module.cwrap('wb3_spawn_sphere', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
+    spawnSphereExRaw: module.cwrap('wb3_spawn_sphere_ex', 'number', [
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+    ]),
+    spawnSphereExNoSyncRaw: module.cwrap('wb3_spawn_sphere_ex_no_sync', 'number', [
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+      'number',
+    ]),
     setGravityEnabledRaw: module.cwrap('wb3_set_gravity_enabled', null, ['number']),
     setPerformanceOptionsRaw: module.cwrap('wb3_set_performance_options', null, [
       'number',
@@ -133,8 +248,11 @@ export async function createBox3DDemo(options = {}) {
       'number',
       'number',
       'number',
+      'number',
+      'number',
     ]),
     forceSleepAwakeBodiesRaw: module.cwrap('wb3_force_sleep_awake_bodies', 'number', []),
+    sleepQuietRegionsRaw: module.cwrap('wb3_sleep_quiet_regions', 'number', ['number', 'number', 'number', 'number']),
     getBodyCountRaw: module.cwrap('wb3_get_body_count', 'number', []),
     getAwakeBodyCountRaw: module.cwrap('wb3_get_awake_body_count', 'number', []),
     getContactCountRaw: module.cwrap('wb3_get_contact_count', 'number', []),
@@ -148,6 +266,8 @@ export async function createBox3DDemo(options = {}) {
     getContinuousEnabledRaw: module.cwrap('wb3_get_continuous_enabled', 'number', []),
     getBodyStrideRaw: module.cwrap('wb3_get_body_stride', 'number', []),
     getBodyDataRaw: module.cwrap('wb3_get_body_data', 'pointer', []),
+    getProfileStrideRaw: module.cwrap('wb3_get_profile_stride', 'number', []),
+    getProfileDataRaw: module.cwrap('wb3_get_profile_data', 'pointer', []),
     getStepCountRaw: module.cwrap('wb3_get_step_count', 'number', []),
     getStressDynamicCountRaw: module.cwrap('wb3_get_stress_dynamic_count', 'number', []),
     getLastStressRequestRaw: module.cwrap('wb3_get_last_stress_request', 'number', []),
@@ -163,7 +283,9 @@ export async function createBox3DDemo(options = {}) {
       normalized.contactHertz,
       normalized.contactDampingRatio,
       normalized.contactSpeed,
-      normalized.workerCount
+      normalized.workerCount,
+      normalized.contactRecycleDistance,
+      normalized.contactBudgetPerBody
     );
   };
 
@@ -187,6 +309,9 @@ export async function createBox3DDemo(options = {}) {
     },
     syncRenderData() {
       api.syncRenderDataRaw();
+    },
+    rebuildDynamicTree() {
+      return api.rebuildDynamicTreeRaw();
     },
     spawnBox(position = {}, velocity = {}) {
       return api.spawnBoxRaw(
@@ -226,7 +351,12 @@ export async function createBox3DDemo(options = {}) {
       const startedAt = performance.now();
       let created = 0;
       for (const body of bodies) {
-        if (this.addBox(body, { sync: false }) >= 0) {
+        const shapeType = body.shapeType ?? body.shape ?? 'box';
+        const bodyIndex =
+          shapeType === RenderShapeType.sphere || shapeType === 'sphere'
+            ? this.addSphere(body, { sync: false })
+            : this.addBox(body, { sync: false });
+        if (bodyIndex >= 0) {
           created += 1;
         }
       }
@@ -249,6 +379,26 @@ export async function createBox3DDemo(options = {}) {
         velocity.z ?? 0
       );
     },
+    addSphere(options = {}, addOptions = {}) {
+      const position = options.position ?? {};
+      const velocity = options.velocity ?? {};
+      const color = options.color ?? {};
+      const spawnRaw = addOptions.sync === false ? api.spawnSphereExNoSyncRaw : api.spawnSphereExRaw;
+      return spawnRaw(
+        position.x ?? 0,
+        position.y ?? 6,
+        position.z ?? 0,
+        options.radius ?? 0.45,
+        velocity.x ?? 0,
+        velocity.y ?? 0,
+        velocity.z ?? 0,
+        color.x ?? color.r ?? 0.3,
+        color.y ?? color.g ?? 0.63,
+        color.z ?? color.b ?? 0.95,
+        options.bodyType === 'fixed' ? 0 : 1,
+        options.density ?? 1
+      );
+    },
     setGravityEnabled(enabled) {
       api.setGravityEnabledRaw(enabled ? 1 : 0);
     },
@@ -257,6 +407,14 @@ export async function createBox3DDemo(options = {}) {
     },
     forceSleepAwakeBodies() {
       return api.forceSleepAwakeBodiesRaw();
+    },
+    sleepQuietRegions(options = {}) {
+      return api.sleepQuietRegionsRaw(
+        Number.isFinite(options.tileSize) ? options.tileSize : 8,
+        Number.isFinite(options.speedThreshold) ? options.speedThreshold : 0.08,
+        Number.isFinite(options.minBodies) ? Math.round(options.minBodies) : 16,
+        Number.isFinite(options.startBodyIndex) ? Math.round(options.startBodyIndex) : 5
+      );
     },
     getBodyCount() {
       return api.getBodyCountRaw();
@@ -299,6 +457,22 @@ export async function createBox3DDemo(options = {}) {
       const stride = api.getBodyStrideRaw();
       const pointer = api.getBodyDataRaw();
       return new Float32Array(module.HEAPF32.buffer, Number(pointer), count * stride);
+    },
+    getProfileStride() {
+      return api.getProfileStrideRaw();
+    },
+    getProfileData() {
+      const stride = api.getProfileStrideRaw();
+      const pointer = api.getProfileDataRaw();
+      return new Float32Array(module.HEAPF32.buffer, Number(pointer), stride);
+    },
+    getProfile() {
+      const values = this.getProfileData();
+      const profile = {};
+      for (let i = 0; i < ProfileKeys.length; ++i) {
+        profile[ProfileKeys[i]] = values[i] ?? 0;
+      }
+      return profile;
     },
     getStepCount() {
       return api.getStepCountRaw();

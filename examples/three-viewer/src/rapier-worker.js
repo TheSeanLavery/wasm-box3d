@@ -123,7 +123,12 @@ function addBodies(nextBodies = []) {
     const velocity = body.velocity ?? { x: 0, y: 0, z: 0 };
     const color = body.color ?? { x: 0.94, y: 0.6, z: 0.22 };
     const type = body.bodyType === 'fixed' ? 'fixed' : 'dynamic';
-    if (addBox(type, position, halfExtents, body.density ?? 1, color, velocity, body.rotationY ?? 0) >= 0) {
+    const shapeType = body.shapeType ?? body.shape ?? 'box';
+    const bodyIndex =
+      shapeType === RENDER_SPHERE || shapeType === 'sphere'
+        ? addSphere(type, position, body.radius ?? 0.45, body.density ?? 1, color, velocity)
+        : addBox(type, position, halfExtents, body.density ?? 1, color, velocity, body.rotationY ?? 0);
+    if (bodyIndex >= 0) {
       created += 1;
     }
   }

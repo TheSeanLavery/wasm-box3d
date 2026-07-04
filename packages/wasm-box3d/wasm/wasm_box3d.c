@@ -10,13 +10,17 @@
 #endif
 
 #include <stdbool.h>
+#include <limits.h>
+#include <math.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
 #define MAX_RENDER_BODIES 10000000
 #define BODY_FLOAT_STRIDE 14
+#define PROFILE_FLOAT_STRIDE 73
 #define DEFAULT_ARENA_HALF_WIDTH 14.0f
+#define WB3_DEFAULT_CONTACT_RECYCLE_DISTANCE 0.05f
 #define WB3_SLEEP_THRESHOLD 0.08f
 #define WB3_AGGRESSIVE_SLEEP_THRESHOLD 0.35f
 #if defined( WB3_PTHREADS_ENABLED )
@@ -75,6 +79,9 @@ static bool g_continuousEnabled = true;
 static float g_contactHertz = 30.0f;
 static float g_contactDampingRatio = 10.0f;
 static float g_contactSpeed = 3.0f;
+static float g_contactRecycleDistance = WB3_DEFAULT_CONTACT_RECYCLE_DISTANCE;
+static int g_contactBudgetPerBody = 0;
+static float g_profileFloats[PROFILE_FLOAT_STRIDE] = { 0.0f };
 
 static int clamp_stress_dynamic_count( int requestedDynamicCount )
 {
@@ -170,6 +177,15 @@ static void apply_world_options( b3WorldDef* worldDef )
 	worldDef->contactDampingRatio = g_contactDampingRatio;
 	worldDef->contactSpeed = g_contactSpeed;
 	worldDef->workerCount = worker_count_for_world();
+}
+
+static void apply_runtime_world_options( void )
+{
+	if ( b3World_IsValid( g_worldId ) )
+	{
+		b3World_SetContactRecycleDistance( g_worldId, g_contactRecycleDistance );
+		b3World_SetContactBudgetPerBody( g_worldId, g_contactBudgetPerBody );
+	}
 }
 
 static int add_oriented_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float density, b3Vec3 color,
@@ -474,6 +490,7 @@ int wb3_reset( int sceneIndex )
 	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
 	apply_world_options( &worldDef );
 	g_worldId = b3CreateWorld( &worldDef );
+	apply_runtime_world_options();
 	g_sceneIndex = sceneIndex % 3;
 
 	if ( g_sceneIndex == 1 )
@@ -502,9 +519,11 @@ int wb3_reset_stress( int dynamicBlockCount )
 	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
 	apply_world_options( &worldDef );
 	g_worldId = b3CreateWorld( &worldDef );
+	apply_runtime_world_options();
 	g_sceneIndex = 3;
 	g_lastStressRequested = dynamicBlockCount;
 	g_lastStressDynamicCount = add_stress_blocks( dynamicBlockCount );
+	b3World_RebuildDynamicTree( g_worldId );
 
 	sync_render_data();
 	return g_bodyCount;
@@ -521,6 +540,7 @@ int wb3_reset_arena( float halfWidth )
 	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
 	apply_world_options( &worldDef );
 	g_worldId = b3CreateWorld( &worldDef );
+	apply_runtime_world_options();
 	g_sceneIndex = 4;
 
 	float clampedHalfWidth = halfWidth < DEFAULT_ARENA_HALF_WIDTH ? DEFAULT_ARENA_HALF_WIDTH : halfWidth;
@@ -557,6 +577,17 @@ void wb3_sync_render_data( void )
 	}
 
 	sync_render_data();
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_rebuild_dynamic_tree( void )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return 0;
+	}
+
+	return b3World_RebuildDynamicTree( g_worldId );
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -626,6 +657,40 @@ int wb3_spawn_sphere( float x, float y, float z, float vx, float vy, float vz )
 	return index;
 }
 
+static int spawn_sphere_ex( float x, float y, float z, float radius, float vx, float vy, float vz, float r, float g,
+							float b, int dynamic, float density, bool shouldSyncRenderData )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return -1;
+	}
+
+	float shapeRadius = radius > 0.01f ? radius : 0.45f;
+	float shapeDensity = density > 0.0f ? density : 1.0f;
+	b3BodyType type = dynamic != 0 ? b3_dynamicBody : b3_staticBody;
+	int index = add_sphere( type, (b3Vec3){ x, y, z }, shapeRadius, shapeDensity, (b3Vec3){ r, g, b },
+							(b3Vec3){ vx, vy, vz } );
+	if ( shouldSyncRenderData )
+	{
+		sync_render_data();
+	}
+	return index;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_spawn_sphere_ex( float x, float y, float z, float radius, float vx, float vy, float vz, float r, float g, float b,
+						 int dynamic, float density )
+{
+	return spawn_sphere_ex( x, y, z, radius, vx, vy, vz, r, g, b, dynamic, density, true );
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_spawn_sphere_ex_no_sync( float x, float y, float z, float radius, float vx, float vy, float vz, float r, float g,
+								 float b, int dynamic, float density )
+{
+	return spawn_sphere_ex( x, y, z, radius, vx, vy, vz, r, g, b, dynamic, density, false );
+}
+
 EMSCRIPTEN_KEEPALIVE
 void wb3_set_gravity_enabled( int enabled )
 {
@@ -638,7 +703,8 @@ void wb3_set_gravity_enabled( int enabled )
 
 EMSCRIPTEN_KEEPALIVE
 void wb3_set_performance_options( int stressLayout, int sleepPolicy, int continuousEnabled, float contactHertz,
-								  float contactDampingRatio, float contactSpeed, int workerCount )
+								  float contactDampingRatio, float contactSpeed, int workerCount, float contactRecycleDistance,
+								  int contactBudgetPerBody )
 {
 	g_stressLayout = stressLayout < STRESS_LAYOUT_DENSE || stressLayout > STRESS_LAYOUT_ISLANDS ? STRESS_LAYOUT_DENSE : stressLayout;
 	g_sleepPolicy = sleepPolicy < SLEEP_POLICY_NORMAL || sleepPolicy > SLEEP_POLICY_DISABLED ? SLEEP_POLICY_NORMAL : sleepPolicy;
@@ -647,14 +713,135 @@ void wb3_set_performance_options( int stressLayout, int sleepPolicy, int continu
 	g_contactDampingRatio = contactDampingRatio > 0.0f ? contactDampingRatio : 10.0f;
 	g_contactSpeed = contactSpeed > 0.0f ? contactSpeed : 3.0f;
 	g_requestedWorkerCount = workerCount <= 0 ? WB3_WORKER_COUNT : workerCount;
+	g_contactRecycleDistance = contactRecycleDistance >= 0.0f ? contactRecycleDistance : WB3_DEFAULT_CONTACT_RECYCLE_DISTANCE;
+	g_contactBudgetPerBody = contactBudgetPerBody > 0 ? contactBudgetPerBody : 0;
 
 	if ( b3World_IsValid( g_worldId ) )
 	{
 		b3World_EnableSleeping( g_worldId, g_sleepPolicy != SLEEP_POLICY_DISABLED );
 		b3World_EnableContinuous( g_worldId, g_continuousEnabled );
 		b3World_SetContactTuning( g_worldId, g_contactHertz, g_contactDampingRatio, g_contactSpeed );
+		b3World_SetContactRecycleDistance( g_worldId, g_contactRecycleDistance );
+		b3World_SetContactBudgetPerBody( g_worldId, g_contactBudgetPerBody );
 		b3World_SetWorkerCount( g_worldId, worker_count_for_world() );
 	}
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_sleep_quiet_regions( float tileSize, float speedThreshold, int minBodies, int startBodyIndex )
+{
+	if ( b3World_IsValid( g_worldId ) == false || g_bodyCount == 0 )
+	{
+		return 0;
+	}
+
+	float cellSize = tileSize > 0.1f ? tileSize : 8.0f;
+	float speedLimit = speedThreshold > 0.0f ? speedThreshold : WB3_SLEEP_THRESHOLD;
+	float speedLimitSquared = speedLimit * speedLimit;
+	int minCount = minBodies > 0 ? minBodies : 16;
+	int startIndex = startBodyIndex >= 0 ? startBodyIndex : 0;
+	if ( startIndex >= g_bodyCount )
+	{
+		return 0;
+	}
+
+	int candidateCount = g_bodyCount - startIndex;
+	int tableCapacity = 1;
+	while ( tableCapacity < candidateCount * 2 )
+	{
+		tableCapacity <<= 1;
+	}
+
+	int* keyX = (int*)malloc( sizeof( int ) * (size_t)tableCapacity );
+	int* keyZ = (int*)malloc( sizeof( int ) * (size_t)tableCapacity );
+	int* counts = (int*)calloc( (size_t)tableCapacity, sizeof( int ) );
+	int* activeCounts = (int*)calloc( (size_t)tableCapacity, sizeof( int ) );
+	int* bad = (int*)calloc( (size_t)tableCapacity, sizeof( int ) );
+	int* bodyTiles = (int*)malloc( sizeof( int ) * (size_t)g_bodyCount );
+	if ( keyX == NULL || keyZ == NULL || counts == NULL || activeCounts == NULL || bad == NULL || bodyTiles == NULL )
+	{
+		free( keyX );
+		free( keyZ );
+		free( counts );
+		free( activeCounts );
+		free( bad );
+		free( bodyTiles );
+		return 0;
+	}
+
+	for ( int i = 0; i < tableCapacity; ++i )
+	{
+		keyX[i] = INT_MIN;
+		keyZ[i] = INT_MIN;
+	}
+	for ( int i = 0; i < g_bodyCount; ++i )
+	{
+		bodyTiles[i] = -1;
+	}
+
+	for ( int i = startIndex; i < g_bodyCount; ++i )
+	{
+		b3BodyId bodyId = g_bodies[i].bodyId;
+		if ( b3Body_IsAwake( bodyId ) == false )
+		{
+			continue;
+		}
+
+		b3WorldTransform transform = b3Body_GetTransform( bodyId );
+		int cx = (int)floorf( (float)transform.p.x / cellSize );
+		int cz = (int)floorf( (float)transform.p.z / cellSize );
+		uint32_t hash = (uint32_t)( cx * 73856093 ) ^ (uint32_t)( cz * 19349663 );
+		int slot = (int)( hash & (uint32_t)( tableCapacity - 1 ) );
+		while ( keyX[slot] != INT_MIN && ( keyX[slot] != cx || keyZ[slot] != cz ) )
+		{
+			slot = ( slot + 1 ) & ( tableCapacity - 1 );
+		}
+
+		if ( keyX[slot] == INT_MIN )
+		{
+			keyX[slot] = cx;
+			keyZ[slot] = cz;
+		}
+
+		b3Vec3 linearVelocity = b3Body_GetLinearVelocity( bodyId );
+		b3Vec3 angularVelocity = b3Body_GetAngularVelocity( bodyId );
+		float speedSquared = b3LengthSquared( linearVelocity ) + 0.25f * b3LengthSquared( angularVelocity );
+		if ( speedSquared > speedLimitSquared )
+		{
+			bad[slot] = 1;
+		}
+
+		counts[slot] += 1;
+		activeCounts[slot] += 1;
+		bodyTiles[i] = slot;
+	}
+
+	int sleptCount = 0;
+	for ( int i = startIndex; i < g_bodyCount; ++i )
+	{
+		int slot = bodyTiles[i];
+		if ( slot < 0 || bad[slot] != 0 || activeCounts[slot] < minCount )
+		{
+			continue;
+		}
+
+		b3BodyId bodyId = g_bodies[i].bodyId;
+		if ( b3Body_IsAwake( bodyId ) )
+		{
+			b3Body_SetLinearVelocity( bodyId, b3Vec3_zero );
+			b3Body_SetAngularVelocity( bodyId, b3Vec3_zero );
+			b3Body_SetAwake( bodyId, false );
+			sleptCount += 1;
+		}
+	}
+
+	free( keyX );
+	free( keyZ );
+	free( counts );
+	free( activeCounts );
+	free( bad );
+	free( bodyTiles );
+	return sleptCount;
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -769,6 +956,92 @@ EMSCRIPTEN_KEEPALIVE
 int wb3_get_body_stride( void )
 {
 	return BODY_FLOAT_STRIDE;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_get_profile_stride( void )
+{
+	return PROFILE_FLOAT_STRIDE;
+}
+
+EMSCRIPTEN_KEEPALIVE
+float* wb3_get_profile_data( void )
+{
+	b3Profile profile = b3World_IsValid( g_worldId ) ? b3World_GetProfile( g_worldId ) : (b3Profile){ 0 };
+	g_profileFloats[0] = profile.step;
+	g_profileFloats[1] = profile.pairs;
+	g_profileFloats[2] = profile.broadphaseMoves;
+	g_profileFloats[3] = profile.broadphaseTreeNodeVisits;
+	g_profileFloats[4] = profile.broadphaseTreeLeafVisits;
+	g_profileFloats[5] = profile.broadphaseDuplicatePairs;
+	g_profileFloats[6] = profile.broadphaseExistingPairs;
+	g_profileFloats[7] = profile.broadphaseCandidatePairs;
+	g_profileFloats[8] = profile.broadphaseOverflowPairs;
+	g_profileFloats[9] = profile.broadphaseCreatedContacts;
+	g_profileFloats[10] = profile.broadphasePairSetCount;
+	g_profileFloats[11] = profile.dynamicTreeHeight;
+	g_profileFloats[12] = profile.dynamicTreeAreaRatio;
+	g_profileFloats[13] = profile.collide;
+	g_profileFloats[14] = profile.collideGather;
+	g_profileFloats[15] = profile.collideTask;
+	g_profileFloats[16] = profile.collideContactState;
+	g_profileFloats[17] = profile.collideTouchingContacts;
+	g_profileFloats[18] = profile.collideNonTouchingContacts;
+	g_profileFloats[19] = profile.collideTotalContacts;
+	g_profileFloats[20] = profile.collideRecycledContacts;
+	g_profileFloats[21] = profile.collideUpdatedContacts;
+	g_profileFloats[22] = profile.collideDisjointContacts;
+	g_profileFloats[23] = profile.collideStartedTouching;
+	g_profileFloats[24] = profile.collideStoppedTouching;
+	g_profileFloats[25] = profile.collideManifoldContacts;
+	g_profileFloats[26] = profile.collideSatCalls;
+	g_profileFloats[27] = profile.collideSatCacheHits;
+	g_profileFloats[28] = profile.collideSatSameHullCalls;
+	g_profileFloats[29] = profile.collideSatBoxHullCalls;
+	g_profileFloats[30] = profile.collideSatCacheSeparationHits;
+	g_profileFloats[31] = profile.collideSatCacheFaceHits;
+	g_profileFloats[32] = profile.collideSatCacheEdgeHits;
+	g_profileFloats[33] = profile.collideSatFullSearches;
+	g_profileFloats[34] = profile.collideRecycleCandidates;
+	g_profileFloats[35] = profile.collideRecycleMissingCache;
+	g_profileFloats[36] = profile.collideRecycleFastMesh;
+	g_profileFloats[37] = profile.collideRecycleTested;
+	g_profileFloats[38] = profile.collideRecycleRejectedAngular;
+	g_profileFloats[39] = profile.collideRecycleRejectedLinear;
+	g_profileFloats[40] = profile.collideRecycleRejectedArc;
+	g_profileFloats[41] = profile.solve;
+	g_profileFloats[42] = profile.solverSetup;
+	g_profileFloats[43] = profile.solverAwakeBodies;
+	g_profileFloats[44] = profile.solverActiveColors;
+	g_profileFloats[45] = profile.solverWideContacts;
+	g_profileFloats[46] = profile.solverMeshContacts;
+	g_profileFloats[47] = profile.solverManifolds;
+	g_profileFloats[48] = profile.solverOverflowContacts;
+	g_profileFloats[49] = profile.solverOverflowManifolds;
+	g_profileFloats[50] = profile.solverGraphBlocks;
+	g_profileFloats[51] = profile.constraints;
+	g_profileFloats[52] = profile.prepareConstraints;
+	g_profileFloats[53] = profile.prepareJoints;
+	g_profileFloats[54] = profile.prepareWideContacts;
+	g_profileFloats[55] = profile.prepareMeshContacts;
+	g_profileFloats[56] = profile.prepareOverflow;
+	g_profileFloats[57] = profile.integrateVelocities;
+	g_profileFloats[58] = profile.warmStart;
+	g_profileFloats[59] = profile.solveImpulses;
+	g_profileFloats[60] = profile.integratePositions;
+	g_profileFloats[61] = profile.relaxImpulses;
+	g_profileFloats[62] = profile.applyRestitution;
+	g_profileFloats[63] = profile.storeImpulses;
+	g_profileFloats[64] = profile.splitIslands;
+	g_profileFloats[65] = profile.transforms;
+	g_profileFloats[66] = profile.sensorHits;
+	g_profileFloats[67] = profile.jointEvents;
+	g_profileFloats[68] = profile.hitEvents;
+	g_profileFloats[69] = profile.refit;
+	g_profileFloats[70] = profile.bullets;
+	g_profileFloats[71] = profile.sleepIslands;
+	g_profileFloats[72] = profile.sensors;
+	return g_profileFloats;
 }
 
 EMSCRIPTEN_KEEPALIVE
