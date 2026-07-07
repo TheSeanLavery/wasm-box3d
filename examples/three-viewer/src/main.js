@@ -186,10 +186,16 @@ let box3dPerformanceOptions = {
   workerCount: Math.round(parsePositiveNumberParam('workerCount', 0)),
   contactRecycleDistance: parseNonNegativeNumberParam('contactRecycleDistance', 0.05),
   contactBudgetPerBody: Math.round(parseNonNegativeNumberParam('contactBudgetPerBody', 0)),
+  activeFrontSolve: parseBooleanParam('activeFrontSolve', false),
+  activeFrontSpeed: parsePositiveNumberParam('activeFrontSpeed', 0.08),
+  activeFrontDepth: Math.round(parseNonNegativeNumberParam('activeFrontDepth', 1)),
+  activeFrontOverflowOnly: parseBooleanParam('activeFrontOverflowOnly', false),
   regionSleep: parseBooleanParam('regionSleep', false),
   regionSleepTileSize: parsePositiveNumberParam('regionSleepTileSize', 8),
   regionSleepSpeed: parsePositiveNumberParam('regionSleepSpeed', 0.08),
   regionSleepMinBodies: Math.round(parsePositiveNumberParam('regionSleepMinBodies', 16)),
+  activeFrontSleep: parseBooleanParam('activeFrontSleep', false),
+  activeFrontRadius: Math.round(parsePositiveNumberParam('activeFrontRadius', 1)),
 };
 let forceSleepEnabled = parseBooleanParam('forceSleep', !benchmarkMode);
 
@@ -540,10 +546,16 @@ function normalizePerformanceOptions(options = {}) {
     workerCount: Math.round(boundedNumber(options.workerCount, 0, 0, 32)),
     contactRecycleDistance: boundedNumber(options.contactRecycleDistance, 0.05, 0, 2),
     contactBudgetPerBody: Math.round(boundedNumber(options.contactBudgetPerBody, 0, 0, 64)),
+    activeFrontSolve: options.activeFrontSolve === true,
+    activeFrontSpeed: boundedNumber(options.activeFrontSpeed, 0.08, 0.001, 10),
+    activeFrontDepth: Math.round(boundedNumber(options.activeFrontDepth, 1, 0, 16)),
+    activeFrontOverflowOnly: options.activeFrontOverflowOnly === true,
     regionSleep: options.regionSleep === true,
     regionSleepTileSize: boundedNumber(options.regionSleepTileSize, 8, 0.5, 128),
     regionSleepSpeed: boundedNumber(options.regionSleepSpeed, 0.08, 0.001, 10),
     regionSleepMinBodies: Math.round(boundedNumber(options.regionSleepMinBodies, 16, 1, 4096)),
+    activeFrontSleep: options.activeFrontSleep === true,
+    activeFrontRadius: Math.round(boundedNumber(options.activeFrontRadius, 1, 0, 16)),
   };
 }
 
@@ -601,10 +613,16 @@ function updateTuningUrl({ replace = true } = {}) {
   nextUrl.searchParams.set('workerCount', String(box3dPerformanceOptions.workerCount));
   nextUrl.searchParams.set('contactRecycleDistance', String(box3dPerformanceOptions.contactRecycleDistance));
   nextUrl.searchParams.set('contactBudgetPerBody', String(box3dPerformanceOptions.contactBudgetPerBody));
+  nextUrl.searchParams.set('activeFrontSolve', box3dPerformanceOptions.activeFrontSolve ? '1' : '0');
+  nextUrl.searchParams.set('activeFrontSpeed', String(box3dPerformanceOptions.activeFrontSpeed));
+  nextUrl.searchParams.set('activeFrontDepth', String(box3dPerformanceOptions.activeFrontDepth));
+  nextUrl.searchParams.set('activeFrontOverflowOnly', box3dPerformanceOptions.activeFrontOverflowOnly ? '1' : '0');
   nextUrl.searchParams.set('regionSleep', box3dPerformanceOptions.regionSleep ? '1' : '0');
   nextUrl.searchParams.set('regionSleepTileSize', String(box3dPerformanceOptions.regionSleepTileSize));
   nextUrl.searchParams.set('regionSleepSpeed', String(box3dPerformanceOptions.regionSleepSpeed));
   nextUrl.searchParams.set('regionSleepMinBodies', String(box3dPerformanceOptions.regionSleepMinBodies));
+  nextUrl.searchParams.set('activeFrontSleep', box3dPerformanceOptions.activeFrontSleep ? '1' : '0');
+  nextUrl.searchParams.set('activeFrontRadius', String(box3dPerformanceOptions.activeFrontRadius));
   nextUrl.searchParams.set('forceSleep', forceSleepEnabled ? '1' : '0');
   if (replace) {
     window.history.replaceState(null, '', nextUrl);

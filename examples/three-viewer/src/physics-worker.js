@@ -14,10 +14,16 @@ let performanceOptions = {
   contactSpeed: 3,
   workerCount: 0,
   contactBudgetPerBody: 0,
+  activeFrontSolve: false,
+  activeFrontSpeed: 0.08,
+  activeFrontDepth: 1,
+  activeFrontOverflowOnly: false,
   regionSleep: false,
   regionSleepTileSize: 8,
   regionSleepSpeed: 0.08,
   regionSleepMinBodies: 16,
+  activeFrontSleep: false,
+  activeFrontRadius: 1,
 };
 let forceSleepEnabled = true;
 let lastStepAt = 0;
@@ -143,6 +149,17 @@ function snapshot() {
       tileSize: performanceOptions.regionSleepTileSize,
       speedThreshold: performanceOptions.regionSleepSpeed,
       minBodies: performanceOptions.regionSleepMinBodies,
+      startBodyIndex: 5,
+    });
+    lastForceSleepMs = performance.now() - forceStartedAt;
+  }
+  if (performanceOptions.activeFrontSleep === true && physics.getBodyCount() > 5 && physics.getAwakeBodyCount() > 0) {
+    const forceStartedAt = performance.now();
+    forcedSleepBodies += physics.sleepActiveFront({
+      tileSize: performanceOptions.regionSleepTileSize,
+      speedThreshold: performanceOptions.regionSleepSpeed,
+      minBodies: performanceOptions.regionSleepMinBodies,
+      activeRadius: performanceOptions.activeFrontRadius,
       startBodyIndex: 5,
     });
     lastForceSleepMs = performance.now() - forceStartedAt;

@@ -72,6 +72,16 @@ export type Box3DPerformanceOptions = {
   workerCount?: number;
   contactRecycleDistance?: number;
   contactBudgetPerBody?: number;
+  activeFrontSolve?: boolean;
+  activeFrontSpeed?: number;
+  activeFrontDepth?: number;
+  activeFrontOverflowOnly?: boolean;
+  regionSleep?: boolean;
+  regionSleepTileSize?: number;
+  regionSleepSpeed?: number;
+  regionSleepMinBodies?: number;
+  activeFrontSleep?: boolean;
+  activeFrontRadius?: number;
 };
 
 export type Box3DProfile = {
@@ -171,6 +181,13 @@ export type Box3DDemo = {
     tileSize?: number;
     speedThreshold?: number;
     minBodies?: number;
+    startBodyIndex?: number;
+  }): number;
+  sleepActiveFront(options?: {
+    tileSize?: number;
+    speedThreshold?: number;
+    minBodies?: number;
+    activeRadius?: number;
     startBodyIndex?: number;
   }): number;
   getBodyCount(): number;

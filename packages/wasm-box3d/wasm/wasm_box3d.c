@@ -81,6 +81,10 @@ static float g_contactDampingRatio = 10.0f;
 static float g_contactSpeed = 3.0f;
 static float g_contactRecycleDistance = WB3_DEFAULT_CONTACT_RECYCLE_DISTANCE;
 static int g_contactBudgetPerBody = 0;
+static int g_activeFrontSolve = 0;
+static float g_activeFrontSpeed = 0.08f;
+static int g_activeFrontDepth = 1;
+static int g_activeFrontOverflowOnly = 0;
 static float g_profileFloats[PROFILE_FLOAT_STRIDE] = { 0.0f };
 
 static int clamp_stress_dynamic_count( int requestedDynamicCount )
@@ -185,6 +189,8 @@ static void apply_runtime_world_options( void )
 	{
 		b3World_SetContactRecycleDistance( g_worldId, g_contactRecycleDistance );
 		b3World_SetContactBudgetPerBody( g_worldId, g_contactBudgetPerBody );
+		b3World_SetActiveFrontSolve( g_worldId, g_activeFrontSolve != 0, g_activeFrontSpeed, g_activeFrontDepth,
+									  g_activeFrontOverflowOnly != 0 );
 	}
 }
 
@@ -704,7 +710,8 @@ void wb3_set_gravity_enabled( int enabled )
 EMSCRIPTEN_KEEPALIVE
 void wb3_set_performance_options( int stressLayout, int sleepPolicy, int continuousEnabled, float contactHertz,
 								  float contactDampingRatio, float contactSpeed, int workerCount, float contactRecycleDistance,
-								  int contactBudgetPerBody )
+								  int contactBudgetPerBody, int activeFrontSolve, float activeFrontSpeed, int activeFrontDepth,
+								  int activeFrontOverflowOnly )
 {
 	g_stressLayout = stressLayout < STRESS_LAYOUT_DENSE || stressLayout > STRESS_LAYOUT_ISLANDS ? STRESS_LAYOUT_DENSE : stressLayout;
 	g_sleepPolicy = sleepPolicy < SLEEP_POLICY_NORMAL || sleepPolicy > SLEEP_POLICY_DISABLED ? SLEEP_POLICY_NORMAL : sleepPolicy;
@@ -715,6 +722,10 @@ void wb3_set_performance_options( int stressLayout, int sleepPolicy, int continu
 	g_requestedWorkerCount = workerCount <= 0 ? WB3_WORKER_COUNT : workerCount;
 	g_contactRecycleDistance = contactRecycleDistance >= 0.0f ? contactRecycleDistance : WB3_DEFAULT_CONTACT_RECYCLE_DISTANCE;
 	g_contactBudgetPerBody = contactBudgetPerBody > 0 ? contactBudgetPerBody : 0;
+	g_activeFrontSolve = activeFrontSolve != 0 ? 1 : 0;
+	g_activeFrontSpeed = activeFrontSpeed > 0.0f ? activeFrontSpeed : 0.08f;
+	g_activeFrontDepth = activeFrontDepth >= 0 ? activeFrontDepth : 1;
+	g_activeFrontOverflowOnly = activeFrontOverflowOnly != 0 ? 1 : 0;
 
 	if ( b3World_IsValid( g_worldId ) )
 	{
@@ -723,6 +734,8 @@ void wb3_set_performance_options( int stressLayout, int sleepPolicy, int continu
 		b3World_SetContactTuning( g_worldId, g_contactHertz, g_contactDampingRatio, g_contactSpeed );
 		b3World_SetContactRecycleDistance( g_worldId, g_contactRecycleDistance );
 		b3World_SetContactBudgetPerBody( g_worldId, g_contactBudgetPerBody );
+		b3World_SetActiveFrontSolve( g_worldId, g_activeFrontSolve != 0, g_activeFrontSpeed, g_activeFrontDepth,
+									  g_activeFrontOverflowOnly != 0 );
 		b3World_SetWorkerCount( g_worldId, worker_count_for_world() );
 	}
 }
@@ -840,6 +853,162 @@ int wb3_sleep_quiet_regions( float tileSize, float speedThreshold, int minBodies
 	free( counts );
 	free( activeCounts );
 	free( bad );
+	free( bodyTiles );
+	return sleptCount;
+}
+
+static int find_tile_slot( const int* keyX, const int* keyZ, int tableCapacity, int cx, int cz )
+{
+	uint32_t hash = (uint32_t)( cx * 73856093 ) ^ (uint32_t)( cz * 19349663 );
+	int slot = (int)( hash & (uint32_t)( tableCapacity - 1 ) );
+	while ( keyX[slot] != INT_MIN )
+	{
+		if ( keyX[slot] == cx && keyZ[slot] == cz )
+		{
+			return slot;
+		}
+
+		slot = ( slot + 1 ) & ( tableCapacity - 1 );
+	}
+
+	return -1;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_sleep_active_front( float tileSize, float speedThreshold, int minBodies, int activeRadius, int startBodyIndex )
+{
+	if ( b3World_IsValid( g_worldId ) == false || g_bodyCount == 0 )
+	{
+		return 0;
+	}
+
+	float cellSize = tileSize > 0.1f ? tileSize : 8.0f;
+	float speedLimit = speedThreshold > 0.0f ? speedThreshold : WB3_SLEEP_THRESHOLD;
+	float speedLimitSquared = speedLimit * speedLimit;
+	int minCount = minBodies > 0 ? minBodies : 16;
+	int radius = activeRadius >= 0 ? activeRadius : 1;
+	int startIndex = startBodyIndex >= 0 ? startBodyIndex : 0;
+	if ( startIndex >= g_bodyCount )
+	{
+		return 0;
+	}
+
+	int candidateCount = g_bodyCount - startIndex;
+	int tableCapacity = 1;
+	while ( tableCapacity < candidateCount * 2 )
+	{
+		tableCapacity <<= 1;
+	}
+
+	int* keyX = (int*)malloc( sizeof( int ) * (size_t)tableCapacity );
+	int* keyZ = (int*)malloc( sizeof( int ) * (size_t)tableCapacity );
+	int* counts = (int*)calloc( (size_t)tableCapacity, sizeof( int ) );
+	int* active = (int*)calloc( (size_t)tableCapacity, sizeof( int ) );
+	int* front = (int*)calloc( (size_t)tableCapacity, sizeof( int ) );
+	int* bodyTiles = (int*)malloc( sizeof( int ) * (size_t)g_bodyCount );
+	if ( keyX == NULL || keyZ == NULL || counts == NULL || active == NULL || front == NULL || bodyTiles == NULL )
+	{
+		free( keyX );
+		free( keyZ );
+		free( counts );
+		free( active );
+		free( front );
+		free( bodyTiles );
+		return 0;
+	}
+
+	for ( int i = 0; i < tableCapacity; ++i )
+	{
+		keyX[i] = INT_MIN;
+		keyZ[i] = INT_MIN;
+	}
+	for ( int i = 0; i < g_bodyCount; ++i )
+	{
+		bodyTiles[i] = -1;
+	}
+
+	for ( int i = startIndex; i < g_bodyCount; ++i )
+	{
+		b3BodyId bodyId = g_bodies[i].bodyId;
+		if ( b3Body_IsAwake( bodyId ) == false )
+		{
+			continue;
+		}
+
+		b3WorldTransform transform = b3Body_GetTransform( bodyId );
+		int cx = (int)floorf( (float)transform.p.x / cellSize );
+		int cz = (int)floorf( (float)transform.p.z / cellSize );
+		uint32_t hash = (uint32_t)( cx * 73856093 ) ^ (uint32_t)( cz * 19349663 );
+		int slot = (int)( hash & (uint32_t)( tableCapacity - 1 ) );
+		while ( keyX[slot] != INT_MIN && ( keyX[slot] != cx || keyZ[slot] != cz ) )
+		{
+			slot = ( slot + 1 ) & ( tableCapacity - 1 );
+		}
+
+		if ( keyX[slot] == INT_MIN )
+		{
+			keyX[slot] = cx;
+			keyZ[slot] = cz;
+		}
+
+		b3Vec3 linearVelocity = b3Body_GetLinearVelocity( bodyId );
+		b3Vec3 angularVelocity = b3Body_GetAngularVelocity( bodyId );
+		float speedSquared = b3LengthSquared( linearVelocity ) + 0.25f * b3LengthSquared( angularVelocity );
+		if ( speedSquared > speedLimitSquared )
+		{
+			active[slot] = 1;
+		}
+
+		counts[slot] += 1;
+		bodyTiles[i] = slot;
+	}
+
+	for ( int slot = 0; slot < tableCapacity; ++slot )
+	{
+		if ( active[slot] == 0 )
+		{
+			continue;
+		}
+
+		int cx = keyX[slot];
+		int cz = keyZ[slot];
+		for ( int dz = -radius; dz <= radius; ++dz )
+		{
+			for ( int dx = -radius; dx <= radius; ++dx )
+			{
+				int neighborSlot = find_tile_slot( keyX, keyZ, tableCapacity, cx + dx, cz + dz );
+				if ( neighborSlot >= 0 )
+				{
+					front[neighborSlot] = 1;
+				}
+			}
+		}
+	}
+
+	int sleptCount = 0;
+	for ( int i = startIndex; i < g_bodyCount; ++i )
+	{
+		int slot = bodyTiles[i];
+		if ( slot < 0 || front[slot] != 0 || counts[slot] < minCount )
+		{
+			continue;
+		}
+
+		b3BodyId bodyId = g_bodies[i].bodyId;
+		if ( b3Body_IsAwake( bodyId ) )
+		{
+			b3Body_SetLinearVelocity( bodyId, b3Vec3_zero );
+			b3Body_SetAngularVelocity( bodyId, b3Vec3_zero );
+			b3Body_SetAwake( bodyId, false );
+			sleptCount += 1;
+		}
+	}
+
+	free( keyX );
+	free( keyZ );
+	free( counts );
+	free( active );
+	free( front );
 	free( bodyTiles );
 	return sleptCount;
 }

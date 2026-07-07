@@ -120,6 +120,14 @@ function normalizePerformanceOptions(options = {}) {
       Number.isFinite(options.contactBudgetPerBody) && options.contactBudgetPerBody > 0
         ? Math.round(options.contactBudgetPerBody)
         : 0,
+    activeFrontSolve: options.activeFrontSolve === true,
+    activeFrontSpeed:
+      Number.isFinite(options.activeFrontSpeed) && options.activeFrontSpeed > 0 ? options.activeFrontSpeed : 0.08,
+    activeFrontDepth:
+      Number.isFinite(options.activeFrontDepth) && options.activeFrontDepth >= 0
+        ? Math.round(options.activeFrontDepth)
+        : 1,
+    activeFrontOverflowOnly: options.activeFrontOverflowOnly === true,
   };
 }
 
@@ -176,6 +184,10 @@ export async function createBox3DDemo(options = {}) {
     rebuildDynamicTreeRaw: module.cwrap('wb3_rebuild_dynamic_tree', 'number', []),
     spawnBoxRaw: module.cwrap('wb3_spawn_box', 'number', ['number', 'number', 'number', 'number', 'number', 'number']),
     spawnBoxExRaw: module.cwrap('wb3_spawn_box_ex', 'number', [
+      'number',
+      'number',
+      'number',
+      'number',
       'number',
       'number',
       'number',
@@ -253,6 +265,7 @@ export async function createBox3DDemo(options = {}) {
     ]),
     forceSleepAwakeBodiesRaw: module.cwrap('wb3_force_sleep_awake_bodies', 'number', []),
     sleepQuietRegionsRaw: module.cwrap('wb3_sleep_quiet_regions', 'number', ['number', 'number', 'number', 'number']),
+    sleepActiveFrontRaw: module.cwrap('wb3_sleep_active_front', 'number', ['number', 'number', 'number', 'number', 'number']),
     getBodyCountRaw: module.cwrap('wb3_get_body_count', 'number', []),
     getAwakeBodyCountRaw: module.cwrap('wb3_get_awake_body_count', 'number', []),
     getContactCountRaw: module.cwrap('wb3_get_contact_count', 'number', []),
@@ -285,7 +298,11 @@ export async function createBox3DDemo(options = {}) {
       normalized.contactSpeed,
       normalized.workerCount,
       normalized.contactRecycleDistance,
-      normalized.contactBudgetPerBody
+      normalized.contactBudgetPerBody,
+      normalized.activeFrontSolve ? 1 : 0,
+      normalized.activeFrontSpeed,
+      normalized.activeFrontDepth,
+      normalized.activeFrontOverflowOnly ? 1 : 0
     );
   };
 
@@ -413,6 +430,15 @@ export async function createBox3DDemo(options = {}) {
         Number.isFinite(options.tileSize) ? options.tileSize : 8,
         Number.isFinite(options.speedThreshold) ? options.speedThreshold : 0.08,
         Number.isFinite(options.minBodies) ? Math.round(options.minBodies) : 16,
+        Number.isFinite(options.startBodyIndex) ? Math.round(options.startBodyIndex) : 5
+      );
+    },
+    sleepActiveFront(options = {}) {
+      return api.sleepActiveFrontRaw(
+        Number.isFinite(options.tileSize) ? options.tileSize : 8,
+        Number.isFinite(options.speedThreshold) ? options.speedThreshold : 0.08,
+        Number.isFinite(options.minBodies) ? Math.round(options.minBodies) : 16,
+        Number.isFinite(options.activeRadius) ? Math.round(options.activeRadius) : 1,
         Number.isFinite(options.startBodyIndex) ? Math.round(options.startBodyIndex) : 5
       );
     },
