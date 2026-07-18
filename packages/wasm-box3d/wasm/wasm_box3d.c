@@ -23,6 +23,9 @@
 #define WB3_DEFAULT_CONTACT_RECYCLE_DISTANCE 0.05f
 #define WB3_SLEEP_THRESHOLD 0.08f
 #define WB3_AGGRESSIVE_SLEEP_THRESHOLD 0.35f
+#define TRACK_SECTION_VERTEX_COUNT 8
+#define TRACK_SECTION_FACE_COUNT 7
+#define TRACK_MESH_SLOT_COUNT 256
 #if defined( WB3_PTHREADS_ENABLED )
 #define WB3_WORKER_COUNT 4
 #else
@@ -33,6 +36,7 @@ enum
 {
 	RENDER_BOX = 0,
 	RENDER_SPHERE = 1,
+	RENDER_MESH = 2,
 };
 
 enum
@@ -86,6 +90,27 @@ static float g_activeFrontSpeed = 0.08f;
 static int g_activeFrontDepth = 1;
 static int g_activeFrontOverflowOnly = 0;
 static float g_profileFloats[PROFILE_FLOAT_STRIDE] = { 0.0f };
+typedef struct TrackMeshSlot
+{
+	b3MeshData* mesh;
+	b3ShapeId shapeId;
+	b3BodyId bodyId;
+	int bodyIndex;
+	b3Vec3* vertices;
+	int32_t* indices;
+	int sectionCount;
+	int sectionCapacity;
+	float halfWidth;
+	float railHeight;
+	float railWidth;
+	float friction;
+	b3Vec3 color;
+} TrackMeshSlot;
+
+static TrackMeshSlot g_trackSlots[TRACK_MESH_SLOT_COUNT] = { 0 };
+static int g_activeTrackSlot = -1;
+
+static bool ensure_body_capacity( int requiredCapacity );
 
 static int clamp_stress_dynamic_count( int requestedDynamicCount )
 {
@@ -107,10 +132,136 @@ static void clear_world( void )
 	{
 		b3DestroyWorld( g_worldId );
 	}
+	for ( int slotIndex = 0; slotIndex < TRACK_MESH_SLOT_COUNT; ++slotIndex )
+	{
+		TrackMeshSlot* slot = g_trackSlots + slotIndex;
+		if ( slot->mesh != NULL )
+		{
+			b3DestroyMesh( slot->mesh );
+		}
+		free( slot->vertices );
+		free( slot->indices );
+		memset( slot, 0, sizeof( TrackMeshSlot ) );
+		slot->shapeId = b3_nullShapeId;
+		slot->bodyId = b3_nullBodyId;
+		slot->bodyIndex = -1;
+	}
+	g_activeTrackSlot = -1;
 
 	g_worldId = b3_nullWorldId;
 	g_bodyCount = 0;
 	g_stepCount = 0;
+}
+
+static bool ensure_track_capacity( int slotIndex, int requiredSections )
+{
+	if ( slotIndex < 0 || slotIndex >= TRACK_MESH_SLOT_COUNT )
+	{
+		return false;
+	}
+	TrackMeshSlot* slot = g_trackSlots + slotIndex;
+	if ( requiredSections <= slot->sectionCapacity )
+	{
+		return true;
+	}
+
+	int nextCapacity = slot->sectionCapacity == 0 ? 32 : slot->sectionCapacity;
+	while ( nextCapacity < requiredSections )
+	{
+		nextCapacity *= 2;
+	}
+
+	b3Vec3* nextVertices =
+		(b3Vec3*)malloc( sizeof( b3Vec3 ) * (size_t)nextCapacity * TRACK_SECTION_VERTEX_COUNT );
+	int32_t* nextIndices =
+		(int32_t*)malloc( sizeof( int32_t ) * (size_t)( nextCapacity - 1 ) * TRACK_SECTION_FACE_COUNT * 6 );
+	if ( nextVertices == NULL || nextIndices == NULL )
+	{
+		free( nextVertices );
+		free( nextIndices );
+		return false;
+	}
+
+	if ( slot->sectionCount > 0 )
+	{
+		memcpy( nextVertices, slot->vertices,
+				sizeof( b3Vec3 ) * (size_t)slot->sectionCount * TRACK_SECTION_VERTEX_COUNT );
+		memcpy( nextIndices, slot->indices,
+				sizeof( int32_t ) * (size_t)( slot->sectionCount - 1 ) * TRACK_SECTION_FACE_COUNT * 6 );
+	}
+	free( slot->vertices );
+	free( slot->indices );
+	slot->vertices = nextVertices;
+	slot->indices = nextIndices;
+	slot->sectionCapacity = nextCapacity;
+	return true;
+}
+
+static int rebuild_track_mesh( int slotIndex )
+{
+	if ( slotIndex < 0 || slotIndex >= TRACK_MESH_SLOT_COUNT )
+	{
+		return -1;
+	}
+	TrackMeshSlot* slot = g_trackSlots + slotIndex;
+	if ( slot->sectionCount < 2 )
+	{
+		return -1;
+	}
+
+	b3MeshDef meshDef = { 0 };
+	meshDef.vertices = slot->vertices;
+	meshDef.indices = slot->indices;
+	meshDef.vertexCount = TRACK_SECTION_VERTEX_COUNT * slot->sectionCount;
+	meshDef.triangleCount = 2 * TRACK_SECTION_FACE_COUNT * ( slot->sectionCount - 1 );
+	meshDef.weldTolerance = 0.001f;
+	meshDef.weldVertices = false;
+	meshDef.useMedianSplit = true;
+	meshDef.identifyEdges = true;
+	b3MeshData* nextMesh = b3CreateMesh( &meshDef, NULL, 0 );
+	if ( nextMesh == NULL )
+	{
+		return -1;
+	}
+
+	if ( B3_IS_NULL( slot->shapeId ) )
+	{
+		if ( g_bodyCount >= MAX_RENDER_BODIES || ensure_body_capacity( g_bodyCount + 1 ) == false )
+		{
+			b3DestroyMesh( nextMesh );
+			return -1;
+		}
+
+		b3BodyDef bodyDef = b3DefaultBodyDef();
+		bodyDef.type = b3_staticBody;
+		b3BodyId bodyId = b3CreateBody( g_worldId, &bodyDef );
+		b3ShapeDef shapeDef = b3DefaultShapeDef();
+		shapeDef.baseMaterial.friction = slot->friction;
+		shapeDef.baseMaterial.restitution = 0.0f;
+		slot->shapeId = b3CreateMeshShape( bodyId, &shapeDef, nextMesh, b3Vec3_one );
+		slot->bodyId = bodyId;
+
+		RenderBody* renderBody = g_bodies + g_bodyCount;
+		renderBody->bodyId = bodyId;
+		renderBody->shapeType = RENDER_MESH;
+		renderBody->hx = 0.0f;
+		renderBody->hy = 0.0f;
+		renderBody->hz = 0.0f;
+		renderBody->radius = 0.0f;
+		renderBody->r = slot->color.x;
+		renderBody->g = slot->color.y;
+		renderBody->b = slot->color.z;
+		slot->bodyIndex = g_bodyCount++;
+		b3Body_Disable( bodyId );
+	}
+	else
+	{
+		b3Shape_SetMesh( slot->shapeId, nextMesh, b3Vec3_one );
+		b3DestroyMesh( slot->mesh );
+	}
+
+	slot->mesh = nextMesh;
+	return slot->bodyIndex;
 }
 
 static bool ensure_body_capacity( int requiredCapacity )
@@ -195,7 +346,7 @@ static void apply_runtime_world_options( void )
 }
 
 static int add_oriented_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float density, b3Vec3 color,
-							 b3Vec3 velocity, b3Quat rotation )
+							 b3Vec3 velocity, b3Quat rotation, float friction )
 {
 	if ( g_bodyCount >= MAX_RENDER_BODIES || ensure_body_capacity( g_bodyCount + 1 ) == false )
 	{
@@ -216,7 +367,7 @@ static int add_oriented_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtent
 	b3BodyId bodyId = b3CreateBody( g_worldId, &bodyDef );
 	b3ShapeDef shapeDef = b3DefaultShapeDef();
 	shapeDef.density = density;
-	shapeDef.baseMaterial.friction = 0.62f;
+	shapeDef.baseMaterial.friction = friction >= 0.0f ? friction : 0.62f;
 	shapeDef.baseMaterial.restitution = type == b3_dynamicBody ? 0.08f : 0.0f;
 
 	b3BoxHull hull = b3MakeBoxHull( halfExtents.x, halfExtents.y, halfExtents.z );
@@ -238,10 +389,11 @@ static int add_oriented_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtent
 
 static int add_box( b3BodyType type, b3Vec3 position, b3Vec3 halfExtents, float density, b3Vec3 color, b3Vec3 velocity )
 {
-	return add_oriented_box( type, position, halfExtents, density, color, velocity, b3Quat_identity );
+	return add_oriented_box( type, position, halfExtents, density, color, velocity, b3Quat_identity, 0.62f );
 }
 
-static int add_sphere( b3BodyType type, b3Vec3 position, float radius, float density, b3Vec3 color, b3Vec3 velocity )
+static int add_sphere( b3BodyType type, b3Vec3 position, float radius, float density, b3Vec3 color, b3Vec3 velocity,
+					   float restitution )
 {
 	if ( g_bodyCount >= MAX_RENDER_BODIES || ensure_body_capacity( g_bodyCount + 1 ) == false )
 	{
@@ -262,7 +414,7 @@ static int add_sphere( b3BodyType type, b3Vec3 position, float radius, float den
 	b3ShapeDef shapeDef = b3DefaultShapeDef();
 	shapeDef.density = density;
 	shapeDef.baseMaterial.friction = 0.45f;
-	shapeDef.baseMaterial.restitution = 0.18f;
+	shapeDef.baseMaterial.restitution = restitution >= 0.0f ? restitution : 0.18f;
 
 	b3Sphere sphere = { b3Vec3_zero, radius };
 	b3CreateSphereShape( bodyId, &shapeDef, &sphere );
@@ -431,7 +583,7 @@ static void add_sphere_scene( void )
 		float y = 1.0f + (float)( i / 7 ) * 1.1f;
 		float radius = 0.32f + 0.06f * (float)( i % 3 );
 		b3Vec3 color = { 0.22f + 0.05f * (float)( i % 4 ), 0.44f + 0.06f * (float)( i % 5 ), 0.86f };
-		add_sphere( b3_dynamicBody, (b3Vec3){ x, y, z }, radius, 1.0f, color, b3Vec3_zero );
+		add_sphere( b3_dynamicBody, (b3Vec3){ x, y, z }, radius, 1.0f, color, b3Vec3_zero, 0.18f );
 	}
 }
 
@@ -450,7 +602,7 @@ static void add_mixed_scene( void )
 
 		if ( i % 3 == 0 )
 		{
-			add_sphere( b3_dynamicBody, (b3Vec3){ x, y, z }, 0.42f, 1.0f, (b3Vec3){ 0.90f, 0.38f, 0.26f }, velocity );
+			add_sphere( b3_dynamicBody, (b3Vec3){ x, y, z }, 0.42f, 1.0f, (b3Vec3){ 0.90f, 0.38f, 0.26f }, velocity, 0.18f );
 		}
 		else
 		{
@@ -556,6 +708,157 @@ int wb3_reset_arena( float halfWidth )
 }
 
 EMSCRIPTEN_KEEPALIVE
+int wb3_reset_empty( void )
+{
+	clear_world();
+	g_lastStressRequested = 0;
+	g_lastStressDynamicCount = 0;
+
+	b3WorldDef worldDef = b3DefaultWorldDef();
+	worldDef.gravity = g_gravityEnabled ? (b3Vec3){ 0.0f, -10.0f, 0.0f } : b3Vec3_zero;
+	apply_world_options( &worldDef );
+	g_worldId = b3CreateWorld( &worldDef );
+	apply_runtime_world_options();
+	g_sceneIndex = 5;
+
+	sync_render_data();
+	return g_bodyCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_begin_track_mesh( int slotIndex, float halfWidth, float railHeight, float railWidth, float friction, float r, float g,
+						  float b )
+{
+	if ( b3World_IsValid( g_worldId ) == false || slotIndex < 0 || slotIndex >= TRACK_MESH_SLOT_COUNT )
+	{
+		return 0;
+	}
+
+	TrackMeshSlot* slot = g_trackSlots + slotIndex;
+	slot->sectionCount = 0;
+	slot->halfWidth = halfWidth > 0.05f ? halfWidth : 1.6f;
+	slot->railHeight = railHeight > 0.01f ? railHeight : 0.82f;
+	slot->railWidth = railWidth > 0.01f && railWidth < slot->halfWidth ? railWidth : 0.24f;
+	slot->friction = friction >= 0.0f ? friction : 0.68f;
+	slot->color = (b3Vec3){ r, g, b };
+	return ensure_track_capacity( slotIndex, 32 ) ? 1 : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_append_track_section( int slotIndex, float cx, float cy, float cz, float rx, float ry, float rz, float ux, float uy,
+							  float uz )
+{
+	if ( b3World_IsValid( g_worldId ) == false || slotIndex < 0 || slotIndex >= TRACK_MESH_SLOT_COUNT )
+	{
+		return -1;
+	}
+	TrackMeshSlot* slot = g_trackSlots + slotIndex;
+	if ( ensure_track_capacity( slotIndex, slot->sectionCount + 1 ) == false )
+	{
+		return -1;
+	}
+
+	b3Vec3 right = { rx, ry, rz };
+	float rightLength = b3Length( right );
+	if ( rightLength < 0.001f )
+	{
+		return -1;
+	}
+	right = b3MulSV( 1.0f / rightLength, right );
+	b3Vec3 up = { ux, uy, uz };
+	up = b3MulAdd( up, -b3Dot( up, right ), right );
+	float upLength = b3Length( up );
+	if ( upLength < 0.001f )
+	{
+		return -1;
+	}
+	up = b3MulSV( 1.0f / upLength, up );
+	b3Vec3 center = { cx, cy, cz };
+	int sectionIndex = slot->sectionCount;
+	int vertexOffset = TRACK_SECTION_VERTEX_COUNT * sectionIndex;
+	float innerWidth = slot->halfWidth - slot->railWidth;
+	b3Vec3 leftOuterBottom = b3MulAdd( center, -slot->halfWidth, right );
+	b3Vec3 leftInnerBottom = b3MulAdd( center, -innerWidth, right );
+	b3Vec3 rightInnerBottom = b3MulAdd( center, innerWidth, right );
+	b3Vec3 rightOuterBottom = b3MulAdd( center, slot->halfWidth, right );
+	slot->vertices[vertexOffset + 0] = leftOuterBottom;
+	slot->vertices[vertexOffset + 1] = b3MulAdd( leftOuterBottom, slot->railHeight, up );
+	slot->vertices[vertexOffset + 2] = b3MulAdd( leftInnerBottom, slot->railHeight, up );
+	slot->vertices[vertexOffset + 3] = leftInnerBottom;
+	slot->vertices[vertexOffset + 4] = rightInnerBottom;
+	slot->vertices[vertexOffset + 5] = b3MulAdd( rightInnerBottom, slot->railHeight, up );
+	slot->vertices[vertexOffset + 6] = b3MulAdd( rightOuterBottom, slot->railHeight, up );
+	slot->vertices[vertexOffset + 7] = rightOuterBottom;
+
+	if ( sectionIndex > 0 )
+	{
+		int previousOffset = TRACK_SECTION_VERTEX_COUNT * ( sectionIndex - 1 );
+		int triangleOffset = TRACK_SECTION_FACE_COUNT * 6 * ( sectionIndex - 1 );
+		for ( int faceIndex = 0; faceIndex < TRACK_SECTION_FACE_COUNT; ++faceIndex )
+		{
+			int indexOffset = triangleOffset + 6 * faceIndex;
+			int previousA = previousOffset + faceIndex;
+			int previousB = previousA + 1;
+			int nextA = vertexOffset + faceIndex;
+			int nextB = nextA + 1;
+			slot->indices[indexOffset + 0] = previousA;
+			slot->indices[indexOffset + 1] = previousB;
+			slot->indices[indexOffset + 2] = nextA;
+			slot->indices[indexOffset + 3] = previousB;
+			slot->indices[indexOffset + 4] = nextB;
+			slot->indices[indexOffset + 5] = nextA;
+		}
+	}
+
+	slot->sectionCount += 1;
+	return slot->sectionCount;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_commit_track_mesh( int slotIndex )
+{
+	return rebuild_track_mesh( slotIndex );
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_activate_track_mesh( int slotIndex )
+{
+	if ( slotIndex < 0 || slotIndex >= TRACK_MESH_SLOT_COUNT || B3_IS_NULL( g_trackSlots[slotIndex].bodyId ) )
+	{
+		return 0;
+	}
+	if ( g_activeTrackSlot == slotIndex )
+	{
+		return 1;
+	}
+	if ( g_activeTrackSlot >= 0 && B3_IS_NON_NULL( g_trackSlots[g_activeTrackSlot].bodyId ) )
+	{
+		b3Body_Disable( g_trackSlots[g_activeTrackSlot].bodyId );
+	}
+	b3Body_Enable( g_trackSlots[slotIndex].bodyId );
+	g_activeTrackSlot = slotIndex;
+	return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_set_track_mesh_enabled( int slotIndex, int enabled )
+{
+	if ( slotIndex < 0 || slotIndex >= TRACK_MESH_SLOT_COUNT || B3_IS_NULL( g_trackSlots[slotIndex].bodyId ) )
+	{
+		return 0;
+	}
+	if ( enabled != 0 )
+	{
+		b3Body_Enable( g_trackSlots[slotIndex].bodyId );
+	}
+	else
+	{
+		b3Body_Disable( g_trackSlots[slotIndex].bodyId );
+	}
+	return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE
 void wb3_step( float dt, int substeps )
 {
 	if ( b3World_IsValid( g_worldId ) == false )
@@ -627,7 +930,7 @@ static int spawn_box_ex( float x, float y, float z, float hx, float hy, float hz
 	b3BodyType type = dynamic != 0 ? b3_dynamicBody : b3_staticBody;
 	b3Quat rotation = b3MakeQuatFromAxisAngle( b3Vec3_axisY, yaw );
 	int index = add_oriented_box( type, (b3Vec3){ x, y, z }, halfExtents, shapeDensity, (b3Vec3){ r, g, b },
-								  (b3Vec3){ vx, vy, vz }, rotation );
+								  (b3Vec3){ vx, vy, vz }, rotation, 0.62f );
 	if ( shouldSyncRenderData )
 	{
 		sync_render_data();
@@ -649,6 +952,47 @@ int wb3_spawn_box_ex_no_sync( float x, float y, float z, float hx, float hy, flo
 	return spawn_box_ex( x, y, z, hx, hy, hz, vx, vy, vz, r, g, b, dynamic, yaw, density, false );
 }
 
+static int spawn_box_quat_ex( float x, float y, float z, float hx, float hy, float hz, float vx, float vy, float vz,
+							  float r, float g, float b, int dynamic, float qx, float qy, float qz, float qw, float density,
+							  float friction, bool shouldSyncRenderData )
+{
+	if ( b3World_IsValid( g_worldId ) == false )
+	{
+		return -1;
+	}
+
+	b3Vec3 halfExtents = {
+		hx > 0.01f ? hx : 0.45f,
+		hy > 0.01f ? hy : 0.45f,
+		hz > 0.01f ? hz : 0.45f,
+	};
+	float shapeDensity = density > 0.0f ? density : 1.0f;
+	b3BodyType type = dynamic != 0 ? b3_dynamicBody : b3_staticBody;
+	b3Quat rotation = b3NormalizeQuat( (b3Quat){ { qx, qy, qz }, qw } );
+	int index = add_oriented_box( type, (b3Vec3){ x, y, z }, halfExtents, shapeDensity, (b3Vec3){ r, g, b },
+								  (b3Vec3){ vx, vy, vz }, rotation, friction );
+	if ( shouldSyncRenderData )
+	{
+		sync_render_data();
+	}
+	return index;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_spawn_box_quat_ex( float x, float y, float z, float hx, float hy, float hz, float vx, float vy, float vz, float r,
+							   float g, float b, int dynamic, float qx, float qy, float qz, float qw, float density, float friction )
+{
+	return spawn_box_quat_ex( x, y, z, hx, hy, hz, vx, vy, vz, r, g, b, dynamic, qx, qy, qz, qw, density, friction, true );
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_spawn_box_quat_ex_no_sync( float x, float y, float z, float hx, float hy, float hz, float vx, float vy, float vz,
+								   float r, float g, float b, int dynamic, float qx, float qy, float qz, float qw, float density,
+								   float friction )
+{
+	return spawn_box_quat_ex( x, y, z, hx, hy, hz, vx, vy, vz, r, g, b, dynamic, qx, qy, qz, qw, density, friction, false );
+}
+
 EMSCRIPTEN_KEEPALIVE
 int wb3_spawn_sphere( float x, float y, float z, float vx, float vy, float vz )
 {
@@ -658,13 +1002,13 @@ int wb3_spawn_sphere( float x, float y, float z, float vx, float vy, float vz )
 	}
 
 	int index = add_sphere( b3_dynamicBody, (b3Vec3){ x, y, z }, 0.45f, 1.0f, (b3Vec3){ 0.30f, 0.63f, 0.95f },
-							(b3Vec3){ vx, vy, vz } );
+						  (b3Vec3){ vx, vy, vz }, 0.18f );
 	sync_render_data();
 	return index;
 }
 
 static int spawn_sphere_ex( float x, float y, float z, float radius, float vx, float vy, float vz, float r, float g,
-							float b, int dynamic, float density, bool shouldSyncRenderData )
+							float b, int dynamic, float density, float restitution, bool shouldSyncRenderData )
 {
 	if ( b3World_IsValid( g_worldId ) == false )
 	{
@@ -675,7 +1019,7 @@ static int spawn_sphere_ex( float x, float y, float z, float radius, float vx, f
 	float shapeDensity = density > 0.0f ? density : 1.0f;
 	b3BodyType type = dynamic != 0 ? b3_dynamicBody : b3_staticBody;
 	int index = add_sphere( type, (b3Vec3){ x, y, z }, shapeRadius, shapeDensity, (b3Vec3){ r, g, b },
-							(b3Vec3){ vx, vy, vz } );
+							(b3Vec3){ vx, vy, vz }, restitution );
 	if ( shouldSyncRenderData )
 	{
 		sync_render_data();
@@ -685,16 +1029,61 @@ static int spawn_sphere_ex( float x, float y, float z, float radius, float vx, f
 
 EMSCRIPTEN_KEEPALIVE
 int wb3_spawn_sphere_ex( float x, float y, float z, float radius, float vx, float vy, float vz, float r, float g, float b,
-						 int dynamic, float density )
+						 int dynamic, float density, float restitution )
 {
-	return spawn_sphere_ex( x, y, z, radius, vx, vy, vz, r, g, b, dynamic, density, true );
+	return spawn_sphere_ex( x, y, z, radius, vx, vy, vz, r, g, b, dynamic, density, restitution, true );
 }
 
 EMSCRIPTEN_KEEPALIVE
 int wb3_spawn_sphere_ex_no_sync( float x, float y, float z, float radius, float vx, float vy, float vz, float r, float g,
-								 float b, int dynamic, float density )
+								 float b, int dynamic, float density, float restitution )
 {
-	return spawn_sphere_ex( x, y, z, radius, vx, vy, vz, r, g, b, dynamic, density, false );
+	return spawn_sphere_ex( x, y, z, radius, vx, vy, vz, r, g, b, dynamic, density, restitution, false );
+}
+
+EMSCRIPTEN_KEEPALIVE
+int wb3_set_body_linear_velocity( int bodyIndex, float vx, float vy, float vz )
+{
+	if ( bodyIndex < 0 || bodyIndex >= g_bodyCount )
+	{
+		return 0;
+	}
+
+	b3BodyId bodyId = g_bodies[bodyIndex].bodyId;
+	if ( b3Body_IsValid( bodyId ) == false )
+	{
+		return 0;
+	}
+
+	b3Body_SetLinearVelocity( bodyId, (b3Vec3){ vx, vy, vz } );
+	b3Body_SetAwake( bodyId, true );
+	return 1;
+}
+
+EMSCRIPTEN_KEEPALIVE
+float wb3_get_body_linear_velocity_component( int bodyIndex, int axis )
+{
+	if ( bodyIndex < 0 || bodyIndex >= g_bodyCount )
+	{
+		return 0.0f;
+	}
+
+	b3BodyId bodyId = g_bodies[bodyIndex].bodyId;
+	if ( b3Body_IsValid( bodyId ) == false )
+	{
+		return 0.0f;
+	}
+
+	b3Vec3 velocity = b3Body_GetLinearVelocity( bodyId );
+	if ( axis == 0 )
+	{
+		return velocity.x;
+	}
+	if ( axis == 1 )
+	{
+		return velocity.y;
+	}
+	return velocity.z;
 }
 
 EMSCRIPTEN_KEEPALIVE
